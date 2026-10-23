@@ -1,7 +1,0 @@
-{
-  "timestamp": "2026-07-13T11:07:52Z",
-  "changed_file": "/Users/dieuht/Workspace/claue-learn/english_app/frontend/app/practice/page.tsx",
-  "test_command": "go test ./...",
-  "related_test": "",
-  "recommendation": "テストの実行を推奨します"
-}

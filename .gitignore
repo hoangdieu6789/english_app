@@ -16,3 +16,8 @@ backend/tmp/
 # IDE
 .vscode/
 .idea/
+
+# Claude Code local state (session logs, memory) — never commit
+**/.claude/memory/
+**/.claude/sessions/
+**/.claude/state/
