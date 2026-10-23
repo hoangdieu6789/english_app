@@ -1,0 +1,109 @@
+/* PrimeNG-style Button — themed for VPTWĐ (Party red primary).
+   Markup mirrors PrimeNG: <button class="p-button p-button-{severity} ...">. */
+
+.p-button {
+  --_bg: var(--ds-primary);
+  --_bg-hover: var(--ds-primary-500);   /* Figma: primary LIGHTENS on hover (#DC2626) */
+  --_bg-active: var(--ds-primary-hover);/* …and DARKENS on press (#A60002) */
+  --_fg: var(--ds-primary-contrast);
+  --_border: var(--ds-primary);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ds-space-2);
+  height: var(--ds-control-h-md);
+  padding: 0 18px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  border: 1px solid var(--_border);
+  border-radius: var(--ds-radius-md);
+  background: var(--_bg);
+  color: var(--_fg);
+  transition: background var(--ds-dur) var(--ds-ease),
+              border-color var(--ds-dur) var(--ds-ease),
+              color var(--ds-dur) var(--ds-ease),
+              box-shadow var(--ds-dur) var(--ds-ease);
+  user-select: none;
+}
+.p-button:hover  { background: var(--_bg-hover);  border-color: var(--_bg-hover); }
+.p-button:active { background: var(--_bg-active); border-color: var(--_bg-active); }
+.p-button:focus-visible { outline: none; box-shadow: var(--ds-focus-ring); }
+
+.p-button .p-button-icon { font-size: 16px; line-height: 1; }
+.p-button .p-button-label { display: inline-block; }
+
+/* ── Severities (solid) ───────────────────────────────────────────── */
+.p-button-secondary { --_bg: var(--ds-surface); --_bg-hover: var(--ds-surface-muted); --_bg-active: var(--neutral-200); --_fg: var(--ds-text); --_border: var(--ds-border-strong); }
+.p-button-contrast  { --_bg: var(--ds-surface-inverse); --_bg-hover: var(--gray-12); --_bg-active: #000; --_fg: #fff; --_border: var(--ds-surface-inverse); }
+.p-button-success   { --_bg: var(--ds-success); --_bg-hover: var(--success-700); --_bg-active: var(--success-800); --_fg: #fff; --_border: var(--ds-success); }
+.p-button-info      { --_bg: var(--ds-info); --_bg-hover: var(--blue-700); --_bg-active: var(--blue-800); --_fg: #fff; --_border: var(--ds-info); }
+.p-button-warn      { --_bg: var(--ds-warning); --_bg-hover: var(--orange-700); --_bg-active: var(--orange-700); --_fg: #fff; --_border: var(--ds-warning); }
+.p-button-danger    { --_bg: var(--ds-danger); --_bg-hover: var(--error-700); --_bg-active: var(--error-800); --_fg: #fff; --_border: var(--ds-danger); }
+
+/* ── Outlined ─────────────────────────────────────────────────────── */
+.p-button-outlined {
+  background: transparent;
+  color: var(--_bg);
+  border-color: color-mix(in srgb, var(--_bg) 45%, transparent);
+}
+.p-button-outlined:hover  { background: color-mix(in srgb, var(--_bg) 8%, transparent); border-color: var(--_bg); }
+.p-button-outlined:active { background: color-mix(in srgb, var(--_bg) 14%, transparent); }
+.p-button-outlined.p-button-secondary { color: var(--ds-text); border-color: var(--ds-border-strong); }
+.p-button-outlined.p-button-secondary:hover { border-color: var(--neutral-400); background: var(--ds-surface-muted); }
+
+/* ── Text (ghost) ─────────────────────────────────────────────────── */
+.p-button-text {
+  background: transparent;
+  color: var(--_bg);
+  border-color: transparent;
+}
+.p-button-text:hover  { background: color-mix(in srgb, var(--_bg) 9%, transparent); border-color: transparent; }
+.p-button-text:active { background: color-mix(in srgb, var(--_bg) 15%, transparent); border-color: transparent; }
+.p-button-text.p-button-secondary { color: var(--ds-text); }
+
+/* ── Link ─────────────────────────────────────────────────────────── */
+.p-button-link {
+  background: transparent;
+  border-color: transparent;
+  color: var(--ds-info);
+  padding: 0 4px;
+  height: auto;
+}
+.p-button-link:hover { background: transparent; border-color: transparent; text-decoration: underline; }
+
+/* ── Rounded / icon-only ──────────────────────────────────────────── */
+.p-button-rounded { border-radius: var(--ds-radius-full); }
+.p-button-icon-only { width: var(--ds-control-h-md); padding: 0; }
+.p-button-icon-only.p-button-sm { width: var(--ds-control-h-sm); }
+.p-button-icon-only.p-button-lg { width: var(--ds-control-h-lg); }
+
+/* ── Sizes ────────────────────────────────────────────────────────── */
+.p-button-sm { height: var(--ds-control-h-sm); padding: 0 14px; font-size: 13px; }
+.p-button-lg { height: var(--ds-control-h-lg); padding: 0 22px; font-size: 15px; }
+
+/* ── Raised / fluid / disabled / loading ──────────────────────────── */
+.p-button-raised { box-shadow: var(--ds-shadow-sm); }
+.p-button-fluid  { width: 100%; }
+/* Disabled — dedicated neutral treatment (Figma: gray fill, gray text/icons),
+   NOT an opacity fade. Solid variants get a gray fill; outlined/text/link stay
+   transparent with gray text. */
+.p-button:disabled, .p-button.p-disabled {
+  cursor: not-allowed; box-shadow: none; pointer-events: none;
+  background: var(--ds-surface-muted);
+  border-color: var(--ds-border);
+  color: var(--ds-text-disabled);
+}
+.p-button-outlined:disabled, .p-button-outlined.p-disabled {
+  background: transparent; color: var(--ds-text-disabled); border-color: var(--ds-border);
+}
+.p-button-text:disabled, .p-button-text.p-disabled,
+.p-button-link:disabled, .p-button-link.p-disabled {
+  background: transparent; color: var(--ds-text-disabled); border-color: transparent;
+}
+.p-button-loading-icon { animation: p-spin .7s linear infinite; }
+@keyframes p-spin { to { transform: rotate(360deg); } }

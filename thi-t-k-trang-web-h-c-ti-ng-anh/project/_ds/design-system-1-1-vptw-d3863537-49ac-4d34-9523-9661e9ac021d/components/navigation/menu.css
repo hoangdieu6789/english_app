@@ -1,0 +1,55 @@
+/* ════════════════════════════════════════════════════════════════════════
+   MENU / NAVIGATION (framework-agnostic `.p-*` + DS tokens).
+   menu · menubar · megamenu · panelmenu · contextmenu · tieredmenu · steps(see panel) · dock · tabmenu
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* shared menu surface */
+.p-menu, .p-tieredmenu, .p-contextmenu, .p-megamenu, .p-menubar, .p-panelmenu, .p-tabmenu {
+  font: 400 14px var(--font-sans); color: var(--ds-text);
+}
+.p-menu, .p-tieredmenu, .p-contextmenu {
+  min-width: 200px; padding: 4px; background: var(--ds-surface);
+  border: 1px solid var(--ds-border); border-radius: var(--ds-radius-md); box-shadow: var(--ds-shadow-lg);
+}
+.p-menu-item-content, .p-tieredmenu-item-content, .p-contextmenu-item-content,
+.p-menubar-item-content, .p-megamenu-item-content {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+  border-radius: var(--ds-radius-sm); color: var(--ds-text); cursor: pointer;
+  transition: background var(--ds-dur) var(--ds-ease);
+}
+.p-menu-item-content:hover, .p-tieredmenu-item-content:hover, .p-contextmenu-item-content:hover,
+.p-menubar-item-content:hover, .p-megamenu-item-content:hover { background: var(--ds-surface-muted); }
+.p-menu-item-icon, .p-menubar-item-icon { color: var(--ds-text-muted); font-size: 15px; }
+.p-menu-item-active > .p-menu-item-content,
+.p-menubar-item-active > .p-menubar-item-content { background: var(--ds-primary-50); color: var(--ds-primary-active); }
+.p-menu-submenu-label { padding: 8px 12px 4px; font: 600 11px var(--font-sans); letter-spacing: .05em; text-transform: uppercase; color: var(--ds-text-muted); }
+.p-menu-separator, .p-tieredmenu-separator { height: 1px; background: var(--ds-border); margin: 4px 0; }
+
+/* ── Menubar (horizontal app nav) ────────────────────────────────────── */
+.p-menubar {
+  display: flex; align-items: center; gap: 4px; padding: 8px 12px;
+  background: var(--ds-surface); border: 1px solid var(--ds-border); border-radius: var(--ds-radius-xl);
+}
+.p-menubar-root-list { display: flex; gap: 4px; list-style: none; margin: 0; padding: 0; }
+.p-menubar .p-menubar-item-content { padding: 8px 14px; border-radius: var(--ds-radius-full); }
+
+/* ── MegaMenu ────────────────────────────────────────────────────────── */
+.p-megamenu { display: flex; gap: 4px; padding: 8px 12px; background: var(--ds-surface); border: 1px solid var(--ds-border); border-radius: var(--ds-radius-xl); }
+.p-megamenu-overlay { background: var(--ds-surface); border: 1px solid var(--ds-border); border-radius: var(--ds-radius-lg); box-shadow: var(--ds-shadow-lg); padding: 12px; }
+.p-megamenu-submenu-label { font: 600 12px var(--font-sans); color: var(--ds-text-muted); padding: 6px 10px; }
+
+/* ── PanelMenu (vertical accordion menu) ─────────────────────────────── */
+.p-panelmenu { display: flex; flex-direction: column; gap: 6px; }
+.p-panelmenu-panel { border: 1px solid var(--ds-border); border-radius: var(--ds-radius-md); overflow: hidden; }
+.p-panelmenu-header-content { display: flex; align-items: center; gap: 10px; padding: 11px 14px; font: 600 14px var(--font-sans); color: var(--ds-text); cursor: pointer; background: var(--ds-surface); }
+.p-panelmenu-header-content:hover { background: var(--ds-surface-subtle); }
+
+/* ── TabMenu ─────────────────────────────────────────────────────────── */
+.p-tabmenu-tablist { display: flex; gap: 4px; border-bottom: 1px solid var(--ds-border); list-style: none; margin: 0; padding: 0; }
+.p-tabmenu-item-link { display: inline-flex; align-items: center; gap: 8px; padding: 11px 14px; margin-bottom: -1px; border-bottom: 2px solid transparent; font: 600 14px var(--font-sans); color: var(--ds-text-muted); cursor: pointer; }
+.p-tabmenu-item-active .p-tabmenu-item-link { color: var(--ds-primary); border-bottom-color: var(--ds-primary); }
+
+/* ── Dock ────────────────────────────────────────────────────────────── */
+.p-dock-list { display: flex; gap: 10px; padding: 8px 12px; background: rgba(255,255,255,.6); backdrop-filter: blur(8px); border: 1px solid var(--ds-border); border-radius: var(--ds-radius-2xl); box-shadow: var(--ds-shadow-md); list-style: none; margin: 0; }
+.p-dock-item { width: 44px; height: 44px; display: grid; place-items: center; border-radius: var(--ds-radius-lg); background: var(--ds-surface); transition: transform var(--ds-dur) var(--ds-ease); cursor: pointer; }
+.p-dock-item:hover { transform: translateY(-6px) scale(1.08); }

@@ -1,0 +1,72 @@
+/* ════════════════════════════════════════════════════════════════════════
+   MISC / MEDIA (framework-agnostic `.p-*` + DS tokens).
+   splitbutton · speeddial · image · carousel · galleria · fileupload ·
+   progressbar · progressspinner · skeleton · scrolltop · inplace · blockui · metergroup
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* ── SplitButton ─────────────────────────────────────────────────────── */
+.p-splitbutton { display: inline-flex; }
+.p-splitbutton .p-button { border-radius: 0; }
+.p-splitbutton .p-splitbutton-button { border-top-left-radius: var(--ds-radius-md); border-bottom-left-radius: var(--ds-radius-md); }
+.p-splitbutton .p-splitbutton-dropdown { border-top-right-radius: var(--ds-radius-md); border-bottom-right-radius: var(--ds-radius-md); border-left: 1px solid rgba(255,255,255,.25); width: 40px; padding: 0; }
+
+/* ── SpeedDial ───────────────────────────────────────────────────────── */
+.p-speeddial { position: relative; }
+.p-speeddial-button { width: 52px; height: 52px; border-radius: 50%; background: var(--ds-primary); color: #fff; border: none; box-shadow: var(--ds-shadow-md); cursor: pointer; font-size: 18px; }
+.p-speeddial-list { list-style: none; margin: 0; padding: 0; display: flex; gap: 10px; }
+.p-speeddial-item .p-speeddial-action { width: 42px; height: 42px; border-radius: 50%; background: var(--ds-surface-inverse); color: #fff; display: grid; place-items: center; cursor: pointer; box-shadow: var(--ds-shadow-sm); }
+
+/* ── Image ───────────────────────────────────────────────────────────── */
+.p-image { display: inline-block; position: relative; }
+.p-image img { display: block; border-radius: var(--ds-radius-md); }
+.p-image-preview-mask { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; background: rgba(18,26,43,.4); opacity: 0; transition: opacity var(--ds-dur) var(--ds-ease); border-radius: var(--ds-radius-md); cursor: pointer; }
+.p-image:hover .p-image-preview-mask { opacity: 1; }
+
+/* ── Carousel / Galleria indicators ──────────────────────────────────── */
+.p-carousel-indicator-list, .p-galleria-indicator-list { display: flex; gap: 8px; justify-content: center; padding: 12px; list-style: none; margin: 0; }
+.p-carousel-indicator-button, .p-galleria-indicator-button { width: 8px; height: 8px; border-radius: var(--ds-radius-full); background: var(--ds-border-strong); border: none; cursor: pointer; }
+.p-carousel-indicator-active .p-carousel-indicator-button, .p-galleria-indicator-active .p-galleria-indicator-button { background: var(--ds-primary); width: 22px; }
+.p-carousel-prev-button, .p-carousel-next-button { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--ds-border); background: var(--ds-surface); color: var(--ds-text-secondary); cursor: pointer; }
+
+/* ── FileUpload ──────────────────────────────────────────────────────── */
+.p-fileupload { border: 1px dashed var(--ds-border-strong); border-radius: var(--ds-radius-xl); background: var(--ds-surface-subtle); overflow: hidden; }
+.p-fileupload-header { display: flex; gap: 10px; align-items: center; padding: 12px 16px; background: var(--ds-surface); border-bottom: 1px solid var(--ds-border); }
+.p-fileupload-content { padding: 24px 16px; text-align: center; color: var(--ds-text-muted); font: 400 14px var(--font-sans); }
+.p-fileupload.p-fileupload-highlight { border-color: var(--ds-primary); background: var(--ds-primary-50); }
+.p-fileupload-file { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: var(--ds-radius-md); background: var(--ds-surface); }
+
+/* ── ProgressBar ─────────────────────────────────────────────────────── */
+.p-progressbar { height: 12px; background: var(--ds-surface-muted); border-radius: var(--ds-radius-full); overflow: hidden; }
+.p-progressbar-value { height: 100%; background: var(--ds-primary); border-radius: var(--ds-radius-full); display: flex; align-items: center; justify-content: center; color: #fff; font: 600 10px var(--font-sans); transition: width var(--ds-dur) var(--ds-ease); }
+.p-progressbar-indeterminate .p-progressbar-value { width: 40% !important; animation: p-progress-indet 1.2s infinite var(--ds-ease); }
+@keyframes p-progress-indet { 0% { margin-left: -40%; } 100% { margin-left: 100%; } }
+
+/* ── ProgressSpinner ─────────────────────────────────────────────────── */
+.p-progressspinner { display: inline-block; width: 40px; height: 40px; }
+.p-progressspinner-circle { stroke: var(--ds-primary); stroke-linecap: round; animation: p-spinner-dash 1.4s ease-in-out infinite, p-spinner-rotate 2s linear infinite; transform-origin: center; }
+@keyframes p-spinner-rotate { 100% { transform: rotate(360deg); } }
+@keyframes p-spinner-dash { 0% { stroke-dasharray: 1,200; stroke-dashoffset: 0; } 50% { stroke-dasharray: 89,200; stroke-dashoffset: -35; } 100% { stroke-dasharray: 89,200; stroke-dashoffset: -124; } }
+
+/* ── Skeleton ────────────────────────────────────────────────────────── */
+.p-skeleton { background: var(--ds-surface-muted); border-radius: var(--ds-radius-sm); overflow: hidden; position: relative; }
+.p-skeleton-circle { border-radius: 50%; }
+.p-skeleton::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent); animation: p-skeleton-shine 1.4s infinite; }
+@keyframes p-skeleton-shine { 100% { transform: translateX(100%); } }
+
+/* ── ScrollTop ───────────────────────────────────────────────────────── */
+.p-scrolltop { position: fixed; bottom: 24px; right: 24px; width: 44px; height: 44px; border-radius: 50%; background: var(--ds-primary); color: #fff; border: none; box-shadow: var(--ds-shadow-md); cursor: pointer; display: grid; place-items: center; }
+
+/* ── Inplace ─────────────────────────────────────────────────────────── */
+.p-inplace-display { padding: 8px 12px; border-radius: var(--ds-radius-sm); cursor: pointer; color: var(--ds-text); }
+.p-inplace-display:hover { background: var(--ds-surface-muted); }
+
+/* ── BlockUI ─────────────────────────────────────────────────────────── */
+.p-blockui { position: absolute; inset: 0; background: rgba(18,26,43,.4); display: grid; place-items: center; border-radius: inherit; z-index: 1100; }
+
+/* ── MeterGroup ──────────────────────────────────────────────────────── */
+.p-metergroup { display: flex; flex-direction: column; gap: 12px; }
+.p-metergroup-meters { display: flex; height: 12px; background: var(--ds-surface-muted); border-radius: var(--ds-radius-full); overflow: hidden; }
+.p-metergroup-meter { height: 100%; }
+.p-metergroup-label-list { display: flex; gap: 18px; list-style: none; margin: 0; padding: 0; font: 500 13px var(--font-sans); color: var(--ds-text-secondary); }
+.p-metergroup-label { display: flex; align-items: center; gap: 6px; }
+.p-metergroup-label-marker { width: 12px; height: 12px; border-radius: 3px; }

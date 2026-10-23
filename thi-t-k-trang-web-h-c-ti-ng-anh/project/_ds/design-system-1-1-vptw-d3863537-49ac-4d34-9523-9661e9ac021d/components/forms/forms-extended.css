@@ -1,0 +1,130 @@
+/* ════════════════════════════════════════════════════════════════════════
+   FORMS — extended controls (framework-agnostic `.p-*` classes + DS tokens).
+   Works with PrimeNG (Angular) / PrimeReact / PrimeVue and plain HTML.
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* ── MultiSelect / Chips trigger ─────────────────────────────────────── */
+.p-multiselect, .p-chips {
+  width: 100%; min-height: var(--ds-control-h-md);
+  display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 4px 12px; background: var(--ds-surface);
+  border: 1px solid var(--ds-border-strong); border-radius: var(--ds-radius-md);
+  font: 400 14px var(--font-sans); color: var(--ds-text); cursor: pointer;
+  transition: border-color var(--ds-dur) var(--ds-ease), box-shadow var(--ds-dur) var(--ds-ease);
+}
+.p-multiselect:hover, .p-chips:hover { border-color: var(--neutral-400); }
+.p-multiselect.p-focus, .p-chips.p-focus { border-color: var(--ds-focus); box-shadow: var(--ds-focus-ring); outline: none; }
+.p-multiselect-label.p-placeholder { color: var(--ds-text-muted); }
+
+/* token chip (used by multiselect, chips, autocomplete multiple) */
+.p-chip, .p-token {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 8px 3px 10px; border-radius: var(--ds-radius-full);
+  background: var(--ds-surface-muted); color: var(--ds-text);
+  font: 500 13px var(--font-sans);
+}
+.p-chip .p-chip-remove, .p-token-remove { cursor: pointer; color: var(--ds-text-muted); font-size: 12px; }
+.p-chip .p-chip-remove:hover { color: var(--ds-text); }
+
+/* ── AutoComplete ────────────────────────────────────────────────────── */
+.p-autocomplete { width: 100%; }
+.p-autocomplete .p-inputtext { width: 100%; }
+
+/* ── InputNumber / Password / InputMask / IconField wrappers ─────────── */
+.p-inputnumber, .p-password { display: inline-flex; position: relative; width: 100%; }
+.p-inputnumber .p-inputtext, .p-password .p-inputtext { width: 100%; }
+.p-inputnumber-button-group { display: flex; flex-direction: column; }
+.p-inputnumber-button {
+  width: 34px; flex: 1; display: grid; place-items: center;
+  background: var(--ds-surface-subtle); border: 1px solid var(--ds-border-strong);
+  color: var(--ds-text-secondary); cursor: pointer;
+}
+.p-inputnumber-button:hover { background: var(--ds-surface-muted); color: var(--ds-primary); }
+.p-password-toggle { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--ds-text-muted); }
+
+/* ── InputOTP ────────────────────────────────────────────────────────── */
+.p-inputotp { display: inline-flex; gap: 8px; }
+.p-inputotp-input {
+  width: 44px; height: 48px; text-align: center;
+  font: 600 18px var(--font-sans); color: var(--ds-text);
+  border: 1px solid var(--ds-border-strong); border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+}
+.p-inputotp-input:focus-visible { outline: none; border-color: var(--ds-focus); box-shadow: var(--ds-focus-ring); }
+
+/* ── SelectButton / ToggleButton ─────────────────────────────────────── */
+.p-selectbutton { display: inline-flex; gap: 6px; padding: 4px; background: var(--ds-surface-subtle); border-radius: var(--ds-radius-md); }
+.p-selectbutton .p-togglebutton, .p-togglebutton {
+  height: var(--ds-control-h-sm); padding: 0 16px; border: 1px solid transparent;
+  border-radius: var(--ds-radius-sm); background: transparent; cursor: pointer;
+  font: 500 14px var(--font-sans); color: var(--ds-text-secondary);
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.p-togglebutton:hover { color: var(--ds-text); }
+.p-togglebutton.p-togglebutton-checked { background: var(--ds-primary); color: #fff; border-color: var(--ds-primary); }
+.p-togglebutton.p-togglebutton-checked:hover { color: #fff; }
+
+/* ── Slider ──────────────────────────────────────────────────────────── */
+.p-slider { position: relative; background: var(--ds-surface-muted); border-radius: var(--ds-radius-full); }
+.p-slider-horizontal { height: 6px; width: 100%; }
+.p-slider-vertical { width: 6px; height: 160px; }
+.p-slider-range { position: absolute; background: var(--ds-primary); border-radius: var(--ds-radius-full); }
+.p-slider-horizontal .p-slider-range { top: 0; height: 100%; }
+.p-slider-handle {
+  position: absolute; width: 18px; height: 18px; top: 50%; transform: translate(-50%, -50%);
+  background: var(--ds-primary); border: 2px solid var(--ds-surface); border-radius: 50%;
+  box-shadow: var(--ds-shadow-sm); cursor: grab;
+}
+.p-slider-handle:focus-visible { outline: none; box-shadow: var(--ds-focus-ring); }
+
+/* ── Rating ──────────────────────────────────────────────────────────── */
+.p-rating { display: inline-flex; gap: 4px; }
+.p-rating-option { color: var(--ds-border-strong); font-size: 20px; cursor: pointer; transition: color var(--ds-dur) var(--ds-ease); }
+.p-rating-option.p-rating-option-active { color: var(--ds-warning); }
+.p-rating-option:hover { color: var(--orange-500, #f97316); }
+
+/* ── Knob ────────────────────────────────────────────────────────────── */
+.p-knob-text { fill: var(--ds-text); font: 600 16px var(--font-sans); }
+.p-knob-range { stroke: var(--ds-surface-muted); }
+.p-knob-value { stroke: var(--ds-primary); }
+
+/* ── ColorPicker ─────────────────────────────────────────────────────── */
+.p-colorpicker-preview {
+  width: 40px; height: var(--ds-control-h-md); border-radius: var(--ds-radius-md);
+  border: 1px solid var(--ds-border-strong); cursor: pointer;
+}
+
+/* ── Listbox ─────────────────────────────────────────────────────────── */
+.p-listbox {
+  border: 1px solid var(--ds-border); border-radius: var(--ds-radius-md);
+  background: var(--ds-surface); padding: 4px; overflow: auto;
+}
+.p-listbox-option {
+  display: flex; align-items: center; gap: 8px; padding: 9px 12px;
+  border-radius: var(--ds-radius-sm); font: 400 14px var(--font-sans); color: var(--ds-text); cursor: pointer;
+}
+.p-listbox-option:hover { background: var(--ds-surface-muted); }
+.p-listbox-option.p-listbox-option-selected { background: var(--ds-primary-50); color: var(--ds-primary-active); font-weight: 600; }
+
+/* ── DatePicker / Calendar ───────────────────────────────────────────── */
+.p-datepicker-input { width: 100%; }
+.p-datepicker-panel {
+  background: var(--ds-surface); border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-xl); box-shadow: var(--ds-shadow-lg); padding: 12px;
+}
+.p-datepicker-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 8px; }
+.p-datepicker-title { font: 600 14px var(--font-sans); color: var(--ds-text); }
+.p-datepicker-prev-button, .p-datepicker-next-button {
+  width: 32px; height: 32px; border-radius: var(--ds-radius-sm); border: none; background: transparent;
+  color: var(--ds-text-secondary); cursor: pointer; display: grid; place-items: center;
+}
+.p-datepicker-prev-button:hover, .p-datepicker-next-button:hover { background: var(--ds-surface-muted); }
+.p-datepicker-calendar { border-collapse: collapse; }
+.p-datepicker-weekday { font: 600 11px var(--font-sans); color: var(--ds-text-muted); padding: 6px; text-transform: uppercase; }
+.p-datepicker-day {
+  width: 36px; height: 36px; border-radius: var(--ds-radius-sm); border: none; background: transparent;
+  font: 400 13px var(--font-sans); color: var(--ds-text); cursor: pointer;
+}
+.p-datepicker-day:hover { background: var(--ds-surface-muted); }
+.p-datepicker-day-selected { background: var(--ds-primary); color: #fff; }
+.p-datepicker-today .p-datepicker-day { border: 1px solid var(--ds-primary); }

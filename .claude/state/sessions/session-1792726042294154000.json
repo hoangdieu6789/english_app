@@ -1,0 +1,42 @@
+{
+  "changes_this_session": [],
+  "cwd": "/Users/dieuht/Workspace/claue-learn/english_app",
+  "duration_minutes": 1,
+  "ended_at": "2026-10-23T03:28:44Z",
+  "event_seq": 0,
+  "fork_count": 0,
+  "git": {
+    "branch": "unknown",
+    "last_commit": "none",
+    "uncommitted_changes": 0
+  },
+  "harness_mem": {
+    "healthy": true,
+    "last_checked": "2026-10-23T03:27:22Z",
+    "last_error": ""
+  },
+  "intent": "literal",
+  "last_event_id": "",
+  "memory_logged": true,
+  "orchestration": {
+    "max_state_retries": 3,
+    "retry_backoff_seconds": 10
+  },
+  "parent_session_id": null,
+  "plans": {
+    "completed_tasks": 0,
+    "exists": false,
+    "last_modified": 0,
+    "pending_tasks": 0,
+    "todo_tasks": 0,
+    "wip_tasks": 0
+  },
+  "project_name": "english_app",
+  "prompt_seq": 4,
+  "resume_token": "resume-1792726042294165000",
+  "session_id": "session-1792726042294154000",
+  "started_at": "2026-10-23T03:27:22Z",
+  "state": "stopped",
+  "state_version": 1,
+  "updated_at": "2026-10-23T03:27:22Z"
+}

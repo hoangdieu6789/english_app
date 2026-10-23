@@ -1,0 +1,100 @@
+/* ── DatePicker (calendar) — VPTWĐ theme ───────────────────────────────
+   PrimeNG-compatible structure: .p-datepicker (input) + .p-datepicker-panel
+   (calendar popup / inline). Party-red selection, Monday-first week (T2…CN). */
+
+/* Input trigger */
+.p-datepicker { position: relative; display: inline-flex; width: 100%; }
+.p-datepicker-input {
+  width: 100%; height: var(--ds-control-h-md); padding: 0 40px 0 14px;
+  font: 400 14px var(--font-sans); color: var(--ds-text);
+  background: var(--ds-surface); border: 1px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-md); outline: none;
+  transition: border-color var(--ds-dur) var(--ds-ease), box-shadow var(--ds-dur) var(--ds-ease);
+}
+.p-datepicker-input::placeholder { color: var(--ds-text-muted); }
+.p-datepicker-input:hover { border-color: var(--neutral-400); }
+.p-datepicker-input:focus { border-color: var(--ds-focus); box-shadow: var(--ds-focus-ring); }
+.p-datepicker-input:disabled { background: var(--ds-surface-subtle); color: var(--ds-text-disabled); cursor: not-allowed; }
+.p-datepicker-trigger {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  width: 30px; height: 30px; display: grid; place-items: center;
+  border: none; background: transparent; color: var(--ds-text-muted); cursor: pointer;
+  border-radius: var(--ds-radius-sm);
+}
+.p-datepicker-trigger:hover { background: var(--ds-surface-muted); color: var(--ds-text); }
+
+/* Panel */
+.p-datepicker-panel {
+  width: 300px; padding: 16px;
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  box-shadow: var(--ds-shadow-lg);
+  font-family: var(--font-sans);
+  user-select: none;
+}
+.p-datepicker-panel-inline { display: inline-block; }
+
+/* Header */
+/* prev (far left) · centered title · next (far right) */
+.p-datepicker-header {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 12px;
+}
+.p-datepicker-title { flex: 1; display: flex; align-items: baseline; justify-content: center; gap: 6px; font: 600 15px var(--font-sans); color: var(--ds-text); }
+.p-datepicker-title .p-datepicker-year { color: var(--ds-text-secondary); font-weight: 500; }
+.p-datepicker-nav-btn {
+  flex: none; width: 30px; height: 30px; display: grid; place-items: center;
+  border: none; background: transparent; color: var(--ds-text-secondary);
+  border-radius: var(--ds-radius-sm); cursor: pointer; font-size: 15px;
+}
+.p-datepicker-nav-btn:hover { background: var(--ds-surface-muted); color: var(--ds-text); }
+
+/* Weekday + day grid */
+.p-datepicker-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.p-datepicker-weekday {
+  height: 32px; display: grid; place-items: center;
+  font: 600 12px var(--font-sans); color: var(--ds-text-muted);
+}
+.p-datepicker-day {
+  height: 36px; display: grid; place-items: center;
+  font: 400 14px var(--font-sans); color: var(--ds-text);
+  border-radius: var(--ds-radius-md); cursor: pointer; border: 1px solid transparent;
+  transition: background var(--ds-dur) var(--ds-ease), color var(--ds-dur) var(--ds-ease);
+}
+.p-datepicker-day:hover { background: var(--ds-surface-muted); }
+.p-datepicker-day-other { color: var(--ds-text-muted); opacity: .6; }
+.p-datepicker-day-today { font-weight: 600; border-color: var(--ds-primary); color: var(--ds-primary); }
+.p-datepicker-day-selected,
+.p-datepicker-day-selected:hover { background: var(--ds-primary); color: #fff; font-weight: 600; }
+/* range */
+.p-datepicker-day-in-range { background: var(--ds-primary-50); border-radius: 0; }
+.p-datepicker-day-range-start { background: var(--ds-primary); color: #fff; font-weight: 600; border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.p-datepicker-day-range-end   { background: var(--ds-primary); color: #fff; font-weight: 600; border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.p-datepicker-day-disabled { color: var(--ds-text-disabled); cursor: not-allowed; pointer-events: none; }
+.p-datepicker-day-disabled:hover { background: transparent; }
+
+/* Time row */
+.p-datepicker-time {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--ds-border-subtle);
+}
+.p-datepicker-time-field {
+  display: inline-flex; align-items: center; gap: 8px;
+  flex: 1; height: 40px; padding: 0 12px;
+  background: var(--ds-surface); border: 1px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-md);
+}
+.p-datepicker-time-field:focus-within { border-color: var(--ds-focus); box-shadow: var(--ds-focus-ring); }
+.p-datepicker-time-field input {
+  flex: 1; min-width: 0; border: none; outline: none; background: transparent;
+  font: 500 14px var(--font-sans); color: var(--ds-text);
+}
+.p-datepicker-time-field .pi { color: var(--ds-text-muted); font-size: 15px; flex: none; }
+.p-datepicker-time-sep { font: 600 14px var(--font-sans); color: var(--ds-text-secondary); flex: none; }
+
+/* Footer */
+.p-datepicker-footer {
+  display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+  margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--ds-border-subtle);
+}

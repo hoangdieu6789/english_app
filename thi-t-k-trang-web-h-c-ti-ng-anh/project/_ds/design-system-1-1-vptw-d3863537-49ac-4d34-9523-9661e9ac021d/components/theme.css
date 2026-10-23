@@ -1,0 +1,35 @@
+/* ════════════════════════════════════════════════════════════════════════
+   COMPONENT THEME BARREL — framework-agnostic `.p-*` component styles.
+   Bound to the DS token layer (tokens/*). Because PrimeNG (Angular),
+   PrimeReact and PrimeVue all share the `.p-*` class structure, this one
+   stylesheet themes ANY of them — and plain HTML — identically.
+   Import-list only; each group owns its CSS.
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* Forms */
+@import "./forms/forms.css";
+@import "./forms/forms-extended.css";
+@import "./forms/datepicker.css";
+
+/* Buttons + misc/media */
+@import "./button/button.css";
+@import "./misc/misc.css";
+
+/* Data */
+@import "./data/data.css";
+@import "./data/data-extended.css";
+
+/* Panel / layout */
+@import "./panel/panel.css";
+@import "./panel/panel-extended.css";
+
+/* Navigation / menus */
+@import "./navigation/navigation.css";
+@import "./navigation/menu.css";
+
+/* Overlay */
+@import "./overlay/overlay.css";
+
+/* Feedback */
+@import "./feedback/feedback.css";
+@import "./feedback/toast.css";

@@ -1,0 +1,94 @@
+/* Data display — Badge, Avatar, DataTable. VPTWĐ theme. */
+
+/* ── Badge (count / dot) ──────────────────────────────────────────── */
+.p-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 20px; height: 20px; padding: 0 6px;
+  font: 600 11px var(--font-sans); line-height: 1;
+  border-radius: var(--ds-radius-full);
+  background: var(--ds-primary); color: #fff;
+}
+.p-badge-secondary { background: var(--ds-surface-muted); color: var(--ds-text-secondary); }
+.p-badge-contrast  { background: var(--ds-surface-inverse); color: #fff; }
+.p-badge-success   { background: var(--ds-success); }
+.p-badge-info      { background: var(--ds-info); }
+.p-badge-warn      { background: var(--ds-warning); }
+.p-badge-danger    { background: var(--ds-danger); }
+.p-badge-dot       { min-width: 8px; width: 8px; height: 8px; padding: 0; }
+.p-badge-lg        { min-width: 24px; height: 24px; font-size: 12px; }
+
+/* ── Badge · status (text label, soft tonal) ──────────────────────────
+   Figma "Badge" page: pill with a soft tinted fill, 1px tonal border and
+   colored label text (e.g. Chờ xử lý / Đang xử lý / Đã hoàn thành). */
+.p-badge-status {
+  min-width: 0; height: auto; width: auto;
+  padding: 3px 10px;
+  font: 600 12px var(--font-sans); line-height: 1.4;
+  border-radius: var(--ds-radius-md);
+  border: 1px solid var(--ds-border);
+  background: var(--ds-surface-muted);
+  color: var(--ds-text-secondary);
+}
+.p-badge-status.p-badge-info      { background: var(--ds-info-bg);    color: var(--blue-700);    border-color: var(--ds-info-border); }
+.p-badge-status.p-badge-success   { background: var(--ds-success-bg); color: var(--success-700); border-color: var(--ds-success-border); }
+.p-badge-status.p-badge-warn      { background: var(--ds-warning-bg); color: var(--orange-700);  border-color: var(--ds-warning-border); }
+.p-badge-status.p-badge-danger    { background: var(--ds-danger-bg);  color: var(--error-700);   border-color: var(--ds-danger-border); }
+.p-badge-status.p-badge-secondary { background: var(--ds-surface-muted); color: var(--ds-text-secondary); border-color: var(--ds-border); }
+.p-badge-status .p-badge-status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; margin-right: 2px; flex: none; }
+.p-badge-status .p-badge-status-icon { font-size: 12px; }
+.p-badge-status-rounded { border-radius: var(--ds-radius-full); }
+.p-badge-status.p-badge-primary { background: var(--ds-primary-50); color: var(--ds-primary-active); border-color: var(--ds-primary-200); }
+.p-badge-status { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+
+/* ── Avatar ───────────────────────────────────────────────────────── */
+.p-avatar {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; flex: none;
+  font: 600 14px var(--font-sans);
+  background: var(--ds-primary-100); color: var(--ds-primary-active);
+  border-radius: var(--ds-radius-full); overflow: hidden;
+}
+.p-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.p-avatar-sm { width: 32px; height: 32px; font-size: 12px; }
+.p-avatar-lg { width: 56px; height: 56px; font-size: 18px; }
+.p-avatar-square { border-radius: var(--ds-radius-md); }
+.p-avatar-group { display: inline-flex; }
+.p-avatar-group .p-avatar { border: 2px solid var(--ds-surface); margin-left: -10px; }
+.p-avatar-group .p-avatar:first-child { margin-left: 0; }
+
+/* ── DataTable ────────────────────────────────────────────────────── */
+.p-datatable {
+  width: 100%;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  overflow: hidden;
+  background: var(--ds-surface);
+}
+.p-datatable table { width: 100%; border-collapse: collapse; font: 400 14px var(--font-sans); }
+.p-datatable thead th {
+  text-align: left; padding: 12px 16px;
+  font: 600 12px var(--font-sans); letter-spacing: .03em;
+  color: var(--ds-text-secondary); background: var(--ds-surface-subtle);
+  border-bottom: 1px solid var(--ds-border); white-space: nowrap;
+}
+.p-datatable thead th.p-sortable { cursor: pointer; user-select: none; }
+.p-datatable thead th .p-sort-icon { margin-left: 6px; font-size: 11px; color: var(--ds-text-muted); }
+.p-datatable tbody td { padding: 13px 16px; color: var(--ds-text); border-bottom: 1px solid var(--ds-border-subtle); vertical-align: middle; }
+.p-datatable tbody tr:last-child td { border-bottom: none; }
+.p-datatable tbody tr:hover { background: var(--ds-surface-subtle); }
+.p-datatable tbody tr.p-selected { background: var(--ds-primary-50); }
+.p-datatable.p-datatable-striped tbody tr:nth-child(even) { background: color-mix(in srgb, var(--ds-surface-subtle) 55%, transparent); }
+.p-datatable .p-col-num { text-align: right; font-variant-numeric: tabular-nums; }
+.p-datatable-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-top: 1px solid var(--ds-border);
+  font: 400 13px var(--font-sans); color: var(--ds-text-secondary);
+}
+.p-paginator { display: inline-flex; gap: 4px; }
+.p-paginator-page {
+  min-width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--ds-radius-sm); border: 1px solid transparent; background: transparent;
+  font: 500 13px var(--font-sans); color: var(--ds-text-secondary); cursor: pointer;
+}
+.p-paginator-page:hover { background: var(--ds-surface-muted); }
+.p-paginator-page.p-selected { background: var(--ds-primary); color: #fff; }

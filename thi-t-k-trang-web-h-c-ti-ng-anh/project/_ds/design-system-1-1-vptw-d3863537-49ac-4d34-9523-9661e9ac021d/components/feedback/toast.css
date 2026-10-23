@@ -1,0 +1,22 @@
+/* ════════════════════════════════════════════════════════════════════════
+   FEEDBACK — Toast (framework-agnostic `.p-*` + DS tokens).
+   Inline Message lives in feedback.css. Status surfaces use the DS ramp.
+   ════════════════════════════════════════════════════════════════════════ */
+.p-toast { position: fixed; top: 20px; right: 20px; width: 380px; max-width: calc(100vw - 40px); display: flex; flex-direction: column; gap: 10px; z-index: 1400; }
+.p-toast-message {
+  display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px;
+  background: var(--ds-surface); border: 1px solid var(--ds-border);
+  border-left: 4px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-xl); box-shadow: var(--ds-shadow-lg);
+}
+.p-toast-message-icon { flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 12px; margin-top: 1px; }
+.p-toast-message-content { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.p-toast-summary { font: 600 14px var(--font-sans); color: var(--ds-text); }
+.p-toast-detail { font: 400 14px/1.5 var(--font-sans); color: var(--ds-text-secondary); }
+.p-toast-close-button { border: none; background: transparent; color: var(--ds-text-muted); cursor: pointer; font-size: 14px; }
+.p-toast-close-button:hover { color: var(--ds-text); }
+
+.p-toast-message-success { border-left-color: var(--ds-success); } .p-toast-message-success .p-toast-message-icon { background: var(--ds-success); }
+.p-toast-message-info    { border-left-color: var(--ds-info); }    .p-toast-message-info .p-toast-message-icon { background: var(--ds-info); }
+.p-toast-message-warn    { border-left-color: var(--ds-warning); } .p-toast-message-warn .p-toast-message-icon { background: var(--ds-warning); }
+.p-toast-message-error   { border-left-color: var(--ds-danger); }  .p-toast-message-error .p-toast-message-icon { background: var(--ds-danger); }

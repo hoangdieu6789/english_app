@@ -1,0 +1,94 @@
+/* ──────────────────────────────────────────────────────────────────────
+   FOUNDATION — component-facing semantic aliases.
+
+   The canonical token names live in fig-tokens.css (extracted verbatim from
+   the Figma file: --brand-*, --neutral-*, --gray-*, --radius-*, etc.).
+   This layer resolves the unitless Figma length tokens into px and exposes
+   a clean, stable "ds-" surface for the React components to consume so they
+   never depend on a token that shifts between Figma modes.
+
+   Brand: Văn phòng Trung ương Đảng — Party red (#B9000E) + national-flag gold.
+   ────────────────────────────────────────────────────────────────────── */
+:root {
+  /* Type families */
+  --font-sans: "Inter", "Be Vietnam Pro", system-ui, -apple-system, sans-serif;
+  --font-display: "FS PF BeauSans Pro", "Be Vietnam Pro", "Inter", system-ui, sans-serif;
+
+  /* Brand red (from --brand-* scale) */
+  --ds-primary-50:  var(--brand-50);   /* #FEF2F2 */
+  --ds-primary-100: var(--brand-100);  /* #FEE2E2 */
+  --ds-primary-200: var(--brand-200);  /* #FECACA */
+  --ds-primary-300: var(--brand-300);  /* #FCA5A5 */
+  --ds-primary-400: var(--brand-400);  /* #F87171 */
+  --ds-primary-500: var(--brand-500);  /* #DC2626 */
+  --ds-primary:     var(--brand-600);  /* #B9000E — the Party red */
+  --ds-primary-hover:  var(--brand-700);   /* #A60002 */
+  --ds-primary-active: var(--brand-800);   /* #950002 */
+  --ds-primary-contrast: #ffffff;
+
+  /* National-flag gold (logo accent only — never a UI action color) */
+  --ds-gold: rgb(255,242,47);
+
+  /* Neutral / surfaces */
+  --ds-surface:        #ffffff;
+  --ds-surface-subtle: var(--neutral-50);   /* #F6F7F9 */
+  --ds-surface-muted:  var(--neutral-100);  /* #F0F2F4 */
+  --ds-surface-hover:  var(--neutral-100);
+  --ds-surface-inverse: var(--gray-13);     /* #14151A */
+
+  /* Text */
+  --ds-text:           var(--gray-13);      /* #14151A */
+  --ds-text-secondary: var(--neutral-600);  /* #4B5563 */
+  --ds-text-muted:     var(--neutral-500-2);/* #6B7280 */
+  --ds-text-disabled:  var(--neutral-400);  /* #9CA3AF */
+  --ds-text-on-primary: #ffffff;
+
+  /* Borders */
+  --ds-border:        var(--neutral-200);   /* #E5E7EB */
+  --ds-border-strong: var(--neutral-300);   /* #C3C8D0 */
+  --ds-border-subtle: var(--neutral-100);
+
+  /* Focus ring — the source uses a light-blue ring on all interactive states */
+  --ds-focus: rgb(96,165,250);              /* blue-400 */
+  --ds-focus-ring: 0 0 0 3px rgba(96,165,250,.45);
+
+  /* Semantic status (success / info / warn / error) */
+  --ds-success:    var(--success-600);  --ds-success-bg: var(--success-50);  --ds-success-border: rgb(187,247,208);
+  --ds-info:       var(--blue-600);     --ds-info-bg: var(--blue-50);        --ds-info-border: var(--blue-200);
+  --ds-warning:    var(--orange-600);   --ds-warning-bg: var(--orange-50);   --ds-warning-border: rgb(254,215,170);
+  --ds-danger:     var(--error-600);    --ds-danger-bg: var(--error-50);     --ds-danger-border: var(--error-200);
+
+  /* Radii — px-resolved from Figma's unitless --radius-* tokens */
+  --ds-radius-xs:  4px;
+  --ds-radius-sm:  6px;
+  --ds-radius-md:  8px;
+  --ds-radius-lg:  10px;
+  --ds-radius-xl:  12px;
+  --ds-radius-2xl: 16px;
+  --ds-radius-full: 9999px;
+
+  /* Spacing scale (px) */
+  --ds-space-1: 4px;
+  --ds-space-2: 8px;
+  --ds-space-3: 12px;
+  --ds-space-4: 16px;
+  --ds-space-5: 20px;
+  --ds-space-6: 24px;
+  --ds-space-8: 32px;
+
+  /* Elevation — derived from the source's rgba(18,26,43,*) shadow tokens */
+  --ds-shadow-xs: 0 1px 2px rgba(18,26,43,.06);
+  --ds-shadow-sm: 0 1px 3px rgba(18,26,43,.10), 0 1px 2px rgba(18,26,43,.06);
+  --ds-shadow-md: 0 4px 8px -2px rgba(18,26,43,.10), 0 2px 4px -2px rgba(18,26,43,.06);
+  --ds-shadow-lg: 0 12px 16px -4px rgba(18,26,43,.10), 0 4px 6px -2px rgba(18,26,43,.05);
+  --ds-shadow-xl: 0 20px 28px -6px rgba(18,26,43,.14), 0 8px 10px -6px rgba(18,26,43,.06);
+
+  /* Control sizing — Figma button heights 36 / 44 / 48 */
+  --ds-control-h-sm: 36px;
+  --ds-control-h-md: 44px;
+  --ds-control-h-lg: 48px;
+
+  /* Motion */
+  --ds-ease: cubic-bezier(.4, 0, .2, 1); /* @kind other */
+  --ds-dur: 160ms; /* @kind other */
+}

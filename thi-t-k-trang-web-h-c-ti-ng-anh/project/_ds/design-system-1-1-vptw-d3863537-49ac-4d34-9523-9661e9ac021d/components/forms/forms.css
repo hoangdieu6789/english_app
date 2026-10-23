@@ -1,0 +1,150 @@
+/* PrimeNG-style form controls — VPTWĐ theme. */
+
+/* ── Field wrapper (label + control + helper) ─────────────────────── */
+.p-field { display: flex; flex-direction: column; gap: 6px; }
+.p-field-label { font: 500 14px var(--font-sans); color: var(--ds-text); }
+.p-field-label .p-required { color: var(--ds-primary); margin-left: 2px; }
+.p-field-help { font: 400 13px var(--font-sans); color: var(--ds-text-muted); }
+.p-field-help.p-error { color: var(--ds-danger); }
+
+/* ── Text input ───────────────────────────────────────────────────── */
+.p-inputtext {
+  width: 100%;
+  height: var(--ds-control-h-md);
+  padding: 0 14px;
+  font: 400 14px var(--font-sans);
+  color: var(--ds-text);
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-md);
+  transition: border-color var(--ds-dur) var(--ds-ease), box-shadow var(--ds-dur) var(--ds-ease);
+  outline: none;
+}
+.p-inputtext::placeholder { color: var(--ds-text-muted); }
+.p-inputtext:hover { border-color: var(--neutral-400); }
+.p-inputtext:focus { border-color: var(--ds-focus); box-shadow: var(--ds-focus-ring); }
+.p-inputtext.p-invalid { border-color: var(--ds-danger); }
+.p-inputtext.p-invalid:focus { box-shadow: 0 0 0 3px rgba(220,38,38,.18); }
+.p-inputtext:disabled { background: var(--ds-surface-subtle); color: var(--ds-text-disabled); cursor: not-allowed; }
+.p-inputtext.p-inputtext-sm { height: var(--ds-control-h-sm); font-size: 13px; }
+.p-inputtext.p-inputtext-lg { height: var(--ds-control-h-lg); font-size: 15px; }
+textarea.p-inputtext { height: auto; min-height: 96px; padding: 10px 14px; line-height: 1.55; resize: vertical; }
+
+/* ── Icon field (leading / trailing) ──────────────────────────────── */
+.p-iconfield { position: relative; display: flex; align-items: center; }
+.p-iconfield .p-inputtext { width: 100%; }
+.p-iconfield .p-input-icon { position: absolute; color: var(--ds-text-muted); font-size: 16px; pointer-events: none; }
+.p-iconfield-left  .p-input-icon { left: 14px; }
+.p-iconfield-left  .p-inputtext { padding-left: 40px; }
+.p-iconfield-right .p-input-icon { right: 14px; }
+.p-iconfield-right .p-inputtext { padding-right: 40px; }
+.p-iconfield .p-input-icon.p-clickable { pointer-events: auto; cursor: pointer; }
+.p-iconfield .p-input-icon.p-clickable:hover { color: var(--ds-text); }
+
+/* ── Select (dropdown) ────────────────────────────────────────────── */
+.p-select {
+  width: 100%;
+  height: var(--ds-control-h-md);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  font: 400 14px var(--font-sans);
+  color: var(--ds-text);
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-md);
+  cursor: pointer;
+  transition: border-color var(--ds-dur) var(--ds-ease), box-shadow var(--ds-dur) var(--ds-ease);
+}
+.p-select:hover { border-color: var(--neutral-400); }
+.p-select.p-focus { border-color: var(--ds-focus); box-shadow: var(--ds-focus-ring); }
+.p-select .p-select-label { flex: 1; text-align: left; }
+.p-select .p-select-label.p-placeholder { color: var(--ds-text-muted); }
+.p-select .p-select-dropdown-icon { color: var(--ds-text-muted); font-size: 14px; transition: transform var(--ds-dur) var(--ds-ease); }
+.p-select.p-open .p-select-dropdown-icon { transform: rotate(180deg); }
+.p-select-overlay {
+  margin-top: 6px;
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  box-shadow: var(--ds-shadow-lg);
+  padding: 4px;
+  max-height: 240px;
+  overflow: auto;
+}
+.p-select-option {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 12px; border-radius: var(--ds-radius-sm);
+  font: 400 14px var(--font-sans); color: var(--ds-text); cursor: pointer;
+}
+.p-select-option:hover { background: var(--ds-surface-muted); }
+.p-select-option.p-selected { background: var(--ds-primary-50); color: var(--ds-primary-active); font-weight: 600; }
+
+/* ── Checkbox — tonal red (Figma: light fill, red border, RED check) ── */
+.p-checkbox { display: inline-flex; position: relative; width: 20px; height: 20px; flex: none; }
+.p-checkbox input { position: absolute; inset: 0; opacity: 0; cursor: pointer; margin: 0; }
+.p-checkbox-box {
+  width: 20px; height: 20px;
+  display: grid; place-items: center;
+  border: 1.5px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface);
+  color: var(--ds-primary); font-size: 12px;
+  transition: all var(--ds-dur) var(--ds-ease);
+}
+.p-checkbox .p-checkbox-icon { opacity: 0; color: var(--ds-primary); transition: opacity var(--ds-dur) var(--ds-ease); }
+/* resting hover */
+.p-checkbox:hover .p-checkbox-box { border-color: var(--ds-primary); background: var(--brand-50); }
+/* checked & indeterminate keep the tonal fill + show a RED glyph (no solid-red invert) */
+.p-checkbox input:checked + .p-checkbox-box,
+.p-checkbox input:indeterminate + .p-checkbox-box { background: var(--brand-50); border-color: var(--ds-primary); }
+.p-checkbox input:checked + .p-checkbox-box .p-checkbox-icon,
+.p-checkbox input:indeterminate + .p-checkbox-box .p-checkbox-icon { opacity: 1; }
+.p-checkbox:hover input:checked + .p-checkbox-box,
+.p-checkbox:hover input:indeterminate + .p-checkbox-box { background: var(--brand-100); border-color: var(--ds-primary-hover); }
+.p-checkbox:hover input:checked + .p-checkbox-box .p-checkbox-icon,
+.p-checkbox:hover input:indeterminate + .p-checkbox-box .p-checkbox-icon { color: var(--ds-primary-hover); }
+/* focus */
+.p-checkbox input:focus-visible + .p-checkbox-box { box-shadow: var(--ds-focus-ring); border-color: var(--ds-primary); }
+/* invalid */
+.p-checkbox.p-invalid .p-checkbox-box { border-color: var(--ds-danger); }
+.p-checkbox.p-invalid .p-checkbox-icon { color: var(--ds-danger); }
+/* disabled */
+.p-checkbox input:disabled + .p-checkbox-box { background: var(--ds-surface-subtle); border-color: var(--ds-border); cursor: not-allowed; }
+.p-checkbox input:disabled + .p-checkbox-box .p-checkbox-icon { color: var(--ds-text-disabled); }
+
+/* ── Radio ────────────────────────────────────────────────────────── */
+.p-radiobutton { display: inline-flex; position: relative; width: 20px; height: 20px; flex: none; }
+.p-radiobutton input { position: absolute; inset: 0; opacity: 0; cursor: pointer; margin: 0; }
+.p-radiobutton-box {
+  width: 20px; height: 20px;
+  display: grid; place-items: center;
+  border: 1.5px solid var(--ds-border-strong);
+  border-radius: 50%;
+  background: var(--ds-surface);
+  transition: all var(--ds-dur) var(--ds-ease);
+}
+.p-radiobutton-box::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ds-primary); transform: scale(0); transition: transform var(--ds-dur) var(--ds-ease); }
+.p-radiobutton:hover .p-radiobutton-box { border-color: var(--ds-primary); background: var(--brand-50); }
+.p-radiobutton input:checked + .p-radiobutton-box { background: var(--brand-50); border-color: var(--ds-primary); }
+.p-radiobutton input:checked + .p-radiobutton-box::after { transform: scale(1); }
+.p-radiobutton input:focus-visible + .p-radiobutton-box { box-shadow: var(--ds-focus-ring); }
+.p-radiobutton input:disabled + .p-radiobutton-box { background: var(--ds-surface-subtle); border-color: var(--ds-border); cursor: not-allowed; }
+/* disabled + selected: gray dot, not red (Figma) */
+.p-radiobutton input:disabled:checked + .p-radiobutton-box::after { background: var(--ds-text-disabled); }
+
+/* ── Switch (InputSwitch / ToggleSwitch) ──────────────────────────── */
+.p-toggleswitch { position: relative; display: inline-block; width: 42px; height: 24px; flex: none; }
+.p-toggleswitch input { position: absolute; inset: 0; opacity: 0; cursor: pointer; margin: 0; }
+.p-toggleswitch-slider { position: absolute; inset: 0; background: var(--neutral-300); border-radius: var(--ds-radius-full); transition: background var(--ds-dur) var(--ds-ease); }
+.p-toggleswitch-slider::before { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; background: #fff; border-radius: 50%; box-shadow: var(--ds-shadow-sm); transition: transform var(--ds-dur) var(--ds-ease); }
+.p-toggleswitch input:checked + .p-toggleswitch-slider { background: var(--ds-primary); }
+.p-toggleswitch input:checked + .p-toggleswitch-slider::before { transform: translateX(18px); }
+.p-toggleswitch input:focus-visible + .p-toggleswitch-slider { box-shadow: var(--ds-focus-ring); }
+
+/* ── Checkbox / radio + label row ─────────────────────────────────── */
+.p-choice { display: inline-flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+.p-choice-body { display: flex; flex-direction: column; gap: 2px; }
+.p-choice-title { font: 500 14px var(--font-sans); color: var(--ds-text); }
+.p-choice-desc { font: 400 13px var(--font-sans); color: var(--ds-text-muted); }

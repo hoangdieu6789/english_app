@@ -1,0 +1,60 @@
+/* ─ Webfonts ──────────────────────────────────────────────────────────
+   Self-hosted brand fonts. Consumers link styles.css which @imports this.
+   • Inter — primary UI font (self-hosted; 18pt optical size).
+   • Hanken Grotesk — secondary/body font (--ups-font-family-body).
+   • Be Vietnam Pro — CDN fallback for "FS PF BeauSans Pro" (kept for
+     robustness; the licensed face is now self-hosted below).
+   ──────────────────────────────────────────────────────────────────── */
+@import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap");
+
+/* ── Inter (self-hosted) ───────────────────────────────────────────── */
+@font-face{font-family:"Inter";font-style:normal;font-weight:400;font-display:swap;src:url("../fonts/Inter_18pt-Regular.ttf") format("truetype");}
+@font-face{font-family:"Inter";font-style:italic;font-weight:400;font-display:swap;src:url("../fonts/Inter_18pt-Italic.ttf") format("truetype");}
+@font-face{font-family:"Inter";font-style:normal;font-weight:500;font-display:swap;src:url("../fonts/Inter_18pt-Medium.ttf") format("truetype");}
+@font-face{font-family:"Inter";font-style:italic;font-weight:500;font-display:swap;src:url("../fonts/Inter_18pt-MediumItalic.ttf") format("truetype");}
+@font-face{font-family:"Inter";font-style:normal;font-weight:600;font-display:swap;src:url("../fonts/Inter_18pt-SemiBold.ttf") format("truetype");}
+@font-face{font-family:"Inter";font-style:italic;font-weight:600;font-display:swap;src:url("../fonts/Inter_18pt-SemiBoldItalic.ttf") format("truetype");}
+@font-face{font-family:"Inter";font-style:normal;font-weight:700;font-display:swap;src:url("../fonts/Inter_18pt-Bold.ttf") format("truetype");}
+@font-face{font-family:"Inter";font-style:italic;font-weight:700;font-display:swap;src:url("../fonts/Inter_18pt-BoldItalic.ttf") format("truetype");}
+@font-face{font-family:"Inter";font-style:normal;font-weight:800;font-display:swap;src:url("../fonts/Inter_18pt-ExtraBold.ttf") format("truetype");}
+@font-face{font-family:"Inter";font-style:italic;font-weight:800;font-display:swap;src:url("../fonts/Inter_18pt-ExtraBoldItalic.ttf") format("truetype");}
+
+/* ── Hanken Grotesk (self-hosted) ──────────────────────────────────── */
+@font-face{font-family:"Hanken-Grotesk";font-style:normal;font-weight:100;font-display:swap;src:url("../fonts/HankenGrotesk-Thin.ttf") format("truetype");}
+@font-face{font-family:"Hanken-Grotesk";font-style:italic;font-weight:100;font-display:swap;src:url("../fonts/HankenGrotesk-ThinItalic.ttf") format("truetype");}
+@font-face{font-family:"Hanken-Grotesk";font-style:normal;font-weight:200;font-display:swap;src:url("../fonts/HankenGrotesk-ExtraLight.ttf") format("truetype");}
+@font-face{font-family:"Hanken-Grotesk";font-style:italic;font-weight:200;font-display:swap;src:url("../fonts/HankenGrotesk-ExtraLightItalic.ttf") format("truetype");}
+@font-face{font-family:"Hanken-Grotesk";font-style:normal;font-weight:300;font-display:swap;src:url("../fonts/HankenGrotesk-Light.ttf") format("truetype");}
+@font-face{font-family:"Hanken-Grotesk";font-style:italic;font-weight:300;font-display:swap;src:url("../fonts/HankenGrotesk-LightItalic.ttf") format("truetype");}
+@font-face{font-family:"Hanken-Grotesk";font-style:normal;font-weight:400;font-display:swap;src:url("../fonts/HankenGrotesk-Regular.ttf") format("truetype");}
+@font-face{font-family:"Hanken-Grotesk";font-style:italic;font-weight:400;font-display:swap;src:url("../fonts/HankenGrotesk-Italic.ttf") format("truetype");}
+@font-face{font-family:"Hanken-Grotesk";font-style:normal;font-weight:500;font-display:swap;src:url("../fonts/HankenGrotesk-Medium.ttf") format("truetype");}
+@font-face{font-family:"Hanken-Grotesk";font-style:italic;font-weight:500;font-display:swap;src:url("../fonts/HankenGrotesk-MediumItalic.ttf") format("truetype");}
+@font-face{font-family:"Hanken-Grotesk";font-style:normal;font-weight:600;font-display:swap;src:url("../fonts/HankenGrotesk-SemiBold.ttf") format("truetype");}
+@font-face{font-family:"Hanken-Grotesk";font-style:italic;font-weight:600;font-display:swap;src:url("../fonts/HankenGrotesk-SemiBoldItalic.ttf") format("truetype");}
+@font-face{font-family:"Hanken-Grotesk";font-style:normal;font-weight:700;font-display:swap;src:url("../fonts/HankenGrotesk-Bold.ttf") format("truetype");}
+@font-face{font-family:"Hanken-Grotesk";font-style:italic;font-weight:700;font-display:swap;src:url("../fonts/HankenGrotesk-BoldItalic.ttf") format("truetype");}
+@font-face{font-family:"Hanken-Grotesk";font-style:normal;font-weight:800;font-display:swap;src:url("../fonts/HankenGrotesk-ExtraBold.ttf") format("truetype");}
+@font-face{font-family:"Hanken-Grotesk";font-style:italic;font-weight:800;font-display:swap;src:url("../fonts/HankenGrotesk-ExtraBoldItalic.ttf") format("truetype");}
+@font-face{font-family:"Hanken-Grotesk";font-style:normal;font-weight:900;font-display:swap;src:url("../fonts/HankenGrotesk-Black.ttf") format("truetype");}
+@font-face{font-family:"Hanken-Grotesk";font-style:italic;font-weight:900;font-display:swap;src:url("../fonts/HankenGrotesk-BlackItalic.ttf") format("truetype");}
+
+/* ── FS PF BeauSans Pro (licensed source display face — self-hosted) ──
+   The licensed family the source Figma uses. Now bundled, so --font-display
+   leads with it; Be Vietnam Pro remains a fallback. */
+@font-face{font-family:"FS PF BeauSans Pro";font-style:normal;font-weight:100;font-display:swap;src:url("../fonts/PFBeauSansPro-XThin.ttf") format("truetype");}
+@font-face{font-family:"FS PF BeauSans Pro";font-style:italic;font-weight:100;font-display:swap;src:url("../fonts/PFBeauSansPro-XThinItalic.ttf") format("truetype");}
+@font-face{font-family:"FS PF BeauSans Pro";font-style:normal;font-weight:200;font-display:swap;src:url("../fonts/PFBeauSansPro-Thin.ttf") format("truetype");}
+@font-face{font-family:"FS PF BeauSans Pro";font-style:italic;font-weight:200;font-display:swap;src:url("../fonts/PFBeauSansPro-ThinItalic.ttf") format("truetype");}
+@font-face{font-family:"FS PF BeauSans Pro";font-style:normal;font-weight:300;font-display:swap;src:url("../fonts/PFBeauSansPro-Light.ttf") format("truetype");}
+@font-face{font-family:"FS PF BeauSans Pro";font-style:italic;font-weight:300;font-display:swap;src:url("../fonts/PFBeauSansPro-LightItalic.ttf") format("truetype");}
+@font-face{font-family:"FS PF BeauSans Pro";font-style:normal;font-weight:350;font-display:swap;src:url("../fonts/PFBeauSansPro-Bbook.ttf") format("truetype");}
+@font-face{font-family:"FS PF BeauSans Pro";font-style:italic;font-weight:350;font-display:swap;src:url("../fonts/PFBeauSansPro-BbookItalic.ttf") format("truetype");}
+@font-face{font-family:"FS PF BeauSans Pro";font-style:normal;font-weight:400;font-display:swap;src:url("../fonts/PFBeauSansPro-Regular.ttf") format("truetype");}
+@font-face{font-family:"FS PF BeauSans Pro";font-style:italic;font-weight:400;font-display:swap;src:url("../fonts/PFBeauSansPro-Italic.ttf") format("truetype");}
+@font-face{font-family:"FS PF BeauSans Pro";font-style:normal;font-weight:600;font-display:swap;src:url("../fonts/PFBeauSansPro-SemiBold.ttf") format("truetype");}
+@font-face{font-family:"FS PF BeauSans Pro";font-style:italic;font-weight:600;font-display:swap;src:url("../fonts/PFBeauSansPro-SemiBoldItalic.ttf") format("truetype");}
+@font-face{font-family:"FS PF BeauSans Pro";font-style:normal;font-weight:700;font-display:swap;src:url("../fonts/PFBeauSansPro-Bold.ttf") format("truetype");}
+@font-face{font-family:"FS PF BeauSans Pro";font-style:italic;font-weight:700;font-display:swap;src:url("../fonts/PFBeauSansPro-BoldItalic.ttf") format("truetype");}
+@font-face{font-family:"FS PF BeauSans Pro";font-style:normal;font-weight:900;font-display:swap;src:url("../fonts/PFBeauSansPro-Black.ttf") format("truetype");}
+@font-face{font-family:"FS PF BeauSans Pro";font-style:italic;font-weight:900;font-display:swap;src:url("../fonts/PFBeauSansPro-BlackItalic.ttf") format("truetype");}

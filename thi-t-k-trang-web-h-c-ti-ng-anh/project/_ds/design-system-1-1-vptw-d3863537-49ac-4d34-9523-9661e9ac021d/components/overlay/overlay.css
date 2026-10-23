@@ -1,0 +1,41 @@
+/* ════════════════════════════════════════════════════════════════════════
+   OVERLAY (framework-agnostic `.p-*` + DS tokens).
+   drawer/sidebar · popover/overlaypanel · confirmpopup · confirmdialog (reuses dialog)
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* ── Drawer / Sidebar ────────────────────────────────────────────────── */
+.p-drawer {
+  position: fixed; background: var(--ds-surface); box-shadow: var(--ds-shadow-xl);
+  display: flex; flex-direction: column; z-index: 1200;
+}
+.p-drawer-left  { top: 0; left: 0; height: 100%; width: 340px; }
+.p-drawer-right { top: 0; right: 0; height: 100%; width: 340px; }
+.p-drawer-top    { top: 0; left: 0; width: 100%; height: 280px; }
+.p-drawer-bottom { bottom: 0; left: 0; width: 100%; height: 280px; }
+.p-drawer-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-bottom: 1px solid var(--ds-border); }
+.p-drawer-title { font: 600 17px var(--font-display); color: var(--ds-text); }
+.p-drawer-content { padding: 18px 20px; overflow: auto; flex: 1; font: 400 14px/1.55 var(--font-sans); color: var(--ds-text-secondary); }
+.p-drawer-close-button { width: 32px; height: 32px; border: none; background: transparent; border-radius: var(--ds-radius-sm); cursor: pointer; color: var(--ds-text-muted); }
+.p-drawer-close-button:hover { background: var(--ds-surface-muted); color: var(--ds-text); }
+.p-drawer-mask { position: fixed; inset: 0; background: var(--ds-dialog-mask, rgba(18,26,43,.45)); backdrop-filter: blur(2px); z-index: 1199; }
+
+/* ── Popover / OverlayPanel ──────────────────────────────────────────── */
+.p-popover {
+  background: var(--ds-surface); border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg); box-shadow: var(--ds-shadow-lg);
+  padding: 14px 16px; font: 400 14px/1.55 var(--font-sans); color: var(--ds-text-secondary);
+}
+.p-popover::before { /* arrow */ content: ""; position: absolute; width: 12px; height: 12px; background: var(--ds-surface); border-left: 1px solid var(--ds-border); border-top: 1px solid var(--ds-border); transform: rotate(45deg); }
+
+/* ── ConfirmPopup ────────────────────────────────────────────────────── */
+.p-confirmpopup {
+  background: var(--ds-surface); border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg); box-shadow: var(--ds-shadow-lg); max-width: 300px;
+}
+.p-confirmpopup-content { display: flex; gap: 10px; padding: 16px; font: 400 14px/1.5 var(--font-sans); color: var(--ds-text); }
+.p-confirmpopup-icon { color: var(--ds-warning); font-size: 18px; }
+.p-confirmpopup-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 0 16px 14px; }
+
+/* confirmdialog body icon */
+.p-confirmdialog .p-confirmdialog-icon { color: var(--ds-danger); font-size: 22px; }
+.p-confirmdialog-message { font: 400 14px/1.55 var(--font-sans); color: var(--ds-text-secondary); }

@@ -1,0 +1,89 @@
+/* Navigation — Breadcrumb, Tabs. VPTWĐ theme. */
+
+/* ── Breadcrumb ───────────────────────────────────────────────────── */
+.p-breadcrumb { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font: 400 14px var(--font-sans); }
+.p-breadcrumb-item { display: inline-flex; align-items: center; gap: 6px; color: var(--ds-text-muted); text-decoration: none; }
+.p-breadcrumb-item:hover { color: var(--ds-primary); }
+.p-breadcrumb-item.p-current { color: var(--ds-text); font-weight: 600; pointer-events: none; }
+.p-breadcrumb-sep { color: var(--ds-border-strong); font-size: 12px; display: inline-flex; }
+.p-breadcrumb-home { color: var(--ds-text-muted); }
+
+/* ── Tabs — underline (default) ───────────────────────────────────── */
+.p-tabs { width: 100%; }
+.p-tablist { display: flex; gap: 4px; border-bottom: 1px solid var(--ds-border); }
+.p-tab {
+  display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
+  padding: 11px 14px; margin-bottom: -1px;
+  font: 600 14px var(--font-sans); color: var(--ds-text-muted);
+  background: none; border: none; border-bottom: 2px solid transparent;
+  cursor: pointer; transition: color var(--ds-dur) var(--ds-ease), border-color var(--ds-dur) var(--ds-ease);
+}
+.p-tab:hover { color: var(--ds-text); }
+.p-tab.p-active { color: var(--ds-primary); border-bottom-color: var(--ds-primary); }
+.p-tab .p-badge { background: var(--ds-surface-muted); color: var(--ds-text-secondary); }
+.p-tab.p-active .p-badge { background: var(--ds-primary); color: #fff; }
+.p-tabpanel { padding: 18px 2px; }
+
+/* Focus ring (keyboard) — shared across every variant */
+.p-tab:focus-visible {
+  outline: none; border-radius: var(--ds-radius-sm);
+  box-shadow: var(--ds-focus-ring); position: relative; z-index: 1;
+}
+.p-tablist-pill .p-tab:focus-visible,
+.p-tablist-segmented .p-tab:focus-visible,
+.p-tablist-soft .p-tab:focus-visible { border-radius: var(--ds-radius-full); }
+
+/* Disabled — shared across every variant */
+.p-tab:disabled,
+.p-tab[aria-disabled="true"] {
+  color: var(--ds-text-disabled); cursor: not-allowed;
+  background: none; pointer-events: none;
+}
+.p-tab:disabled .p-badge,
+.p-tab[aria-disabled="true"] .p-badge {
+  background: var(--ds-surface-muted); color: var(--ds-text-disabled);
+}
+
+/* ── Tabs — fluid (full-width / justified) ────────────────────────── */
+.p-tablist-fluid { width: 100%; }
+.p-tablist-fluid .p-tab { flex: 1 1 0; justify-content: center; }
+
+/* ── Tabs — pill (solid red active) ───────────────────────────────── */
+.p-tablist-pill { display: inline-flex; gap: 6px; padding: 4px; background: var(--ds-surface-subtle); border-radius: var(--ds-radius-full); border-bottom: none; }
+.p-tablist-pill.p-tablist-fluid { display: flex; }
+.p-tablist-pill .p-tab {
+  padding: 8px 16px; margin-bottom: 0; border-radius: var(--ds-radius-full);
+  border-bottom: none; color: var(--ds-text-secondary);
+}
+.p-tablist-pill .p-tab:hover { color: var(--ds-text); background: rgba(0,0,0,.03); }
+.p-tablist-pill .p-tab.p-active { background: var(--ds-primary); color: #fff; }
+.p-tablist-pill .p-tab.p-active:hover { background: var(--ds-primary); }
+.p-tablist-pill .p-tab.p-active .p-badge { background: rgba(255,255,255,.25); color: #fff; }
+
+/* ── Tabs — segmented (white active pill on a tray, red text) ─────── */
+.p-tablist-segmented { display: inline-flex; gap: 4px; padding: 4px; background: var(--ds-surface-muted); border-radius: var(--ds-radius-full); border-bottom: none; }
+.p-tablist-segmented.p-tablist-fluid { display: flex; }
+.p-tablist-segmented .p-tab {
+  padding: 8px 16px; margin-bottom: 0; border-radius: var(--ds-radius-full);
+  border-bottom: none; color: var(--ds-text-secondary);
+}
+.p-tablist-segmented .p-tab:hover { color: var(--ds-text); }
+.p-tablist-segmented .p-tab.p-active {
+  background: var(--ds-surface); color: var(--ds-primary);
+  box-shadow: var(--ds-shadow-sm, 0 1px 2px rgba(16,24,40,.08));
+}
+.p-tablist-segmented .p-tab.p-active:hover { color: var(--ds-primary); }
+.p-tablist-segmented .p-tab .p-badge { background: var(--ds-surface-subtle); color: var(--ds-text-secondary); }
+.p-tablist-segmented .p-tab.p-active .p-badge { background: var(--ds-primary); color: #fff; }
+
+/* ── Tabs — soft (no tray; active = pale tint, red text) ──────────── */
+.p-tablist-soft { display: inline-flex; gap: 6px; border-bottom: none; }
+.p-tablist-soft.p-tablist-fluid { display: flex; }
+.p-tablist-soft .p-tab {
+  padding: 8px 16px; margin-bottom: 0; border-radius: var(--ds-radius-full);
+  border-bottom: none; color: var(--ds-text-secondary);
+}
+.p-tablist-soft .p-tab:hover { color: var(--ds-text); background: var(--ds-surface-subtle); }
+.p-tablist-soft .p-tab.p-active { background: var(--ds-primary-50); color: var(--ds-primary); }
+.p-tablist-soft .p-tab.p-active:hover { background: var(--ds-primary-100); }
+.p-tablist-soft .p-tab.p-active .p-badge { background: var(--ds-primary); color: #fff; }

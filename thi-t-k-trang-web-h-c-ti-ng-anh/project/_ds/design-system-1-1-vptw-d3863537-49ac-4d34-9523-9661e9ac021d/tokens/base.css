@@ -1,0 +1,31 @@
+/* Base reset + document defaults for the VPTWĐ design system. */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ds-text);
+  background: var(--ds-surface);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "cv01", "cv03";
+}
+
+h1, h2, h3, h4, h5, h6 { font-family: var(--font-display); margin: 0; }
+
+a { color: var(--ds-primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+button { font-family: inherit; }
+
+/* Shared focus-visible treatment */
+:where(button, a, input, textarea, select, [tabindex]):focus-visible {
+  outline: none;
+  box-shadow: var(--ds-focus-ring);
+}
+
+::selection { background: var(--ds-primary-100); color: var(--ds-primary-active); }

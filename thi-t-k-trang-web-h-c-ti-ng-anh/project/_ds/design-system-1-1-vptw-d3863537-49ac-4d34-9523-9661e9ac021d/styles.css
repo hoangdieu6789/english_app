@@ -1,0 +1,10 @@
+/* ══════════════════════════════════════════════════════════════════════
+   Văn phòng Trung ương Đảng — Design System
+   Global stylesheet entry point. Consumers link THIS file only.
+   Import-list only — no rules declared here directly.
+   ══════════════════════════════════════════════════════════════════════ */
+@import "./tokens/fonts.css";
+@import "./tokens/fig-tokens.css";
+@import "./tokens/foundation.css";
+@import "./tokens/base.css";
+@import "./components/theme.css";

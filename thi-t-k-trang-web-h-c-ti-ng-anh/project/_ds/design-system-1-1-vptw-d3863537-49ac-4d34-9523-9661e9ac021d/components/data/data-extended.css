@@ -1,0 +1,50 @@
+/* ════════════════════════════════════════════════════════════════════════
+   DATA — extended (framework-agnostic `.p-*` + DS tokens).
+   paginator · tree · treetable · timeline · dataview · orderlist · picklist
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* ── Paginator ───────────────────────────────────────────────────────── */
+.p-paginator { display: flex; align-items: center; justify-content: flex-end; gap: 4px; padding: 10px 4px; font: 400 13px var(--font-sans); color: var(--ds-text-secondary); }
+.p-paginator-page, .p-paginator-first, .p-paginator-prev, .p-paginator-next, .p-paginator-last {
+  min-width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center;
+  border: none; background: transparent; border-radius: var(--ds-radius-sm);
+  font: 500 13px var(--font-sans); color: var(--ds-text-secondary); cursor: pointer;
+}
+.p-paginator-page:hover, .p-paginator-prev:hover, .p-paginator-next:hover { background: var(--ds-surface-muted); }
+.p-paginator-page.p-paginator-page-selected { background: var(--ds-primary); color: #fff; }
+
+/* ── Tree / TreeTable ────────────────────────────────────────────────── */
+.p-tree { border: 1px solid var(--ds-border); border-radius: var(--ds-radius-lg); background: var(--ds-surface); padding: 8px; font: 400 14px var(--font-sans); }
+.p-tree-node-content { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: var(--ds-radius-sm); cursor: pointer; color: var(--ds-text); }
+.p-tree-node-content:hover { background: var(--ds-surface-muted); }
+.p-tree-node-content.p-tree-node-selected { background: var(--ds-primary-50); color: var(--ds-primary-active); }
+.p-tree-node-toggle-button { width: 24px; height: 24px; border: none; background: transparent; color: var(--ds-text-muted); cursor: pointer; }
+.p-treetable table { width: 100%; border-collapse: collapse; }
+.p-treetable th { background: var(--ds-surface-subtle); color: var(--ds-text-secondary); font: 600 12px var(--font-sans); padding: 12px 16px; text-align: left; }
+.p-treetable td { padding: 12px 16px; border-bottom: 1px solid var(--ds-border-subtle); }
+
+/* ── Timeline ────────────────────────────────────────────────────────── */
+.p-timeline { display: flex; }
+.p-timeline-vertical { flex-direction: column; }
+.p-timeline-event { display: flex; gap: 14px; min-height: 70px; }
+.p-timeline-event-separator { display: flex; flex-direction: column; align-items: center; }
+.p-timeline-event-marker { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ds-primary); background: var(--ds-surface); }
+.p-timeline-event-connector { flex: 1; width: 2px; background: var(--ds-border); }
+.p-timeline-event-content { padding-bottom: 18px; font: 400 14px var(--font-sans); color: var(--ds-text-secondary); }
+.p-timeline-event-opposite { color: var(--ds-text-muted); font: 500 13px var(--font-sans); }
+
+/* ── DataView ────────────────────────────────────────────────────────── */
+.p-dataview { border: 1px solid var(--ds-border); border-radius: var(--ds-radius-lg); overflow: hidden; background: var(--ds-surface); }
+.p-dataview-header { padding: 14px 16px; background: var(--ds-surface-subtle); border-bottom: 1px solid var(--ds-border); font: 600 14px var(--font-sans); color: var(--ds-text); }
+.p-dataview-content > * { border-bottom: 1px solid var(--ds-border-subtle); }
+
+/* ── OrderList / PickList ────────────────────────────────────────────── */
+.p-orderlist, .p-picklist { display: flex; gap: 12px; }
+.p-orderlist-controls, .p-picklist-controls { display: flex; flex-direction: column; gap: 8px; justify-content: center; }
+.p-orderlist-list, .p-picklist-list {
+  flex: 1; min-width: 200px; min-height: 220px; list-style: none; margin: 0; padding: 4px;
+  border: 1px solid var(--ds-border); border-radius: var(--ds-radius-lg); background: var(--ds-surface); overflow: auto;
+}
+.p-orderlist-option, .p-picklist-option { padding: 10px 12px; border-radius: var(--ds-radius-sm); font: 400 14px var(--font-sans); color: var(--ds-text); cursor: pointer; }
+.p-orderlist-option:hover, .p-picklist-option:hover { background: var(--ds-surface-muted); }
+.p-orderlist-option.p-orderlist-option-selected, .p-picklist-option.p-picklist-option-selected { background: var(--ds-primary-50); color: var(--ds-primary-active); }

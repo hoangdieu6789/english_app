@@ -1,0 +1,47 @@
+/* Panel — Card. Overlay — Dialog. VPTWĐ theme. */
+
+/* ── Card ─────────────────────────────────────────────────────────── */
+.p-card {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-2xl);
+  box-shadow: var(--ds-shadow-sm);
+  overflow: hidden;
+}
+.p-card-body { padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+.p-card-header { padding: 0; }
+.p-card-header img { display: block; width: 100%; }
+.p-card-title { font: 600 17px var(--font-display); color: var(--ds-text); }
+.p-card-subtitle { font: 400 14px var(--font-sans); color: var(--ds-text-muted); margin-top: -4px; }
+.p-card-content { font: 400 14px var(--font-sans); color: var(--ds-text-secondary); line-height: 1.55; }
+.p-card-footer { display: flex; gap: 10px; padding-top: 6px; }
+
+/* ── Dialog / Modal ───────────────────────────────────────────────── */
+.p-dialog-mask {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(18,26,43,.45); backdrop-filter: blur(2px);
+  display: grid; place-items: center; padding: 24px;
+}
+.p-dialog {
+  width: 100%; max-width: 460px;
+  background: var(--ds-surface);
+  border-radius: var(--ds-radius-2xl);
+  box-shadow: var(--ds-shadow-xl);
+  overflow: hidden;
+  animation: p-dialog-in .18s var(--ds-ease);
+}
+@keyframes p-dialog-in { from { opacity: 0; transform: translateY(8px) scale(.98); } }
+.p-dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 22px 0; }
+.p-dialog-title { font: 600 18px var(--font-display); color: var(--ds-text); }
+.p-dialog-close {
+  background: none; border: none; cursor: pointer; color: var(--ds-text-muted);
+  width: 32px; height: 32px; border-radius: var(--ds-radius-sm); display: grid; place-items: center; font-size: 15px;
+}
+.p-dialog-close:hover { background: var(--ds-surface-muted); color: var(--ds-text); }
+.p-dialog-content { padding: 12px 22px 4px; font: 400 14px var(--font-sans); color: var(--ds-text-secondary); line-height: 1.6; }
+.p-dialog-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 18px 22px 22px; }
+/* Equal-width, split evenly across the footer — for compact confirm dialogs / mobile. */
+.p-dialog-footer-split > .p-button { flex: 1; }
+/* Stacked full-width (primary on top) — narrowest / mobile sheets. */
+.p-dialog-footer-stacked { flex-direction: column-reverse; }
+.p-dialog-footer-stacked > .p-button { width: 100%; }
