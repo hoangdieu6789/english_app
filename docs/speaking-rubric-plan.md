@@ -29,7 +29,7 @@ Order = suggested priority.
 ### 2. UI for the IELTS parts
 
 - [x] The practice page offers Shadowing / IELTS Part 1 / Part 2 / Part 3 (`frontend/components/ielts-practice.tsx`) — 2026-11-03, `4f963d1`.
-- [x] Question source: a fixed bank written for the app (`frontend/lib/ielts-questions.ts`): 6 Part 1 topics × 4 questions, 6 Part 2 cue cards, each with 3 linked Part 3 questions. No LLM call, no free quota used.
+- [x] Question source: a bank written for the app (now in the database, see 2b). Picking a question needs no LLM call.
 - [x] Part 2: 1-minute preparation (countdown, notes, can start early).
 - [x] The page sends `taskType` and `taskPrompt`. Part 2 sends the cue card with its points.
 - [x] "Grading… Ns" state (measured: ~15 s for a Part 3 answer through the UI).
@@ -37,6 +37,16 @@ Order = suggested priority.
 - [ ] Part 2 for the full 1–2 minutes: waits for item 1.
 - [x] A larger question bank: 24 Part 1 topics × 4 questions and 20 cue cards × 3 Part 3 questions (156 questions), written in the app's own words around the topic areas that commonly appear in the test — 2026-11-03.
 - [ ] A mock test with all 3 parts in a row (`full_test`).
+
+### 2b. Question sets per learner
+
+- [x] The question bank moved to the database (`ielts_question_sets`, migration `000005`), seeded on start from `backend/internal/service/ielts_question_seed.json`. A set is a Part 1 topic, or a Part 2 cue card with its Part 3 questions.
+- [x] Each attempt stores `question_set_id` and `task_prompt`, so progress is tracked per learner and per part.
+- [x] `GET /api/ielts/next?part=` gives a set the learner has not done (`exclude` skips the one on screen). When every set is done it returns the set done longest ago as a review (`seen: true`).
+- [x] `GET /api/ielts/sets?part=` lists sets with attempt count, best band and last date; the UI shows "Đề đã làm" and lets the learner redo a set.
+- [x] New sets: when a learner has fewer than 3 unseen sets, one free-LLM call writes 5 new sets in the app's own words (not copied from websites), shared by every learner. It runs in the background, one batch per kind at a time, with a 10-minute cooldown after a failure.
+- [ ] Check the quality of LLM-written sets live. The 2026-11-03 test hit a provider outage (nemotron 504, gemma upstream 429); the flow, fallback to review and cooldown worked, but no generated set was saved yet.
+- [ ] Optional: a review step (or a simple admin page) for generated sets before learners see them.
 
 ### 3. Cost and LLM grading time
 
@@ -103,4 +113,4 @@ Measured after the changes (2026-11-03):
 Policy: do not copy questions from IELTS books or "recent exam questions" websites into the repo (copyright, site terms). Use topic areas only as a guide and write the questions in the app's own words.
 
 - [ ] More cue cards for rarer topic types (advertisements, rules, noise, a waste of time, an invention...).
-- [ ] Optional: generate extra questions in batches with a free LLM, review them, then add them to `frontend/lib/ielts-questions.ts`.
+- [ ] Optional: generate extra questions in batches with a free LLM, review them, then add them to `backend/internal/service/ielts_question_seed.json`.

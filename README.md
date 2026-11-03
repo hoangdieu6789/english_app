@@ -57,7 +57,7 @@ Order: Postgres (5432) → `migrate` job (applies the schema, then exits) → ba
 
 The rubric lives in `backend/internal/rubric/` (based on the *IELTS Speaking Band Descriptors*: 4 criteria, bands 0–9). The source copy is `Document_english/speaking-rubric`; when the criteria change, copy the whole folder again. See `backend/internal/rubric/README.md` for details.
 
-The practice page (`/practice`) has four modes: **Shadowing** (read a given sentence) and **IELTS Part 1, 2 and 3** (answer a question; questions come from a fixed bank in `frontend/lib/ielts-questions.ts`, so picking one costs nothing).
+The practice page (`/practice`) has four modes: **Shadowing** (read a given sentence) and **IELTS Part 1, 2 and 3** (answer a question). Question sets live in the database (`ielts_question_sets`, seeded from `backend/internal/service/ielts_question_seed.json`). Each learner gets sets they have not done first (`GET /api/ielts/next`), can list and redo done sets (`GET /api/ielts/sets`), and when they are close to the end a free LLM writes a batch of new sets in the app's own words, shared by everyone (migration `000005`).
 
 Each `POST /api/pronunciation/attempts`:
 
@@ -69,7 +69,7 @@ Each `POST /api/pronunciation/attempts`:
    - The overall band (rounded to .0/.5) and an estimated CEFR level are computed in code.
 3. The result is stored in `pronunciation_attempts.rubric` (JSON), with the raw Azure JSON in `azure_result` so attempts can be re-scored when thresholds change. `rubric_score` is the overall band 0–9 (migration `000003`).
 
-Form fields: `audio`, `referenceText`, `taskType` (default `shadowing`), `taskPrompt` (the question or cue card).
+Form fields: `audio`, `referenceText`, `taskType` (default `shadowing`), `taskPrompt` (the question or cue card), `questionSetId` (optional, the IELTS set answered).
 
 A failure in the rubric step (LLM error, too little data) does not lose the attempt: it is still saved, and the criteria that could not be scored are listed in `not_assessed`.
 
