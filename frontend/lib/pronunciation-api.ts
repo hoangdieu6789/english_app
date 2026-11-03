@@ -100,6 +100,8 @@ export type PronunciationAttempt = {
   wordScores: WordScore[];
   phonemeScores: PhonemeScore[];
   rubric: RubricResult | null;
+  // LLM that scored FC/LR/GRA; null when no LLM was used (shadowing, LLM failure).
+  grader: { provider: string; model: string } | null;
   createdAt: string;
 };
 
@@ -107,6 +109,7 @@ export type PronunciationAttempt = {
 export type SpeakingTask = {
   type: "shadowing" | "part1" | "part2" | "part3" | "full_test";
   prompt?: string; // question(s) or cue card for IELTS parts
+  questionSetId?: string; // IELTS question set answered (tracks the learner's progress)
 };
 
 // referenceText is the sentence to read for shadowing; leave it empty for IELTS parts.
@@ -120,6 +123,7 @@ export async function submitPronunciationAttempt(
   form.append("referenceText", referenceText);
   form.append("taskType", task.type);
   if (task.prompt) form.append("taskPrompt", task.prompt);
+  if (task.questionSetId) form.append("questionSetId", task.questionSetId);
 
   const res = await fetch(`${API_BASE_URL}/pronunciation/attempts`, {
     method: "POST",

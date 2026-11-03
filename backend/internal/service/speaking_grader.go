@@ -8,6 +8,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/google/uuid"
+
 	"englishapp/backend/internal/rubric"
 )
 
@@ -23,6 +25,8 @@ const ReasonNotInTask = "not_in_task"
 type SpeakingTask struct {
 	Type   string `json:"task_type"`
 	Prompt string `json:"questions,omitempty"` // the question(s) or cue card the learner answered
+	// QuestionSetID is the IELTS question set answered (stored with the attempt, not sent to the LLM).
+	QuestionSetID *uuid.UUID `json:"-"`
 }
 
 // LLMCompleter sends one system + user prompt and returns the model's text reply.
@@ -71,6 +75,7 @@ func (g *SpeakingGrader) Grade(ctx context.Context, in GradeInput) (*rubric.Resu
 	if !g.HasTask(in.Task.Type) {
 		return nil, nil, fmt.Errorf("unknown task type %q", in.Task.Type)
 	}
+	start := time.Now()
 	pc := g.cfg.Pronunciation
 
 	var segs []rubric.Segment
@@ -117,6 +122,7 @@ func (g *SpeakingGrader) Grade(ctx context.Context, in GradeInput) (*rubric.Resu
 	}
 
 	res := g.cfg.Assemble(in.Task.Type, llmEval, pron, hints)
+	log.Printf("speaking grader: task=%s llm=%v took=%s", in.Task.Type, llmEval != nil, time.Since(start).Round(100*time.Millisecond))
 	if shadowing {
 		// Reading a given sentence shows nothing about fluency, vocabulary or grammar.
 		for i, na := range res.NotAssessed {

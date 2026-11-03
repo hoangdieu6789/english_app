@@ -11,10 +11,52 @@ import (
 	"github.com/google/uuid"
 )
 
+const claimNextPracticeSentence = `-- name: ClaimNextPracticeSentence :one
+UPDATE practice_sentences
+SET served_at = now()
+WHERE id = (
+  SELECT q.id FROM practice_sentences q
+  WHERE q.user_id = $1 AND q.served_at IS NULL
+  ORDER BY q.created_at, q.id
+  LIMIT 1
+  FOR UPDATE SKIP LOCKED
+)
+RETURNING id, user_id, text, phonetic, gloss, created_at, served_at
+`
+
+// Takes the oldest queued sentence and marks it as shown. SKIP LOCKED keeps two parallel
+// requests from getting the same sentence.
+func (q *Queries) ClaimNextPracticeSentence(ctx context.Context, userID uuid.UUID) (PracticeSentence, error) {
+	row := q.db.QueryRow(ctx, claimNextPracticeSentence, userID)
+	var i PracticeSentence
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Text,
+		&i.Phonetic,
+		&i.Gloss,
+		&i.CreatedAt,
+		&i.ServedAt,
+	)
+	return i, err
+}
+
+const countQueuedPracticeSentences = `-- name: CountQueuedPracticeSentences :one
+SELECT count(*) FROM practice_sentences
+WHERE user_id = $1 AND served_at IS NULL
+`
+
+func (q *Queries) CountQueuedPracticeSentences(ctx context.Context, userID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countQueuedPracticeSentences, userID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createPracticeSentence = `-- name: CreatePracticeSentence :one
 INSERT INTO practice_sentences (user_id, text, phonetic, gloss)
 VALUES ($1, $2, $3, $4)
-RETURNING id, user_id, text, phonetic, gloss, created_at
+RETURNING id, user_id, text, phonetic, gloss, created_at, served_at
 `
 
 type CreatePracticeSentenceParams struct {
@@ -24,6 +66,7 @@ type CreatePracticeSentenceParams struct {
 	Gloss    string    `json:"gloss"`
 }
 
+// Adds a sentence to the user's queue (served_at stays NULL until it is shown).
 func (q *Queries) CreatePracticeSentence(ctx context.Context, arg CreatePracticeSentenceParams) (PracticeSentence, error) {
 	row := q.db.QueryRow(ctx, createPracticeSentence,
 		arg.UserID,
@@ -39,6 +82,7 @@ func (q *Queries) CreatePracticeSentence(ctx context.Context, arg CreatePractice
 		&i.Phonetic,
 		&i.Gloss,
 		&i.CreatedAt,
+		&i.ServedAt,
 	)
 	return i, err
 }
@@ -55,6 +99,7 @@ type ListRecentPracticeSentenceTextsParams struct {
 	Limit  int32     `json:"limit"`
 }
 
+// Shown and queued sentences, so a new batch does not repeat either.
 func (q *Queries) ListRecentPracticeSentenceTexts(ctx context.Context, arg ListRecentPracticeSentenceTextsParams) ([]string, error) {
 	rows, err := q.db.Query(ctx, listRecentPracticeSentenceTexts, arg.UserID, arg.Limit)
 	if err != nil {

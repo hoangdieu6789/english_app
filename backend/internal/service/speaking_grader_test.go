@@ -41,7 +41,7 @@ func TestAzureScorerRequestsProsodyAndParsesREST(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	s := NewAzurePronunciationScorer("k", "westeurope")
+	s := NewAzurePronunciationScorer("k", "westeurope", 1)
 	s.endpoint = srv.URL
 
 	res, err := s.Score(context.Background(), []byte("RIFF"), "Good morning.")

@@ -7,8 +7,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"englishapp/backend/internal/domain"
 )
@@ -16,18 +19,35 @@ import (
 // AzurePronunciationScorer calls Azure Cognitive Services Speech's
 // Pronunciation Assessment REST API directly (no Go SDK — the official SDK
 // has poor Go support/documentation).
+//
+// Free tier (F0): Azure allows 1 concurrent speech-to-text request, so calls wait for a slot
+// (sem) instead of failing, and a 429 is retried a few times with backoff.
 type AzurePronunciationScorer struct {
 	subscriptionKey string
 	region          string
 	httpClient      *http.Client
-	endpoint        string // empty = the regional Azure endpoint; tests point it at a fake server
+	endpoint        string        // empty = the regional Azure endpoint; tests point it at a fake server
+	sem             chan struct{} // limits concurrent Azure calls (AZURE_SPEECH_CONCURRENCY)
+	retryWait       time.Duration // first backoff after a 429; doubles each retry
+	attemptTimeout  time.Duration // a call that takes longer is cancelled and retried once
 }
 
-func NewAzurePronunciationScorer(subscriptionKey, region string) *AzurePronunciationScorer {
+const azureMaxRetries = 3
+
+// NewAzurePronunciationScorer creates the scorer. concurrency < 1 means 1 (the F0 limit).
+func NewAzurePronunciationScorer(subscriptionKey, region string, concurrency int) *AzurePronunciationScorer {
+	if concurrency < 1 {
+		concurrency = 1
+	}
 	return &AzurePronunciationScorer{
 		subscriptionKey: subscriptionKey,
 		region:          region,
 		httpClient:      &http.Client{},
+		sem:             make(chan struct{}, concurrency),
+		retryWait:       time.Second,
+		// Seen live: a call hung for 60 s while the next identical one took 5 s. Short audio
+		// (<= 60 s) normally comes back in under 10 s.
+		attemptTimeout: 30 * time.Second,
 	}
 }
 
@@ -94,28 +114,10 @@ func (s *AzurePronunciationScorer) Score(ctx context.Context, audioWAV []byte, r
 		url = fmt.Sprintf("https://%s.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1", s.region)
 	}
 	url += "?language=en-US&format=detailed"
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(audioWAV))
-	if err != nil {
-		return nil, fmt.Errorf("build azure request: %w", err)
-	}
-	req.Header.Set("Ocp-Apim-Subscription-Key", s.subscriptionKey)
-	req.Header.Set("Content-Type", "audio/wav; codecs=audio/pcm; samplerate=16000")
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Pronunciation-Assessment", cfgHeader)
 
-	resp, err := s.httpClient.Do(req)
+	body, err := s.post(ctx, url, cfgHeader, audioWAV)
 	if err != nil {
-		return nil, fmt.Errorf("call azure speech api: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("azure speech api returned status %d", resp.StatusCode)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("read azure response: %w", err)
+		return nil, err
 	}
 	var result azureRecognitionResponse
 	if err := json.Unmarshal(body, &result); err != nil {
@@ -157,6 +159,81 @@ func (s *AzurePronunciationScorer) Score(ctx context.Context, audioWAV []byte, r
 		PhonemeScores:     phonemeScores,
 		Raw:               body,
 	}, nil
+}
+
+// post sends the audio to Azure, holding one concurrency slot. A 429 is retried with backoff
+// (up to azureMaxRetries); a hung call (attemptTimeout) or a 5xx is retried once.
+func (s *AzurePronunciationScorer) post(ctx context.Context, url, cfgHeader string, audioWAV []byte) ([]byte, error) {
+	select {
+	case s.sem <- struct{}{}:
+		defer func() { <-s.sem }()
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+
+	wait := s.retryWait
+	start := time.Now()
+	throttled, transient := 0, 0
+	for {
+		body, status, retryAfter, err := s.postOnce(ctx, url, cfgHeader, audioWAV)
+		switch {
+		case ctx.Err() != nil:
+			return nil, ctx.Err()
+		case err != nil || status >= 500:
+			if transient < 1 {
+				transient++
+				log.Printf("azure speech: retrying after %v (status %d)", err, status)
+				continue
+			}
+			if err != nil {
+				return nil, fmt.Errorf("call azure speech api: %w", err)
+			}
+			return nil, fmt.Errorf("azure speech api returned status %d", status)
+		case status == http.StatusTooManyRequests && throttled < azureMaxRetries:
+			throttled++
+			if retryAfter > 0 {
+				wait = retryAfter
+			}
+			select {
+			case <-time.After(wait):
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+			wait *= 2
+			continue
+		case status != http.StatusOK:
+			return nil, fmt.Errorf("azure speech api returned status %d", status)
+		}
+		log.Printf("azure speech: audio=%.1fs took=%s throttled=%d retried=%d", float64(len(audioWAV))/32000, time.Since(start).Round(100*time.Millisecond), throttled, transient)
+		return body, nil
+	}
+}
+
+func (s *AzurePronunciationScorer) postOnce(ctx context.Context, url, cfgHeader string, audioWAV []byte) (body []byte, status int, retryAfter time.Duration, err error) {
+	ctx, cancel := context.WithTimeout(ctx, s.attemptTimeout)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(audioWAV))
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	req.Header.Set("Ocp-Apim-Subscription-Key", s.subscriptionKey)
+	req.Header.Set("Content-Type", "audio/wav; codecs=audio/pcm; samplerate=16000")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Pronunciation-Assessment", cfgHeader)
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	defer resp.Body.Close()
+	if ra, err := strconv.Atoi(resp.Header.Get("Retry-After")); err == nil && ra > 0 {
+		retryAfter = time.Duration(ra) * time.Second
+	}
+	body, err = io.ReadAll(resp.Body)
+	if err != nil && resp.StatusCode == http.StatusOK {
+		return nil, 0, 0, fmt.Errorf("read azure response: %w", err)
+	}
+	return body, resp.StatusCode, retryAfter, nil
 }
 
 // normalizeErrorType keeps the segmental error types. Prosody error types that Azure can also

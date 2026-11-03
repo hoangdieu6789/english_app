@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
@@ -37,18 +38,58 @@ func main() {
 	if err != nil {
 		log.Fatalf("init audio storage: %v", err)
 	}
-	pronunciationScorer := service.NewAzurePronunciationScorer(cfg.AzureSpeechKey, cfg.AzureSpeechRegion)
+	pronunciationScorer := service.NewAzurePronunciationScorer(cfg.AzureSpeechKey, cfg.AzureSpeechRegion, cfg.AzureSpeechConcurrency)
 	rubricCfg, err := rubric.Load()
 	if err != nil {
 		log.Fatalf("load speaking rubric: %v", err)
 	}
-	var graderLLM service.LLMCompleter
-	if cfg.OpenRouterAPIKey != "" {
-		model := cfg.GraderModel
-		if model == "" {
-			model = cfg.OpenRouterModel
+	// Every LLM user (grader, sentence and question generators) gets the same provider chain,
+	// tried in order (LLM_PROVIDERS): Claude Code through the host LLM bridge (your own
+	// subscription), the Gemini API (free tier key), free OpenRouter models. A failing
+	// provider falls back to the next.
+	fallbacks := service.ParseModelList(cfg.OpenRouterFallbackModels)
+	newLLM := func(openRouterModel string, temperature float64, timeout time.Duration) *service.ChainCompleter {
+		chain := service.NewChainCompleter()
+		for _, p := range service.ParseModelList(cfg.LLMProviders) {
+			switch p {
+			case "claude":
+				if cfg.LLMBridgeToken == "" {
+					log.Fatalf("LLM_PROVIDERS has claude but LLM_BRIDGE_TOKEN is empty (see tools/llm-bridge)")
+				}
+				chain.Add(p, service.NewBridgeCompleter(cfg.LLMBridgeURL, cfg.LLMBridgeToken, p, cfg.ClaudeModel, timeout))
+			case "gemini":
+				if cfg.GeminiAPIKey == "" {
+					log.Printf("llm providers: skipping gemini, GEMINI_API_KEY is empty")
+					continue
+				}
+				chain.Add(p, service.NewGeminiCompleter(cfg.GeminiAPIKey, cfg.GeminiModel, temperature, timeout))
+			case "openrouter":
+				if cfg.OpenRouterAPIKey == "" {
+					continue
+				}
+				c, err := service.NewOpenRouterCompleter(cfg.OpenRouterAPIKey, append([]string{openRouterModel}, fallbacks...), temperature, cfg.AllowPaidModels, timeout)
+				if err != nil {
+					log.Fatalf("openrouter: %v", err)
+				}
+				chain.Add(p, c)
+			default:
+				log.Fatalf("unknown LLM provider %q in LLM_PROVIDERS (use claude, gemini, openrouter)", p)
+			}
 		}
-		graderLLM = service.NewOpenRouterCompleter(cfg.OpenRouterAPIKey, model)
+		return chain
+	}
+	var graderLLM service.LLMCompleter
+	graderModel := cfg.GraderModel
+	if graderModel == "" {
+		graderModel = cfg.OpenRouterModel
+	}
+	// temperature 0: grading should be as repeatable as possible. Free models answered the
+	// rubric prompt in 13–50 s in testing, so allow up to 120 s.
+	if chain := newLLM(graderModel, 0, 120*time.Second); chain.Len() > 0 {
+		graderLLM = chain
+		log.Printf("llm providers: %v", chain.Names())
+	} else {
+		log.Printf("llm providers: none; IELTS transcript criteria will not be assessed")
 	}
 	var pitchAnalyzer service.PitchAnalyzer
 	if cfg.PitchPython != "" {
@@ -57,11 +98,29 @@ func main() {
 	speakingGrader := service.NewSpeakingGrader(rubricCfg, graderLLM, pitchAnalyzer)
 	pronunciationRepo := repository.NewPronunciationRepository(pool)
 	pronunciationService := service.NewPronunciationService(pronunciationScorer, speakingGrader, audioStorage, pronunciationRepo)
-	pronunciationHandler := handler.NewPronunciationHandler(pronunciationService)
+	// IELTS question sets: seed bank on start, new sets written by the free LLM when a
+	// learner is close to the end of the bank.
+	questionSetRepo := repository.NewQuestionSetRepository(pool)
+	var questionGen service.QuestionSetGenerator
+	if graderLLM != nil {
+		questionGen = service.NewLLMQuestionSetGenerator(newLLM(cfg.OpenRouterModel, 0.9, 90*time.Second))
+	}
+	ieltsQuestionService := service.NewIeltsQuestionService(questionSetRepo, questionGen)
+	seedCtx, cancelSeed := context.WithTimeout(context.Background(), 30*time.Second)
+	if added, err := ieltsQuestionService.Seed(seedCtx); err != nil {
+		log.Fatalf("seed ielts questions: %v", err)
+	} else if added > 0 {
+		log.Printf("ielts questions: seeded %d sets", added)
+	}
+	cancelSeed()
+	ieltsHandler := handler.NewIeltsHandler(ieltsQuestionService)
+	progressHandler := handler.NewProgressHandler(service.NewProgressService(repository.NewProgressRepository(pool)))
+	pronunciationHandler := handler.NewPronunciationHandler(pronunciationService, ieltsQuestionService)
 
-	sentenceGenerator := service.NewOpenRouterSentenceGenerator(cfg.OpenRouterAPIKey, cfg.OpenRouterModel)
+	sentenceGenerator := service.NewLLMSentenceGenerator(newLLM(cfg.OpenRouterModel, 0.9, 90*time.Second))
 	practiceSentenceRepo := repository.NewPracticeSentenceRepository(pool)
-	practiceSentenceService := service.NewPracticeSentenceService(sentenceGenerator, practiceSentenceRepo)
+	// Generated sentences have at least as many words as the Pronunciation criterion needs.
+	practiceSentenceService := service.NewPracticeSentenceService(sentenceGenerator, practiceSentenceRepo, rubricCfg.Pronunciation.Thresholds.MinWords)
 	practiceHandler := handler.NewPracticeHandler(practiceSentenceService)
 
 	e := echo.New()
@@ -78,6 +137,8 @@ func main() {
 	handler.RegisterAuthRoutes(api, authHandler, jwtAuth)
 	handler.RegisterPronunciationRoutes(api, pronunciationHandler, jwtAuth)
 	handler.RegisterPracticeRoutes(api, practiceHandler, jwtAuth)
+	handler.RegisterIeltsRoutes(api, ieltsHandler, jwtAuth)
+	handler.RegisterProgressRoutes(api, progressHandler, jwtAuth)
 
 	e.GET("/healthz", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})

@@ -34,6 +34,10 @@ func (s *PronunciationService) HasTask(taskType string) bool {
 // speaking rubric. referenceText is the sentence to read (shadowing); it is empty for free
 // speaking tasks. A rubric failure is logged and the attempt is still saved without it.
 func (s *PronunciationService) SubmitAttempt(ctx context.Context, userID uuid.UUID, audioWAV []byte, referenceText string, task SpeakingTask) (*domain.PronunciationAttempt, error) {
+	// Cut leading/trailing silence once; Azure, storage and pitch analysis all use the trimmed
+	// audio, so word offsets stay consistent.
+	audioWAV = TrimSilenceWAV(audioWAV)
+
 	result, err := s.scorer.Score(ctx, audioWAV, referenceText)
 	if err != nil {
 		return nil, fmt.Errorf("score pronunciation: %w", err)
@@ -58,9 +62,14 @@ func (s *PronunciationService) SubmitAttempt(ctx context.Context, userID uuid.UU
 		WordScores:        result.WordScores,
 		PhonemeScores:     result.PhonemeScores,
 		AzureResult:       result.Raw,
+		QuestionSetID:     task.QuestionSetID,
+	}
+	if task.Prompt != "" {
+		attempt.TaskPrompt = &task.Prompt
 	}
 
-	graded, segs, err := s.grader.Grade(ctx, GradeInput{
+	gradeCtx, source := WithLLMSource(ctx)
+	graded, segs, err := s.grader.Grade(gradeCtx, GradeInput{
 		Task:       task,
 		Transcript: result.RecognizedText,
 		AzureRaw:   result.Raw,
@@ -70,6 +79,9 @@ func (s *PronunciationService) SubmitAttempt(ctx context.Context, userID uuid.UU
 		log.Printf("speaking rubric: %v", err)
 	} else {
 		applyRubric(attempt, graded, segs)
+	}
+	if source.Provider != "" {
+		attempt.GraderProvider, attempt.GraderModel = &source.Provider, &source.Model
 	}
 
 	saved, err := s.repo.Create(ctx, attempt)

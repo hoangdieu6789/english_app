@@ -1,52 +1,52 @@
 # Speaking Rubric — IELTS Speaking Band Descriptors
 
-Bộ tiêu chí chấm nói theo **IELTS Speaking Band Descriptors** (bản công khai trên IELTS.org): 4 tiêu chí, thang band 0–9, điểm tổng làm tròn tới nửa band. Viết dưới dạng markdown + yaml để nạp thẳng vào prompt LLM; package Go (`embed`) copy vào backend là chạy.
+A speaking rubric based on the **IELTS Speaking Band Descriptors** (public version on IELTS.org): 4 criteria, bands 0–9, overall band rounded to a half band. Written as markdown + yaml so it can be loaded straight into an LLM prompt; the Go package (`embed`) works as soon as it is copied into the backend.
 
-## Cấu trúc thư mục
+## Folder layout
 
 ```
 speaking-rubric/
-├── rubric.yaml                          # config: thang band, cách làm tròn, ngưỡng pronunciation
-├── rubric.go                            # load config, build system prompt, tính band tổng
-├── pronunciation.go                     # parse JSON Azure, band Pronunciation theo luật, speech hints cho FC
-├── evaluation.go                        # parse + sửa output LLM, ghép kết quả cuối (Assemble)
-├── pitch.go                             # gọi pitch/pitch_direction.py từ Go
+├── rubric.yaml                          # config: band scale, rounding, pronunciation thresholds
+├── rubric.go                            # loads the config, builds the system prompt, computes the overall band
+├── pronunciation.go                     # parses Azure JSON, rule-based Pronunciation band, speech hints for FC
+├── evaluation.go                        # parses + repairs the LLM output, builds the final result (Assemble)
+├── pitch.go                             # runs pitch/pitch_direction.py from Go
 ├── rubric_test.go, evaluation_test.go
-├── pitch/pitch_direction.py             # hướng cao độ cuối câu (Praat/parselmouth) cho P-04
+├── pitch/pitch_direction.py             # final pitch direction (Praat/parselmouth) for P-04
 ├── criteria/
-│   ├── 00-overview.md                   # 4 tiêu chí, quy tắc chấm chính thức, các Part
-│   ├── 01-fluency-and-coherence.md      # FC-01…05  — LLM (+ speech hints từ Azure)
+│   ├── 00-overview.md                   # the 4 criteria, official rating rules, the test parts
+│   ├── 01-fluency-and-coherence.md      # FC-01…05  — LLM (+ speech hints from Azure)
 │   ├── 02-lexical-resource.md           # LR-01…04  — LLM
 │   ├── 03-grammatical-range-and-accuracy.md  # GRA-01…05 — LLM
-│   ├── 04-pronunciation.md              # P-01…06   — tính bằng code, không gửi LLM
-│   └── 99-scoring-notes.md              # mỗi lỗi chỉ tính ở 1 tiêu chí, lưu ý ASR
+│   ├── 04-pronunciation.md              # P-01…06   — computed in code, not sent to the LLM
+│   └── 99-scoring-notes.md              # each error counts in one criterion only; ASR notes
 ├── prompts/
-│   ├── system.md                        # system prompt (không phụ thuộc task → cache được)
+│   ├── system.md                        # system prompt (independent of the task, so it can be cached)
 │   └── output-format.md
-├── schema/evaluation.schema.json        # JSON Schema cho output của LLM
+├── schema/evaluation.schema.json        # JSON Schema for the LLM output
 └── examples/
     ├── sample-evaluation.json
     └── azure/
-        ├── rest-sample.json             # response mẫu của REST API (Microsoft)
-        └── sample-segments.json         # JSON Azure tự tạo để test
+        ├── rest-sample.json             # sample REST API response (Microsoft)
+        └── sample-segments.json         # hand-made Azure JSON for tests
 ```
 
-## Ai chấm tiêu chí nào
+## Who scores which criterion
 
-| Tiêu chí | Chấm bởi | Dữ liệu |
+| Criterion | Scored by | Data |
 |---|---|---|
-| Fluency and Coherence | LLM | transcript + `speech_hints` (WPM, chỗ ngừng, ngừng giữa câu, từ đệm, lặp từ) tính từ Azure |
+| Fluency and Coherence | LLM | transcript + `speech_hints` (WPM, pauses, mid-sentence pauses, fillers, repetitions) computed from Azure |
 | Lexical Resource | LLM | transcript |
 | Grammatical Range and Accuracy | LLM | transcript |
-| Pronunciation | Code (`ScorePronunciation`) | Azure Pronunciation Assessment + cao độ từ WAV |
+| Pronunciation | Code (`ScorePronunciation`) | Azure Pronunciation Assessment + pitch from the WAV |
 
-Pronunciation đo được **5/6 đặc điểm** trong descriptor: phát âm từ/âm vị (P-01), chunking (P-02), nhịp (P-03, gián tiếp qua `ProsodyScore`), ngữ điệu & trọng âm (P-04), độ dễ hiểu (P-06, gián tiếp qua `AccuracyScore`). Connected speech (P-05) ghi `not_measured`. Kết quả có `coverage`, danh sách từ phát âm sai và câu lên/xuống giọng sai.
+Pronunciation measures **5 of the 6 features** in the descriptor: individual words/phonemes (P-01), chunking (P-02), rhythm (P-03, indirectly through `ProsodyScore`), intonation and stress (P-04), intelligibility (P-06, indirectly through `AccuracyScore`). Connected speech (P-05) is `not_measured`. The result includes `coverage`, the list of mispronounced words and the sentences with a wrong final rise/fall.
 
-## Luồng chấm
+## Grading flow
 
 ```
-mic ─► Azure (unscripted, en-US, prosody) ─► JSON từng segment ─┐
-  └──► ghi WAV song song ─────────────────────────────────────┐ │
+mic ─► Azure (unscripted, en-US, prosody) ─► JSON per segment ─┐
+  └──► record WAV at the same time ───────────────────────────┐ │
                                                               ▼ ▼
         [Go] ParseAzureSegments ─► PitchItems ─► RunPitchAnalysis (Python)
                   │                                     │
@@ -54,53 +54,53 @@ mic ─► Azure (unscripted, en-US, prosody) ─► JSON từng segment ─┐
                   └──────────────► ScorePronunciation(segs, pitch) → band P
                                           ▼
         [LLM] system = BuildSystemPrompt() ; user = task + transcript + speech_hints
-              → band FC, LR, GRA (JSON theo schema)
+              → bands FC, LR, GRA (JSON following the schema)
                                           ▼
-        [Go] OverallBand(bands) → band tổng (.0/.5) + CEFR ước lượng + provisional
+        [Go] OverallBand(bands) → overall band (.0/.5) + estimated CEFR + provisional
 ```
 
-## Tích hợp vào Go backend
+## Using it in a Go backend
 
 ```bash
 cp -r speaking-rubric internal/rubric
 go get gopkg.in/yaml.v3
-pip install praat-parselmouth numpy      # cho pitch_direction.py
+pip install praat-parselmouth numpy      # for pitch_direction.py
 ```
 
 ```go
 cfg, _ := rubric.Load()
 pc := cfg.Pronunciation
 
-// 1. Âm thanh
+// 1. Audio
 segs, _ := rubric.ParseAzureSegments(azureJSONs, pc.Thresholds.BreakConfidence)
 pitch, err := pc.RunPitchAnalysis(ctx, "python3", "internal/rubric/pitch/pitch_direction.py",
 	wavPath, rubric.PitchItems(segs, 0.3))
-if err != nil { pitch = nil }              // P-04 khi đó chỉ dùng tín hiệu monotone
+if err != nil { pitch = nil }              // P-04 then uses the monotone signal only
 pron := pc.ScorePronunciation(segs, pitch)
 hints := rubric.ComputeSpeechHints(segs)
 
-// 2. LLM chấm FC, LR, GRA
-system, _ := cfg.BuildSystemPrompt()       // cố định → bật prompt caching
+// 2. The LLM scores FC, LR, GRA
+system, _ := cfg.BuildSystemPrompt()       // fixed, so prompt caching can be used
 schema, _ := rubric.Schema()
 user, _ := json.Marshal(map[string]any{
 	"task":         map[string]any{"task_type": "part3", "questions": questions},
 	"transcript":   transcript,
 	"speech_hints": hints,
 })
-// gọi LLM với system + user (structured output theo schema) → reply (string)
-ev, err := cfg.ParseEvaluation(reply, "part3") // tự sửa: bỏ tiêu chí lạ, band ngoài 1–9, mã lỗi sai
+// call the LLM with system + user (structured output following the schema) → reply (string)
+ev, err := cfg.ParseEvaluation(reply, "part3") // repairs: drops unknown criteria, bands outside 1–9, bad issue codes
 if err != nil { ev = nil }
 
-// 3. Kết quả cuối: 3 tiêu chí LLM + Pronunciation + band tổng
+// 3. Final result: 3 LLM criteria + Pronunciation + overall band
 res := cfg.Assemble("part3", ev, &pron, &hints)
 // res.Overall = {Band: 6.5, CEFR: "B2", Provisional: false}
 ```
 
-## Lưu ý
+## Notes
 
-- **Làm tròn band tổng:** IELTS không công bố cách làm tròn từ 4 tiêu chí ra band Speaking. Mặc định `ielts_half` (giống làm tròn band Overall: .25 → .5, .75 → lên band). Đổi thành `floor_half` trong `rubric.yaml` nếu muốn chấm chặt hơn.
-- **Ngưỡng Pronunciation chỉ là điểm xuất phát:** điểm Azure không được hiệu chỉnh theo IELTS. Cần một bộ bài nói đã có giáo viên IELTS chấm để chỉnh `pronunciation.thresholds`. Band 8–9 Pronunciation nên có giáo viên xác nhận.
-- **JSON của Azure:** parser đọc được cả dạng SDK (điểm nằm trong `PronunciationAssessment`) lẫn dạng REST (điểm nằm phẳng trên `NBest`/`Words`). Từ `Omission` bị bỏ qua; `MissingBreak` chỉ tính khi trước từ có dấu câu. Vẫn nên lưu một response thật từ SDK vào `examples/azure/` và chạy `go test`.
-- **Ghi WAV song song** với luồng Azure, bắt đầu cùng lúc để `Offset` khớp. Không có WAV vẫn chấm được Pronunciation, chỉ thiếu phần kiểm tra lên/xuống giọng.
-- Prosody chỉ có với `en-US`. Nếu thiếu Pronunciation, band tổng được tính từ 3 tiêu chí và đánh dấu `provisional`.
-- Nội dung descriptor dựa trên tài liệu IELTS bạn cung cấp; kiểm tra IELTS.org khi có bản cập nhật.
+- **Overall band rounding:** IELTS does not publish how the 4 criteria are rounded into the Speaking band. The default is `ielts_half` (like the Overall band: .25 → .5, .75 → next band). Change it to `floor_half` in `rubric.yaml` for stricter scoring.
+- **Pronunciation thresholds are only a starting point:** Azure scores are not calibrated to IELTS. A set of answers rated by IELTS teachers is needed to tune `pronunciation.thresholds`. Pronunciation bands 8–9 should be confirmed by a teacher.
+- **Azure JSON:** the parser reads both the SDK shape (scores inside `PronunciationAssessment`) and the REST shape (scores flat on `NBest`/`Words`). `Omission` words are skipped; `MissingBreak` counts only when the word follows punctuation. Still save a real SDK response in `examples/azure/` and run `go test`.
+- **Record the WAV at the same time** as the Azure stream, starting together so that `Offset` values match. Without the WAV, Pronunciation is still scored; only the rise/fall check is missing.
+- Prosody is only available for `en-US`. If Pronunciation is missing, the overall band is computed from the other 3 criteria and marked `provisional`.
+- The descriptor text is based on the IELTS document you provided; check IELTS.org for updates.

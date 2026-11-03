@@ -1,1 +1,1 @@
--- Placeholder for Giai đoạn 3 — vocabulary gap detection queries.
+-- Placeholder for Phase 3 — vocabulary gap detection queries.

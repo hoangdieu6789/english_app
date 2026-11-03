@@ -61,6 +61,10 @@ func (r *pronunciationRepository) Create(ctx context.Context, attempt *domain.Pr
 		RubricScore:       toFloat4(attempt.RubricScore),
 		CefrLevel:         toText(attempt.CEFRLevel),
 		RubricVersion:     toText(attempt.RubricVersion),
+		QuestionSetID:     toUUID(attempt.QuestionSetID),
+		TaskPrompt:        toText(attempt.TaskPrompt),
+		GraderProvider:    toText(attempt.GraderProvider),
+		GraderModel:       toText(attempt.GraderModel),
 	})
 	if err != nil {
 		return nil, err
@@ -97,6 +101,10 @@ func toDomainPronunciationAttempt(row sqlcgen.PronunciationAttempt) (*domain.Pro
 		RubricScore:       fromFloat4(row.RubricScore),
 		CEFRLevel:         fromText(row.CefrLevel),
 		RubricVersion:     fromText(row.RubricVersion),
+		QuestionSetID:     fromUUID(row.QuestionSetID),
+		TaskPrompt:        fromText(row.TaskPrompt),
+		GraderProvider:    fromText(row.GraderProvider),
+		GraderModel:       fromText(row.GraderModel),
 		CreatedAt:         row.CreatedAt.Time,
 	}
 	if row.RecognizedText.Valid {
