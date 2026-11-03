@@ -100,6 +100,8 @@ export type PronunciationAttempt = {
   wordScores: WordScore[];
   phonemeScores: PhonemeScore[];
   rubric: RubricResult | null;
+  // LLM that scored FC/LR/GRA; null when no LLM was used (shadowing, LLM failure).
+  grader: { provider: string; model: string } | null;
   createdAt: string;
 };
 

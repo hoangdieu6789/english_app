@@ -1,4 +1,4 @@
-import type { RubricResult } from "@/lib/pronunciation-api";
+import type { PronunciationAttempt, RubricResult } from "@/lib/pronunciation-api";
 import { SCORE_AMBER, SCORE_GREEN, SCORE_RED } from "@/lib/score-color";
 
 // Learner-facing names for the IELTS criteria and the Pronunciation features
@@ -57,7 +57,7 @@ function Bar({ pct, color }: { pct: number; color: string }) {
   );
 }
 
-export function RubricPanel({ rubric }: { rubric: RubricResult }) {
+export function RubricPanel({ rubric, grader }: { rubric: RubricResult; grader?: PronunciationAttempt["grader"] }) {
   const pron = rubric.pronunciation;
   const overall = rubric.overall;
   const scored = overall.band > 0;
@@ -74,6 +74,13 @@ export function RubricPanel({ rubric }: { rubric: RubricResult }) {
           <div style={{ font: "700 16px var(--font-display)" }}>Chấm theo bộ tiêu chí</div>
           <div style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>
             IELTS Speaking · {TASK_LABELS[rubric.task_type] ?? rubric.task_type} · v{rubric.version}
+          </div>
+          <div style={{ fontSize: 12, color: "var(--ds-text-muted)" }} title="Phát âm luôn do code chấm từ dữ liệu Azure">
+            {grader
+              ? `Trôi chảy, từ vựng, ngữ pháp chấm bởi ${grader.provider}${grader.model ? ` · ${grader.model}` : ""}`
+              : rubric.task_type === "shadowing"
+                ? "Chấm bằng code từ dữ liệu Azure (không dùng AI)"
+                : "AI không chấm được bài này"}
           </div>
         </div>
         {scored ? (

@@ -109,6 +109,7 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
       setResult(attempt);
       setPhase("result");
       queryClient.invalidateQueries({ queryKey: ["ielts-sets", part] });
+      queryClient.invalidateQueries({ queryKey: ["progress-summary"] });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Chấm điểm thất bại. Thử lại.");
       setPhase("error");
@@ -409,7 +410,7 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
             </div>
           </div>
 
-          {result.rubric && <RubricPanel rubric={result.rubric} />}
+          {result.rubric && <RubricPanel rubric={result.rubric} grader={result.grader} />}
 
           <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
             <button onClick={reset} className="ds-btn ds-btn-outline">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/app-shell";
 import { ProgressRing } from "@/components/charts/progress-ring";
 import { Waveform } from "@/components/charts/waveform";
@@ -24,6 +25,7 @@ const MODES: { id: Mode; label: string }[] = [
 ];
 
 export default function PracticePage() {
+  const queryClient = useQueryClient();
   const [mode, setMode] = useState<Mode>("shadowing");
   const [sentence, setSentence] = useState<PracticeSentence | null>(null);
   const [sentenceLoading, setSentenceLoading] = useState(true);
@@ -80,6 +82,7 @@ export default function PracticePage() {
       const attempt = await submitPronunciationAttempt(wavBlob, sentence.text);
       setResult(attempt);
       setRec("result");
+      queryClient.invalidateQueries({ queryKey: ["progress-summary"] });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Chấm điểm thất bại. Thử lại.");
       setRec("error");
@@ -475,7 +478,7 @@ export default function PracticePage() {
                   </div>
                 )}
 
-                {result.rubric && <RubricPanel rubric={result.rubric} />}
+                {result.rubric && <RubricPanel rubric={result.rubric} grader={result.grader} />}
 
                 <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
                   <button onClick={retryRecord} className="ds-btn ds-btn-outline">

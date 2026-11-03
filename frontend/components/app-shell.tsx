@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import { progressQuery } from "@/lib/progress-api";
 import { authApi } from "@/lib/auth-api";
 import { useSessionStore } from "@/lib/session-store";
 
@@ -18,7 +19,7 @@ const TITLES: Record<string, [string, string]> = {
   "/dashboard": ["Trang chủ", "Tổng quan việc học của bạn hôm nay"],
   "/practice": ["Luyện nói · Practice", "Shadowing và IELTS Speaking Part 1–3"],
   "/review": ["Ôn từ · Review", "Ôn lại những từ còn yếu bằng spaced repetition"],
-  "/progress": ["Tiến độ · Progress", "Theo dõi accuracy, fluency và vốn từ theo thời gian"],
+  "/progress": ["Tiến độ · Progress", "Streak, phát âm và band IELTS từ các bài bạn đã luyện"],
 };
 
 function initials(email: string) {
@@ -26,7 +27,7 @@ function initials(email: string) {
   return name.slice(0, 2).toUpperCase();
 }
 
-export function AppShell({ children, streak = 12 }: { children: React.ReactNode; streak?: number }) {
+export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const user = useSessionStore((s) => s.user);
@@ -37,6 +38,9 @@ export function AppShell({ children, streak = 12 }: { children: React.ReactNode;
     queryFn: authApi.me,
     retry: false,
   });
+  // Real streak from the learner's attempts (same request as the Progress page).
+  const progress = useQuery({ ...progressQuery, enabled: !!data });
+  const streak = progress.data?.streak ?? 0;
 
   useEffect(() => {
     if (data) setUser(data);
@@ -225,7 +229,7 @@ export function AppShell({ children, streak = 12 }: { children: React.ReactNode;
               }}
             >
               <i className="pi pi-bolt" />
-              {streak} ngày streak
+              {streak > 0 ? `${streak} ngày streak` : "Chưa có streak"}
             </span>
             <button
               style={{
