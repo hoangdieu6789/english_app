@@ -105,6 +105,8 @@ export type PronunciationAttempt = {
   grader: { provider: string; model: string } | null;
   // pending: the AI is still grading FC/LR/GRA in the background (poll fetchPronunciationAttempt).
   gradingStatus: "pending" | "done" | "failed";
+  // whisper: written down by Whisper, then scored by Azure against it; azure: Azure's own recognition.
+  transcriptSource: "azure" | "whisper" | null;
   createdAt: string;
 };
 

@@ -447,6 +447,11 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
               <audio controls src={resolveAudioUrl(shown.audioUrl)} style={{ height: 32 }} />
             </div>
             <div style={{ fontSize: 15, lineHeight: 1.7, color: "var(--ds-text)" }}>{shown.recognizedText || "(không nhận diện được)"}</div>
+            <div style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>
+              {shown.transcriptSource === "whisper"
+                ? "Chép lời bởi Whisper; Azure chấm phát âm từng từ theo bản chép này."
+                : "Chép lời bởi Azure; có thể nhận sai từ phát âm chưa rõ."}
+            </div>
             <div style={{ display: "flex", gap: 18, fontSize: 13, color: "var(--ds-text-muted)", flexWrap: "wrap" }}>
               <span>
                 Chính xác <b style={{ color: scoreColor(shown.overallScore) }}>{Math.round(shown.overallScore)}</b>
