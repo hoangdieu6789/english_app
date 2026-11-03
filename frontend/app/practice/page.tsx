@@ -6,7 +6,7 @@ import { ProgressRing } from "@/components/charts/progress-ring";
 import { Waveform } from "@/components/charts/waveform";
 import { IeltsPractice } from "@/components/ielts-practice";
 import { RubricPanel } from "@/components/rubric-panel";
-import type { IeltsPart } from "@/lib/ielts-questions";
+import type { IeltsPart } from "@/lib/ielts-api";
 import { fetchNextSentence, type PracticeSentence } from "@/lib/practice-api";
 import { submitPronunciationAttempt, resolveAudioUrl, type PronunciationAttempt } from "@/lib/pronunciation-api";
 import { WavRecorder } from "@/lib/wav-recorder";

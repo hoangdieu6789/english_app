@@ -1,9 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Waveform } from "@/components/charts/waveform";
 import { RubricPanel } from "@/components/rubric-panel";
-import { CUE_CARDS, PART1_TOPICS, PART_INFO, cueCardText, pick, type IeltsPart } from "@/lib/ielts-questions";
+import {
+  PART_INFO,
+  cueCardText,
+  fetchNextQuestionSet,
+  listQuestionSets,
+  type IeltsPart,
+  type QuestionSet,
+} from "@/lib/ielts-api";
 import { submitPronunciationAttempt, resolveAudioUrl, type PronunciationAttempt } from "@/lib/pronunciation-api";
 import { scoreColor } from "@/lib/score-color";
 import { speakEnglish } from "@/lib/text-to-speech";
@@ -14,8 +22,25 @@ const PREP_SECONDS = 60; // Part 2 preparation time, as in the real test
 type Phase = "ready" | "prep" | "recording" | "processing" | "result" | "error";
 
 export function IeltsPractice({ part }: { part: IeltsPart }) {
-  const [topic, setTopic] = useState(() => pick(PART1_TOPICS));
-  const [card, setCard] = useState(() => pick(CUE_CARDS));
+  const queryClient = useQueryClient();
+  // Each request asks the backend for a set this learner has not done (exclude = set on screen).
+  const [request, setRequest] = useState<{ n: number; exclude?: string }>({ n: 0 });
+  const [picked, setPicked] = useState<QuestionSet | null>(null); // a done set chosen to redo
+  const [showDone, setShowDone] = useState(false);
+  const next = useQuery({
+    queryKey: ["ielts-next", part, request],
+    queryFn: () => fetchNextQuestionSet(part, request.exclude),
+    staleTime: Infinity,
+    gcTime: 0,
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+  const doneSets = useQuery({
+    queryKey: ["ielts-sets", part],
+    queryFn: () => listQuestionSets(part),
+    enabled: showDone,
+  });
+  const set = picked ?? next.data?.set ?? null;
   const [qIndex, setQIndex] = useState(0);
   const [phase, setPhase] = useState<Phase>("ready");
   const [prepLeft, setPrepLeft] = useState(PREP_SECONDS);
@@ -26,8 +51,8 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
   const prepRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const waitRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const question = part === "part1" ? topic.questions[qIndex] : part === "part3" ? card.part3[qIndex] : card.prompt;
-  const taskPrompt = part === "part2" ? cueCardText(card) : question;
+  const question = !set ? "" : part === "part2" ? set.prompt : (set.questions[qIndex] ?? "");
+  const taskPrompt = set && part === "part2" ? cueCardText(set) : question;
 
   const recorder = useRecorder(MAX_ANSWER_SECONDS, (wav) => submit(wav));
 
@@ -80,9 +105,10 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
     const startedAt = Date.now();
     waitRef.current = setInterval(() => setWaitSecs(Math.floor((Date.now() - startedAt) / 1000)), 500);
     try {
-      const attempt = await submitPronunciationAttempt(wav, "", { type: part, prompt: taskPrompt });
+      const attempt = await submitPronunciationAttempt(wav, "", { type: part, prompt: taskPrompt, questionSetId: set?.id });
       setResult(attempt);
       setPhase("result");
+      queryClient.invalidateQueries({ queryKey: ["ielts-sets", part] });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Chấm điểm thất bại. Thử lại.");
       setPhase("error");
@@ -101,34 +127,59 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
     }
   }
 
-  function nextQuestion() {
+  function newSet() {
     reset();
-    if (part === "part1") {
-      if (qIndex + 1 < topic.questions.length) setQIndex(qIndex + 1);
-      else {
-        setTopic(pick(PART1_TOPICS, topic));
-        setQIndex(0);
-      }
-    } else if (part === "part3") {
-      if (qIndex + 1 < card.part3.length) setQIndex(qIndex + 1);
-      else {
-        setCard(pick(CUE_CARDS, card));
-        setQIndex(0);
-      }
-    } else {
-      setCard(pick(CUE_CARDS, card));
-    }
+    setPicked(null);
+    setQIndex(0);
+    setRequest((r) => ({ n: r.n + 1, exclude: set?.id }));
   }
 
-  function otherTopic() {
+  function nextQuestion() {
+    if (set && part !== "part2" && qIndex + 1 < set.questions.length) {
+      reset();
+      setQIndex(qIndex + 1);
+    } else newSet();
+  }
+
+  function redo(s: QuestionSet) {
     reset();
+    setPicked(s);
     setQIndex(0);
-    if (part === "part1") setTopic(pick(PART1_TOPICS, topic));
-    else setCard(pick(CUE_CARDS, card));
+    setShowDone(false);
   }
 
   const busy = phase === "recording" || phase === "processing";
   const info = PART_INFO[part];
+  const done = (doneSets.data ?? []).filter((s) => s.attemptCount > 0);
+
+  if (!set) {
+    return (
+      <div className="ds-card" style={{ padding: 26, textAlign: "center", color: "var(--ds-text-muted)" }}>
+        {next.isError ? (
+          <>
+            <div style={{ color: "var(--ds-danger)", marginBottom: 12 }}>Không tải được đề. {next.error.message}</div>
+            <button onClick={() => next.refetch()} className="ds-btn ds-btn-outline ds-btn-sm">
+              <i className="pi pi-refresh" />
+              <span>Thử lại</span>
+            </button>
+          </>
+        ) : (
+          <span>
+            <i className="pi pi-spinner" style={{ animation: "spin 1s linear infinite", marginRight: 8 }} />
+            Đang lấy đề chưa làm...
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  const badge = picked
+    ? { text: "Làm lại", bg: "var(--ds-warning-bg)", fg: "var(--ds-warning)" }
+    : next.data?.seen
+      ? { text: "Ôn lại · đã làm hết đề", bg: "var(--ds-warning-bg)", fg: "var(--ds-warning)" }
+      : set.source === "generated"
+        ? { text: "Đề mới", bg: "var(--ds-success-bg)", fg: "var(--ds-success)" }
+        : null;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -148,15 +199,70 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
               {info.title}
             </span>
             <span style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>
-              Chủ đề: {part === "part1" ? topic.topic : card.topic}
-              {part !== "part2" && ` · Câu ${qIndex + 1}/${part === "part1" ? topic.questions.length : card.part3.length}`}
+              Chủ đề: {set.topic}
+              {part !== "part2" && ` · Câu ${qIndex + 1}/${set.questions.length}`}
             </span>
+            {badge && (
+              <span style={{ fontSize: 12, fontWeight: 600, padding: "2px 8px", borderRadius: 99, background: badge.bg, color: badge.fg }}>
+                {badge.text}
+              </span>
+            )}
           </div>
-          <button onClick={otherTopic} disabled={busy} className="ds-btn ds-btn-text ds-btn-sm">
-            <span>Chủ đề khác</span>
-            <i className="pi pi-refresh" />
-          </button>
+          <div style={{ display: "flex", gap: 4 }}>
+            <button onClick={() => setShowDone((v) => !v)} disabled={busy} className="ds-btn ds-btn-text ds-btn-sm" aria-expanded={showDone}>
+              <i className="pi pi-history" />
+              <span>Đề đã làm</span>
+            </button>
+            <button onClick={newSet} disabled={busy} className="ds-btn ds-btn-text ds-btn-sm">
+              <span>Chủ đề khác</span>
+              <i className="pi pi-refresh" />
+            </button>
+          </div>
         </div>
+
+        {next.data && !picked && (
+          <div style={{ fontSize: 12, color: "var(--ds-text-muted)", marginTop: -10, marginBottom: 14 }}>
+            {next.data.seen ? "Đang tìm thêm đề mới cho bạn" : `Còn ${next.data.unseenCount} bộ đề chưa làm ở ${info.title.split(" · ")[0]}`}
+          </div>
+        )}
+
+        {showDone && (
+          <div
+            style={{
+              marginBottom: 18,
+              padding: 12,
+              borderRadius: "var(--ds-radius-md)",
+              background: "var(--ds-surface-subtle)",
+              border: "1px solid var(--ds-border-subtle)",
+              maxHeight: 260,
+              overflowY: "auto",
+            }}
+          >
+            {doneSets.isLoading ? (
+              <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>Đang tải...</div>
+            ) : done.length === 0 ? (
+              <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>Bạn chưa làm bộ đề nào ở phần này.</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {done.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => redo(s)}
+                    className="ds-btn ds-btn-text ds-btn-sm"
+                    style={{ justifyContent: "space-between", width: "100%", textAlign: "left" }}
+                  >
+                    <span>{s.topic}</span>
+                    <span style={{ fontSize: 12, color: "var(--ds-text-muted)", whiteSpace: "nowrap" }}>
+                      {s.attemptCount} lần
+                      {s.bestBand != null && ` · cao nhất ${s.bestBand}`}
+                      {s.lastAttemptAt && ` · ${new Date(s.lastAttemptAt).toLocaleDateString("vi-VN")}`}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         <div style={{ textAlign: "center", padding: "4px 0" }}>
           <div style={{ fontSize: 13, color: "var(--ds-text-muted)", marginBottom: 8 }}>{info.hint}</div>
@@ -165,14 +271,14 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
             <div style={{ display: "inline-block", textAlign: "left", marginTop: 12, fontSize: 15, color: "var(--ds-text-secondary)" }}>
               <div style={{ fontWeight: 600, marginBottom: 4 }}>You should say:</div>
               <ul style={{ margin: 0, paddingLeft: 20, lineHeight: 1.7, listStyle: "disc" }}>
-                {card.points.map((p) => (
+                {set.points.map((p) => (
                   <li key={p}>{p}</li>
                 ))}
               </ul>
             </div>
           )}
           {part === "part3" && (
-            <div style={{ fontSize: 13, color: "var(--ds-text-muted)", marginTop: 8 }}>Liên quan tới Part 2: {card.prompt}</div>
+            <div style={{ fontSize: 13, color: "var(--ds-text-muted)", marginTop: 8 }}>Liên quan tới Part 2: {set.prompt}</div>
           )}
           <div>
             <button onClick={() => speakEnglish(question)} className="ds-btn ds-btn-outline ds-btn-sm" style={{ marginTop: 14 }}>
@@ -311,7 +417,7 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
               <span>Trả lời lại</span>
             </button>
             <button onClick={nextQuestion} className="ds-btn">
-              <span>{part === "part2" ? "Cue card khác" : "Câu hỏi tiếp theo"}</span>
+              <span>{part === "part2" || qIndex + 1 >= set.questions.length ? "Bộ đề tiếp theo" : "Câu hỏi tiếp theo"}</span>
               <i className="pi pi-arrow-right" />
             </button>
           </div>
