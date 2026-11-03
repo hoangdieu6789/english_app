@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
@@ -37,10 +38,19 @@ func main() {
 	if err != nil {
 		log.Fatalf("init audio storage: %v", err)
 	}
-	pronunciationScorer := service.NewAzurePronunciationScorer(cfg.AzureSpeechKey, cfg.AzureSpeechRegion)
+	pronunciationScorer := service.NewAzurePronunciationScorer(cfg.AzureSpeechKey, cfg.AzureSpeechRegion, cfg.AzureSpeechConcurrency)
 	rubricCfg, err := rubric.Load()
 	if err != nil {
 		log.Fatalf("load speaking rubric: %v", err)
+	}
+	// Both LLM users share one free-only OpenRouter setup (see service.OpenRouterCompleter).
+	fallbacks := service.ParseModelList(cfg.OpenRouterFallbackModels)
+	newLLM := func(model string, temperature float64, timeout time.Duration) *service.OpenRouterCompleter {
+		c, err := service.NewOpenRouterCompleter(cfg.OpenRouterAPIKey, append([]string{model}, fallbacks...), temperature, cfg.AllowPaidModels, timeout)
+		if err != nil {
+			log.Fatalf("openrouter: %v", err)
+		}
+		return c
 	}
 	var graderLLM service.LLMCompleter
 	if cfg.OpenRouterAPIKey != "" {
@@ -48,7 +58,9 @@ func main() {
 		if model == "" {
 			model = cfg.OpenRouterModel
 		}
-		graderLLM = service.NewOpenRouterCompleter(cfg.OpenRouterAPIKey, model)
+		// temperature 0: grading should be as repeatable as possible. Free models answered the
+		// rubric prompt in 13–50 s in testing, so allow up to 120 s.
+		graderLLM = newLLM(model, 0, 120*time.Second)
 	}
 	var pitchAnalyzer service.PitchAnalyzer
 	if cfg.PitchPython != "" {
@@ -59,9 +71,10 @@ func main() {
 	pronunciationService := service.NewPronunciationService(pronunciationScorer, speakingGrader, audioStorage, pronunciationRepo)
 	pronunciationHandler := handler.NewPronunciationHandler(pronunciationService)
 
-	sentenceGenerator := service.NewOpenRouterSentenceGenerator(cfg.OpenRouterAPIKey, cfg.OpenRouterModel)
+	sentenceGenerator := service.NewLLMSentenceGenerator(newLLM(cfg.OpenRouterModel, 0.9, 90*time.Second))
 	practiceSentenceRepo := repository.NewPracticeSentenceRepository(pool)
-	practiceSentenceService := service.NewPracticeSentenceService(sentenceGenerator, practiceSentenceRepo)
+	// Generated sentences have at least as many words as the Pronunciation criterion needs.
+	practiceSentenceService := service.NewPracticeSentenceService(sentenceGenerator, practiceSentenceRepo, rubricCfg.Pronunciation.Thresholds.MinWords)
 	practiceHandler := handler.NewPracticeHandler(practiceSentenceService)
 
 	e := echo.New()

@@ -34,6 +34,10 @@ func (s *PronunciationService) HasTask(taskType string) bool {
 // speaking rubric. referenceText is the sentence to read (shadowing); it is empty for free
 // speaking tasks. A rubric failure is logged and the attempt is still saved without it.
 func (s *PronunciationService) SubmitAttempt(ctx context.Context, userID uuid.UUID, audioWAV []byte, referenceText string, task SpeakingTask) (*domain.PronunciationAttempt, error) {
+	// Cut leading/trailing silence once; Azure, storage and pitch analysis all use the trimmed
+	// audio, so word offsets stay consistent.
+	audioWAV = TrimSilenceWAV(audioWAV)
+
 	result, err := s.scorer.Score(ctx, audioWAV, referenceText)
 	if err != nil {
 		return nil, fmt.Errorf("score pronunciation: %w", err)

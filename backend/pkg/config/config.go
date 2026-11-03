@@ -2,30 +2,37 @@ package config
 
 import (
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	Port                 string
-	DatabaseURL          string
-	JWTAccessSecret      string
-	JWTRefreshPepper     string
-	AccessTokenTTL       time.Duration
-	RefreshTokenTTL      time.Duration
-	FrontendOrigin       string
-	CookieDomain         string
-	CookieSecure         bool
-	AzureSpeechKey       string
-	AzureSpeechRegion    string
-	AudioStorageDir      string
-	AudioPublicURLPrefix string
-	OpenRouterAPIKey     string
-	OpenRouterModel      string
+	Port              string
+	DatabaseURL       string
+	JWTAccessSecret   string
+	JWTRefreshPepper  string
+	AccessTokenTTL    time.Duration
+	RefreshTokenTTL   time.Duration
+	FrontendOrigin    string
+	CookieDomain      string
+	CookieSecure      bool
+	AzureSpeechKey    string
+	AzureSpeechRegion string
+	// Concurrent Azure calls; the Free (F0) tier allows only 1, so 1 is the default.
+	AzureSpeechConcurrency int
+	AudioStorageDir        string
+	AudioPublicURLPrefix   string
+	OpenRouterAPIKey       string
+	OpenRouterModel        string
+	// Comma-separated OpenRouter fallback models, tried in order when the first is busy.
+	OpenRouterFallbackModels string
+	// false (default): refuse any OpenRouter model without the ":free" suffix.
+	AllowPaidModels bool
 	// Speaking rubric (internal/rubric)
 	GraderModel string // LLM for the transcript criteria; empty = OpenRouterModel
-	PitchPython string // e.g. "python3"; empty = no pitch analysis (PRO-05/06 not measured)
+	PitchPython string // e.g. "python3"; empty = no pitch analysis (Pronunciation P-04 uses the monotone signal only)
 	PitchScript string // path to internal/rubric/pitch/pitch_direction.py on disk
 }
 
@@ -43,13 +50,17 @@ func Load() *Config {
 		CookieDomain:     getEnv("COOKIE_DOMAIN", ""),
 		CookieSecure:     getEnv("COOKIE_SECURE", "false") == "true",
 
-		AzureSpeechKey:       getEnv("AZURE_SPEECH_KEY", ""),
-		AzureSpeechRegion:    getEnv("AZURE_SPEECH_REGION", ""),
-		AudioStorageDir:      getEnv("AUDIO_STORAGE_DIR", "./data/audio"),
-		AudioPublicURLPrefix: getEnv("AUDIO_PUBLIC_URL_PREFIX", "/uploads"),
+		AzureSpeechKey:         getEnv("AZURE_SPEECH_KEY", ""),
+		AzureSpeechRegion:      getEnv("AZURE_SPEECH_REGION", ""),
+		AzureSpeechConcurrency: getEnvInt("AZURE_SPEECH_CONCURRENCY", 1),
+		AudioStorageDir:        getEnv("AUDIO_STORAGE_DIR", "./data/audio"),
+		AudioPublicURLPrefix:   getEnv("AUDIO_PUBLIC_URL_PREFIX", "/uploads"),
 
 		OpenRouterAPIKey: getEnv("OPENROUTER_API_KEY", ""),
-		OpenRouterModel:  getEnv("OPENROUTER_MODEL", "anthropic/claude-3.5-haiku"),
+		// Free defaults; see service.DefaultOpenRouterModel for why these models.
+		OpenRouterModel:          getEnv("OPENROUTER_MODEL", "nvidia/nemotron-3.5-super-vl:free"),
+		OpenRouterFallbackModels: getEnv("OPENROUTER_FALLBACK_MODELS", "google/gemma-4-31b-it:free"),
+		AllowPaidModels:          getEnv("ALLOW_PAID_MODELS", "false") == "true",
 
 		GraderModel: getEnv("GRADER_MODEL", ""),
 		PitchPython: getEnv("PITCH_PYTHON", ""),
@@ -60,6 +71,13 @@ func Load() *Config {
 func getEnv(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
+	}
+	return fallback
+}
+
+func getEnvInt(key string, fallback int) int {
+	if n, err := strconv.Atoi(os.Getenv(key)); err == nil {
+		return n
 	}
 	return fallback
 }

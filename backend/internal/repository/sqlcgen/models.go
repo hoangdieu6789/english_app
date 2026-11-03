@@ -16,6 +16,7 @@ type PracticeSentence struct {
 	Phonetic  string             `json:"phonetic"`
 	Gloss     string             `json:"gloss"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	ServedAt  pgtype.Timestamptz `json:"served_at"`
 }
 
 type ProgressSnapshot struct {

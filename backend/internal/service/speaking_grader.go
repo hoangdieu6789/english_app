@@ -71,6 +71,7 @@ func (g *SpeakingGrader) Grade(ctx context.Context, in GradeInput) (*rubric.Resu
 	if !g.HasTask(in.Task.Type) {
 		return nil, nil, fmt.Errorf("unknown task type %q", in.Task.Type)
 	}
+	start := time.Now()
 	pc := g.cfg.Pronunciation
 
 	var segs []rubric.Segment
@@ -117,6 +118,7 @@ func (g *SpeakingGrader) Grade(ctx context.Context, in GradeInput) (*rubric.Resu
 	}
 
 	res := g.cfg.Assemble(in.Task.Type, llmEval, pron, hints)
+	log.Printf("speaking grader: task=%s llm=%v took=%s", in.Task.Type, llmEval != nil, time.Since(start).Round(100*time.Millisecond))
 	if shadowing {
 		// Reading a given sentence shows nothing about fluency, vocabulary or grammar.
 		for i, na := range res.NotAssessed {

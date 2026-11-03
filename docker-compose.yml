@@ -50,7 +50,10 @@ services:
       AUDIO_STORAGE_DIR: /data/audio
       AUDIO_PUBLIC_URL_PREFIX: /uploads
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-anthropic/claude-3.5-haiku}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-nvidia/nemotron-3.5-super-vl:free}
+      OPENROUTER_FALLBACK_MODELS: ${OPENROUTER_FALLBACK_MODELS:-google/gemma-4-31b-it:free}
+      ALLOW_PAID_MODELS: ${ALLOW_PAID_MODELS:-false}
+      AZURE_SPEECH_CONCURRENCY: ${AZURE_SPEECH_CONCURRENCY:-1}
       GRADER_MODEL: ${GRADER_MODEL:-}
     volumes:
       - audio_data:/data/audio
