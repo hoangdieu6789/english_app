@@ -1,4 +1,4 @@
-# LLM bridge (Claude Code)
+# LLM bridge (Claude Code, Whisper)
 
 Lets the English App API use the **Claude Code** CLI logged in on your Mac with your own
 subscription plan, instead of (or before) the Gemini API and free OpenRouter models.
@@ -15,6 +15,28 @@ Gemini does not go through the bridge. Since June 18, 2026 the Gemini CLI no lon
 "Login with Google" for Google AI Pro/Ultra, and its replacement, Antigravity CLI (`agy`),
 does not allow wrapping it in an app under consumer plans. The API calls the Gemini API
 directly with `GEMINI_API_KEY` instead (see `backend/env.example`).
+
+## Transcription (Whisper)
+
+The bridge also writes down IELTS answers with [whisper.cpp](https://github.com/ggml-org/whisper.cpp)
+(`POST /v1/transcribe`, WAV body), on the Mac's GPU. Azure then scores the audio against that
+transcript. Azure's own recognition of free speech has no context and guesses other words for
+unclear ones ("avid photographer" -> "event for the Graford"), then scores them as said well.
+Measured on 6 real answers (same text read 6 times): word error rate 35% with Azure, 21% with
+`small.en`, 17% with `medium.en` (~1.1 s for a 24 s answer on an M5 Pro). With the transcript
+as reference, Azure gave "photographer" 7/100 instead of hiding it.
+
+```
+brew install whisper-cpp
+mkdir -p ~/.cache/whisper-models
+curl -L -o ~/.cache/whisper-models/ggml-medium.en.bin \
+  https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.en.bin   # 1.5 GB
+```
+
+Other model: set `WHISPER_MODEL=/path/to/ggml-<name>.bin` for the bridge. `GET /healthz`
+shows `"whisper": true` when the CLI and model are found. The API uses it when
+`TRANSCRIBER=whisper` (default) and `LLM_BRIDGE_TOKEN` is set; when the bridge or Whisper
+fails it falls back to Azure's own recognition. Shadowing keeps its given sentence.
 
 ## Set up
 
