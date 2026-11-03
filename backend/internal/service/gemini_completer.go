@@ -154,6 +154,7 @@ func (g *GeminiCompleter) completeWith(ctx context.Context, model, system, user 
 	if strings.TrimSpace(text) == "" {
 		return "", fmt.Errorf("gemini %s: empty answer (finish reason %s)", model, out.Candidates[0].FinishReason)
 	}
+	reportLLMSource(ctx, "gemini", model)
 	log.Printf("gemini: model=%s took=%s", model, time.Since(started).Round(time.Millisecond))
 	return text, nil
 }

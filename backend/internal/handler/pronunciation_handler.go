@@ -84,6 +84,11 @@ func (h *PronunciationHandler) SubmitAttempt(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to score pronunciation")
 	}
 
+	var grader any // null when no LLM scored the attempt (shadowing, LLM failure)
+	if attempt.GraderProvider != nil {
+		grader = map[string]string{"provider": *attempt.GraderProvider, "model": deref(attempt.GraderModel)}
+	}
+
 	var rubricResult any // null when grading failed
 	if len(attempt.Rubric) > 0 {
 		rubricResult = json.RawMessage(attempt.Rubric)
@@ -103,6 +108,7 @@ func (h *PronunciationHandler) SubmitAttempt(c echo.Context) error {
 		"wordScores":        attempt.WordScores,
 		"phonemeScores":     attempt.PhonemeScores,
 		"rubric":            rubricResult,
+		"grader":            grader,
 		"createdAt":         attempt.CreatedAt,
 	})
 }
@@ -130,4 +136,11 @@ func (h *PronunciationHandler) questionSetID(c echo.Context, taskType string) (*
 		return nil, echo.NewHTTPError(http.StatusBadRequest, "unknown questionSetId for this taskType")
 	}
 	return &id, nil
+}
+
+func deref(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }

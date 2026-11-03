@@ -18,10 +18,10 @@ INSERT INTO pronunciation_attempts (
   overall_score, fluency_score, word_scores, phoneme_scores,
   task_type, completeness_score, prosody_score, pron_score,
   azure_result, rubric, rubric_score, cefr_level, rubric_version,
-  question_set_id, task_prompt
+  question_set_id, task_prompt, grader_provider, grader_model
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
-RETURNING id, user_id, audio_url, reference_text, recognized_text, overall_score, fluency_score, word_scores, phoneme_scores, created_at, task_type, completeness_score, prosody_score, pron_score, azure_result, rubric, rubric_score, cefr_level, rubric_version, question_set_id, task_prompt
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+RETURNING id, user_id, audio_url, reference_text, recognized_text, overall_score, fluency_score, word_scores, phoneme_scores, created_at, task_type, completeness_score, prosody_score, pron_score, azure_result, rubric, rubric_score, cefr_level, rubric_version, question_set_id, task_prompt, grader_provider, grader_model
 `
 
 type CreatePronunciationAttemptParams struct {
@@ -44,6 +44,8 @@ type CreatePronunciationAttemptParams struct {
 	RubricVersion     pgtype.Text   `json:"rubric_version"`
 	QuestionSetID     pgtype.UUID   `json:"question_set_id"`
 	TaskPrompt        pgtype.Text   `json:"task_prompt"`
+	GraderProvider    pgtype.Text   `json:"grader_provider"`
+	GraderModel       pgtype.Text   `json:"grader_model"`
 }
 
 func (q *Queries) CreatePronunciationAttempt(ctx context.Context, arg CreatePronunciationAttemptParams) (PronunciationAttempt, error) {
@@ -67,6 +69,8 @@ func (q *Queries) CreatePronunciationAttempt(ctx context.Context, arg CreatePron
 		arg.RubricVersion,
 		arg.QuestionSetID,
 		arg.TaskPrompt,
+		arg.GraderProvider,
+		arg.GraderModel,
 	)
 	var i PronunciationAttempt
 	err := row.Scan(
@@ -91,6 +95,8 @@ func (q *Queries) CreatePronunciationAttempt(ctx context.Context, arg CreatePron
 		&i.RubricVersion,
 		&i.QuestionSetID,
 		&i.TaskPrompt,
+		&i.GraderProvider,
+		&i.GraderModel,
 	)
 	return i, err
 }

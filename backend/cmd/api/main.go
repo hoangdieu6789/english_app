@@ -114,6 +114,7 @@ func main() {
 	}
 	cancelSeed()
 	ieltsHandler := handler.NewIeltsHandler(ieltsQuestionService)
+	progressHandler := handler.NewProgressHandler(service.NewProgressService(repository.NewProgressRepository(pool)))
 	pronunciationHandler := handler.NewPronunciationHandler(pronunciationService, ieltsQuestionService)
 
 	sentenceGenerator := service.NewLLMSentenceGenerator(newLLM(cfg.OpenRouterModel, 0.9, 90*time.Second))
@@ -137,6 +138,7 @@ func main() {
 	handler.RegisterPronunciationRoutes(api, pronunciationHandler, jwtAuth)
 	handler.RegisterPracticeRoutes(api, practiceHandler, jwtAuth)
 	handler.RegisterIeltsRoutes(api, ieltsHandler, jwtAuth)
+	handler.RegisterProgressRoutes(api, progressHandler, jwtAuth)
 
 	e.GET("/healthz", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})

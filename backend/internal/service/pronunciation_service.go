@@ -68,7 +68,8 @@ func (s *PronunciationService) SubmitAttempt(ctx context.Context, userID uuid.UU
 		attempt.TaskPrompt = &task.Prompt
 	}
 
-	graded, segs, err := s.grader.Grade(ctx, GradeInput{
+	gradeCtx, source := WithLLMSource(ctx)
+	graded, segs, err := s.grader.Grade(gradeCtx, GradeInput{
 		Task:       task,
 		Transcript: result.RecognizedText,
 		AzureRaw:   result.Raw,
@@ -78,6 +79,9 @@ func (s *PronunciationService) SubmitAttempt(ctx context.Context, userID uuid.UU
 		log.Printf("speaking rubric: %v", err)
 	} else {
 		applyRubric(attempt, graded, segs)
+	}
+	if source.Provider != "" {
+		attempt.GraderProvider, attempt.GraderModel = &source.Provider, &source.Model
 	}
 
 	saved, err := s.repo.Create(ctx, attempt)

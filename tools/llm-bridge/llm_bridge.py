@@ -7,7 +7,7 @@ so it cannot run inside the container; the API calls this bridge instead.
 
     POST /v1/complete   {"provider": "claude", "model": "", "system": "", "user": "",
                          "timeout_s": 120}
-                        -> 200 {"text": "...", "provider": "...", "took_ms": 1234}
+                        -> 200 {"text": "...", "provider": "...", "model": "<model id used>", "took_ms": 1234}
                         -> 4xx/5xx {"error": "..."}   (the API then tries its next provider)
     GET  /healthz       -> {"claude": true}
 
@@ -95,7 +95,9 @@ def run_claude(model, system, user, timeout_s):
     if data.get("is_error") or proc.returncode != 0:
         # Usage limit, login expired, overloaded...: let the API fall back.
         raise BridgeError(502, f"claude: {str(data.get('result') or data.get('subtype'))[:400]}")
-    return data.get("result") or ""
+    # modelUsage lists the model ids used, e.g. {"claude-sonnet-5-5": {...}}.
+    used = list((data.get("modelUsage") or {}).keys())
+    return data.get("result") or "", (used[0] if used else model)
 
 
 PROVIDERS = {"claude": run_claude}
@@ -150,14 +152,14 @@ class Handler(BaseHTTPRequestHandler):
         started = time.monotonic()
         try:
             with self.limits[provider]:
-                text = run(model, req.get("system") or "", user, timeout_s)
+                text, used_model = run(model, req.get("system") or "", user, timeout_s)
         except BridgeError as e:
             took = int((time.monotonic() - started) * 1000)
             print(f"llm-bridge: provider={provider} model={model or 'default'} took={took}ms error={e}", flush=True)
             return self.send_json(e.status, {"error": str(e)})
         took = int((time.monotonic() - started) * 1000)
-        print(f"llm-bridge: provider={provider} model={model or 'default'} took={took}ms chars={len(text)}", flush=True)
-        self.send_json(200, {"text": text, "provider": provider, "took_ms": took})
+        print(f"llm-bridge: provider={provider} model={used_model or 'default'} took={took}ms chars={len(text)}", flush=True)
+        self.send_json(200, {"text": text, "provider": provider, "model": used_model, "took_ms": took})
 
 
 def main():

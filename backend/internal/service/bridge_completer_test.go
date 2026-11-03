@@ -97,3 +97,25 @@ func TestChainCompleterFallsBackInOrder(t *testing.T) {
 		t.Fatal("empty chain must fail")
 	}
 }
+
+func TestCompletersReportTheSourceThatAnswered(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"text":"ok","provider":"claude","model":"claude-sonnet-5-5"}`))
+	}))
+	defer srv.Close()
+	chain := NewChainCompleter()
+	chain.Add("failing", &stubLLM{err: errors.New("down")})
+	chain.Add("claude", NewBridgeCompleter(srv.URL, "t", "claude", "sonnet", time.Second))
+
+	ctx, src := WithLLMSource(context.Background())
+	if _, err := chain.Complete(ctx, "", "x"); err != nil {
+		t.Fatal(err)
+	}
+	if src.Provider != "claude" || src.Model != "claude-sonnet-5-5" {
+		t.Fatalf("source = %+v", src)
+	}
+	// Without a recorder in the context nothing breaks.
+	if _, err := chain.Complete(context.Background(), "", "x"); err != nil {
+		t.Fatal(err)
+	}
+}

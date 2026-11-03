@@ -68,6 +68,7 @@ func (b *BridgeCompleter) Complete(ctx context.Context, system, user string) (st
 	}
 	var out struct {
 		Text  string `json:"text"`
+		Model string `json:"model"` // model id the CLI used (e.g. claude-sonnet-5-5); may be empty
 		Error string `json:"error"`
 	}
 	if err := json.Unmarshal(raw, &out); err != nil {
@@ -79,7 +80,12 @@ func (b *BridgeCompleter) Complete(ctx context.Context, system, user string) (st
 	if out.Text == "" {
 		return "", fmt.Errorf("llm bridge (%s): empty answer", b.provider)
 	}
-	log.Printf("llm bridge: provider=%s model=%s took=%s", b.provider, b.modelName(), time.Since(started).Round(time.Millisecond))
+	model := out.Model
+	if model == "" {
+		model = b.modelName()
+	}
+	reportLLMSource(ctx, b.provider, model)
+	log.Printf("llm bridge: provider=%s model=%s took=%s", b.provider, model, time.Since(started).Round(time.Millisecond))
 	return out.Text, nil
 }
 

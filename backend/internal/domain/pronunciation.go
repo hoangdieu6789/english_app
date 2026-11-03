@@ -28,6 +28,8 @@ type PronunciationAttempt struct {
 	RubricVersion     *string
 	QuestionSetID     *uuid.UUID // IELTS question set answered; nil for shadowing
 	TaskPrompt        *string    // the question or cue card answered
+	GraderProvider    *string    // LLM provider that scored FC/LR/GRA (claude, gemini, openrouter); nil = no LLM
+	GraderModel       *string    // model id reported by that provider
 	CreatedAt         time.Time
 }
 

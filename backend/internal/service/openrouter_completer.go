@@ -178,5 +178,6 @@ func (c *OpenRouterCompleter) complete(ctx context.Context, models []string, sys
 	if len(chatResp.Choices) == 0 || strings.TrimSpace(chatResp.Choices[0].Message.Content) == "" {
 		return "", errRetryable{fmt.Errorf("openrouter returned no answer")}
 	}
+	reportLLMSource(ctx, "openrouter", chatResp.Model)
 	return chatResp.Choices[0].Message.Content, nil
 }
