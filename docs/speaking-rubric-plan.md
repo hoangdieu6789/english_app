@@ -27,11 +27,15 @@ Thứ tự là mức ưu tiên đề xuất.
 
 ### 2. Giao diện cho IELTS Part
 
-- [ ] Trang luyện nói cho chọn loại bài: Shadowing / Part 1 / Part 2 / Part 3.
-- [ ] Nguồn câu hỏi: Part 1 (câu hỏi ngắn), Part 2 (cue card), Part 3 (câu hỏi thảo luận). Có thể sinh bằng LLM như câu shadowing (`practice_sentences`), hoặc dùng một bộ câu hỏi cố định.
-- [ ] Part 2: 1 phút chuẩn bị + đồng hồ đếm 1–2 phút.
-- [ ] Gửi `taskType` và `taskPrompt` từ trang (hàm `submitPronunciationAttempt` đã hỗ trợ).
-- [ ] Hiện trạng thái "đang chấm…" vì LLM mất khoảng 50–70 giây.
+- [x] Trang luyện nói cho chọn loại bài: Shadowing / IELTS Part 1 / Part 2 / Part 3 (`frontend/components/ielts-practice.tsx`).
+- [x] Nguồn câu hỏi: bộ câu hỏi cố định viết cho app (`frontend/lib/ielts-questions.ts`): 6 chủ đề Part 1 × 4 câu, 6 cue card Part 2, mỗi cue card có 3 câu Part 3 liên quan. Không gọi LLM, không tốn lượt free.
+- [x] Part 2: 1 phút chuẩn bị (đếm ngược, ô ghi chú, có thể bắt đầu sớm).
+- [x] Gửi `taskType` và `taskPrompt` từ trang. Part 2 gửi cả cue card và các ý.
+- [x] Trạng thái "Đang chấm điểm… Ns" (đo thật: ~15 s cho bài Part 3 qua giao diện).
+- [x] Ghi âm tự dừng ở 55 giây và tự gửi chấm (giới hạn 60 giây của Azure REST). Đổi tab giữa lúc ghi âm thì mic được tắt.
+- [ ] Part 2 đủ 1–2 phút: còn chờ mục 1.
+- [ ] Bộ câu hỏi lớn hơn, hoặc sinh câu hỏi bằng LLM theo lô (như câu shadowing) nếu muốn nhiều chủ đề hơn.
+- [ ] Bài thi thử đủ 3 Part liên tiếp (`full_test`).
 
 ### 3. Chi phí và thời gian chấm của LLM
 
