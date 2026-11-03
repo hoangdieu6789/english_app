@@ -2,7 +2,7 @@
 // Azure scores are 0–100. IELTS bands are 0–9 and only come from IELTS attempts graded with
 // rubric v2; 0 means "no band yet".
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api";
+import { apiFetch, errorFrom } from "./http";
 
 export type ProgressSummary = {
   tz: string;
@@ -29,13 +29,8 @@ export function learnerTimeZone(): string {
 }
 
 export async function fetchProgress(): Promise<ProgressSummary> {
-  const res = await fetch(`${API_BASE_URL}/progress/summary?tz=${encodeURIComponent(learnerTimeZone())}`, {
-    credentials: "include",
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error(body.message ?? "Failed to load progress");
-  }
+  const res = await apiFetch(`/progress/summary?tz=${encodeURIComponent(learnerTimeZone())}`);
+  if (!res.ok) throw await errorFrom(res, "Failed to load progress");
   return res.json();
 }
 

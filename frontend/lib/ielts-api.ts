@@ -3,7 +3,7 @@
 // a free LLM when a learner is close to the end. Each learner gets sets they have not done
 // first, and can redo done sets.
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api";
+import { apiFetch, errorFrom } from "./http";
 
 export type IeltsPart = "part1" | "part2" | "part3";
 
@@ -30,11 +30,8 @@ export type QuestionSetProgress = QuestionSet & {
 };
 
 async function getJSON<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`, { credentials: "include" });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error(body.message ?? "Request failed");
-  }
+  const res = await apiFetch(path);
+  if (!res.ok) throw await errorFrom(res, "Request failed");
   return res.json();
 }
 

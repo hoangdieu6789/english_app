@@ -1,4 +1,5 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api";
+import { API_BASE_URL, apiFetch, errorFrom } from "./http";
+
 const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
 
 // audioUrl from the backend is relative (e.g. "/uploads/xxx.wav") since it's
@@ -127,25 +128,15 @@ export async function submitPronunciationAttempt(
   if (task.prompt) form.append("taskPrompt", task.prompt);
   if (task.questionSetId) form.append("questionSetId", task.questionSetId);
 
-  const res = await fetch(`${API_BASE_URL}/pronunciation/attempts`, {
-    method: "POST",
-    credentials: "include",
-    body: form,
-  });
-
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error(body.message ?? "Failed to submit pronunciation attempt");
-  }
+  // The form (with the WAV) can be sent twice when the token is renewed; FormData is reusable.
+  const res = await apiFetch("/pronunciation/attempts", { method: "POST", body: form });
+  if (!res.ok) throw await errorFrom(res, "Failed to submit pronunciation attempt");
 
   return res.json();
 }
 
 export async function fetchPronunciationAttempt(id: string): Promise<PronunciationAttempt> {
-  const res = await fetch(`${API_BASE_URL}/pronunciation/attempts/${id}`, { credentials: "include" });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error(body.message ?? "Failed to load attempt");
-  }
+  const res = await apiFetch(`/pronunciation/attempts/${id}`);
+  if (!res.ok) throw await errorFrom(res, "Failed to load attempt");
   return res.json();
 }
