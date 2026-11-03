@@ -208,6 +208,31 @@ func (q *Queries) ProgressHardPhonemes(ctx context.Context, arg ProgressHardPhon
 	return items, nil
 }
 
+const progressSpeakingSecondsToday = `-- name: ProgressSpeakingSecondsToday :one
+SELECT (COALESCE(sum(s.ms), 0) / 1000)::int AS seconds
+FROM pronunciation_attempts a,
+LATERAL (
+  SELECT max((w->>'offsetMs')::bigint + (w->>'durationMs')::bigint) AS ms
+  FROM jsonb_array_elements(a.word_scores) w
+  WHERE w ? 'offsetMs' AND w ? 'durationMs'
+) s
+WHERE a.user_id = $1
+  AND (a.created_at AT TIME ZONE $2::text)::date = (now() AT TIME ZONE $2::text)::date
+`
+
+type ProgressSpeakingSecondsTodayParams struct {
+	UserID uuid.UUID `json:"user_id"`
+	Tz     string    `json:"tz"`
+}
+
+// Speaking time today: for each attempt, the end of the last word Azure heard.
+func (q *Queries) ProgressSpeakingSecondsToday(ctx context.Context, arg ProgressSpeakingSecondsTodayParams) (int32, error) {
+	row := q.db.QueryRow(ctx, progressSpeakingSecondsToday, arg.UserID, arg.Tz)
+	var seconds int32
+	err := row.Scan(&seconds)
+	return seconds, err
+}
+
 const progressTotals = `-- name: ProgressTotals :one
 
 SELECT
@@ -257,6 +282,50 @@ func (q *Queries) ProgressTotals(ctx context.Context, arg ProgressTotalsParams) 
 		&i.Banded30d,
 	)
 	return i, err
+}
+
+const progressWeakWords = `-- name: ProgressWeakWords :many
+SELECT lower(w->>'word')::text AS word, avg((w->>'accuracyScore')::real)::real AS score, count(*)::int AS times
+FROM pronunciation_attempts a, jsonb_array_elements(a.word_scores) w
+WHERE a.user_id = $1 AND a.created_at > now() - interval '30 days'
+  AND w->>'errorType' IN ('none', 'mispronunciation')
+  AND (w->>'errorType' = 'mispronunciation' OR (w->>'accuracyScore')::real < 60)
+GROUP BY 1
+ORDER BY 3 DESC, 2
+LIMIT $2
+`
+
+type ProgressWeakWordsParams struct {
+	UserID  uuid.UUID `json:"user_id"`
+	MaxRows int32     `json:"max_rows"`
+}
+
+type ProgressWeakWordsRow struct {
+	Word  string  `json:"word"`
+	Score float32 `json:"score"`
+	Times int32   `json:"times"`
+}
+
+// Words the learner said wrongly in the last 30 days (Azure marked them mispronounced or
+// scored them under 60), most frequent first.
+func (q *Queries) ProgressWeakWords(ctx context.Context, arg ProgressWeakWordsParams) ([]ProgressWeakWordsRow, error) {
+	rows, err := q.db.Query(ctx, progressWeakWords, arg.UserID, arg.MaxRows)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ProgressWeakWordsRow
+	for rows.Next() {
+		var i ProgressWeakWordsRow
+		if err := rows.Scan(&i.Word, &i.Score, &i.Times); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const progressWeekly = `-- name: ProgressWeekly :many

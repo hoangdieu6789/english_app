@@ -17,7 +17,7 @@ import (
 // already validated by the caller.
 type ProgressRepository interface {
 	// Summary fills everything except Streak (computed by the service from ActiveDayList).
-	Summary(ctx context.Context, userID uuid.UUID, tz string, since time.Time, maxPhonemes int) (*domain.ProgressSummary, error)
+	Summary(ctx context.Context, userID uuid.UUID, tz string, since time.Time, maxRows int) (*domain.ProgressSummary, error)
 	// ActiveDayList returns the local dates with at least one attempt, newest first.
 	ActiveDayList(ctx context.Context, userID uuid.UUID, tz string) ([]time.Time, error)
 }
@@ -44,7 +44,7 @@ func (r *progressRepository) ActiveDayList(ctx context.Context, userID uuid.UUID
 	return out, nil
 }
 
-func (r *progressRepository) Summary(ctx context.Context, userID uuid.UUID, tz string, since time.Time, maxPhonemes int) (*domain.ProgressSummary, error) {
+func (r *progressRepository) Summary(ctx context.Context, userID uuid.UUID, tz string, since time.Time, maxRows int) (*domain.ProgressSummary, error) {
 	totals, err := r.q.ProgressTotals(ctx, sqlcgen.ProgressTotalsParams{Tz: tz, UserID: userID})
 	if err != nil {
 		return nil, fmt.Errorf("totals: %w", err)
@@ -64,6 +64,7 @@ func (r *progressRepository) Summary(ctx context.Context, userID uuid.UUID, tz s
 		Criteria:     []domain.CriterionStats{},
 		ByTask:       []domain.TaskStats{},
 		Graders:      []domain.GraderStats{},
+		WeakWords:    []domain.WordStats{},
 	}
 
 	weeks, err := r.q.ProgressWeekly(ctx, sqlcgen.ProgressWeeklyParams{
@@ -78,7 +79,7 @@ func (r *progressRepository) Summary(ctx context.Context, userID uuid.UUID, tz s
 		})
 	}
 
-	phonemes, err := r.q.ProgressHardPhonemes(ctx, sqlcgen.ProgressHardPhonemesParams{UserID: userID, MaxRows: int32(maxPhonemes)})
+	phonemes, err := r.q.ProgressHardPhonemes(ctx, sqlcgen.ProgressHardPhonemesParams{UserID: userID, MaxRows: int32(maxRows)})
 	if err != nil {
 		return nil, fmt.Errorf("phonemes: %w", err)
 	}
@@ -108,6 +109,19 @@ func (r *progressRepository) Summary(ctx context.Context, userID uuid.UUID, tz s
 	}
 	for _, g := range graders {
 		s.Graders = append(s.Graders, domain.GraderStats{Provider: g.Provider, Model: g.Model, Attempts: int(g.Attempts)})
+	}
+	secs, err := r.q.ProgressSpeakingSecondsToday(ctx, sqlcgen.ProgressSpeakingSecondsTodayParams{UserID: userID, Tz: tz})
+	if err != nil {
+		return nil, fmt.Errorf("speaking time: %w", err)
+	}
+	s.SpeakingSecondsToday = int(secs)
+
+	words, err := r.q.ProgressWeakWords(ctx, sqlcgen.ProgressWeakWordsParams{UserID: userID, MaxRows: int32(maxRows)})
+	if err != nil {
+		return nil, fmt.Errorf("weak words: %w", err)
+	}
+	for _, w := range words {
+		s.WeakWords = append(s.WeakWords, domain.WordStats{Word: w.Word, Score: w.Score, Times: int(w.Times)})
 	}
 	return s, nil
 }

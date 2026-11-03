@@ -83,3 +83,27 @@ FROM pronunciation_attempts a
 WHERE a.user_id = sqlc.arg(user_id) AND a.task_type <> 'shadowing'
 GROUP BY 1, 2
 ORDER BY 3 DESC;
+
+-- name: ProgressSpeakingSecondsToday :one
+-- Speaking time today: for each attempt, the end of the last word Azure heard.
+SELECT (COALESCE(sum(s.ms), 0) / 1000)::int AS seconds
+FROM pronunciation_attempts a,
+LATERAL (
+  SELECT max((w->>'offsetMs')::bigint + (w->>'durationMs')::bigint) AS ms
+  FROM jsonb_array_elements(a.word_scores) w
+  WHERE w ? 'offsetMs' AND w ? 'durationMs'
+) s
+WHERE a.user_id = sqlc.arg(user_id)
+  AND (a.created_at AT TIME ZONE sqlc.arg(tz)::text)::date = (now() AT TIME ZONE sqlc.arg(tz)::text)::date;
+
+-- name: ProgressWeakWords :many
+-- Words the learner said wrongly in the last 30 days (Azure marked them mispronounced or
+-- scored them under 60), most frequent first.
+SELECT lower(w->>'word')::text AS word, avg((w->>'accuracyScore')::real)::real AS score, count(*)::int AS times
+FROM pronunciation_attempts a, jsonb_array_elements(a.word_scores) w
+WHERE a.user_id = sqlc.arg(user_id) AND a.created_at > now() - interval '30 days'
+  AND w->>'errorType' IN ('none', 'mispronunciation')
+  AND (w->>'errorType' = 'mispronunciation' OR (w->>'accuracyScore')::real < 60)
+GROUP BY 1
+ORDER BY 3 DESC, 2
+LIMIT sqlc.arg(max_rows);

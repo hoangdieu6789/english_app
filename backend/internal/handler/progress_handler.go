@@ -72,12 +72,18 @@ func toProgressJSON(s *domain.ProgressSummary, tz string) map[string]any {
 	for _, g := range s.Graders {
 		graders = append(graders, map[string]any{"provider": g.Provider, "model": g.Model, "attempts": g.Attempts})
 	}
+	words := make([]map[string]any, 0, len(s.WeakWords))
+	for _, w := range s.WeakWords {
+		words = append(words, map[string]any{"word": w.Word, "score": w.Score, "times": w.Times})
+	}
 	return map[string]any{
-		"tz":            tz,
-		"streak":        s.Streak,
-		"activeDays":    s.ActiveDays,
-		"attempts":      s.Attempts,
-		"attemptsToday": s.AttemptsToday,
+		"speakingSecondsToday": s.SpeakingSecondsToday,
+		"weakWords":            words,
+		"tz":                   tz,
+		"streak":               s.Streak,
+		"activeDays":           s.ActiveDays,
+		"attempts":             s.Attempts,
+		"attemptsToday":        s.AttemptsToday,
 		"last30Days": map[string]any{
 			"attempts": s.Last30Days.Attempts, "accuracy": s.Last30Days.Accuracy, "fluency": s.Last30Days.Fluency,
 			"band": s.Last30Days.Band, "banded": s.Last30Days.Banded,

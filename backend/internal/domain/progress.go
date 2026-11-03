@@ -5,16 +5,18 @@ import "time"
 // ProgressSummary is one learner's practice history for the Progress page. Azure scores are
 // 0–100; IELTS bands are 0–9 and only come from IELTS attempts graded with rubric v2.
 type ProgressSummary struct {
-	Streak        int // days in a row with at least one attempt, ending today or yesterday
-	ActiveDays    int
-	Attempts      int
-	AttemptsToday int
-	Last30Days    PeriodStats
-	Weeks         []WeekStats
-	HardPhonemes  []PhonemeStats
-	Criteria      []CriterionStats
-	ByTask        []TaskStats
-	Graders       []GraderStats
+	Streak               int // days in a row with at least one attempt, ending today or yesterday
+	ActiveDays           int
+	Attempts             int
+	AttemptsToday        int
+	SpeakingSecondsToday int // sum over today's attempts of the end of the last word Azure heard
+	Last30Days           PeriodStats
+	Weeks                []WeekStats
+	HardPhonemes         []PhonemeStats
+	Criteria             []CriterionStats
+	ByTask               []TaskStats
+	Graders              []GraderStats
+	WeakWords            []WordStats // words said wrongly in the last 30 days
 }
 
 type PeriodStats struct {
@@ -56,4 +58,10 @@ type GraderStats struct {
 	Provider string // "" = no LLM (grading failed or before grader tracking)
 	Model    string
 	Attempts int
+}
+
+type WordStats struct {
+	Word  string
+	Score float32 // average Azure accuracy for the word
+	Times int
 }

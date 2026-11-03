@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	progressWeeks       = 6 // weeks on the chart, including the current one
-	progressHardPhoneme = 5
+	progressWeeks    = 6 // weeks on the chart, including the current one
+	progressListRows = 5 // hardest phonemes and weak words shown
 )
 
 type ProgressService struct {
@@ -31,7 +31,7 @@ func (s *ProgressService) Summary(ctx context.Context, userID uuid.UUID, loc *ti
 	monday := today.AddDate(0, 0, -((int(today.Weekday()) + 6) % 7))
 	since := monday.AddDate(0, 0, -7*(progressWeeks-1))
 
-	sum, err := s.repo.Summary(ctx, userID, loc.String(), since, progressHardPhoneme)
+	sum, err := s.repo.Summary(ctx, userID, loc.String(), since, progressListRows)
 	if err != nil {
 		return nil, fmt.Errorf("progress summary: %w", err)
 	}
