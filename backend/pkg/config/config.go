@@ -32,8 +32,16 @@ type Config struct {
 	AllowPaidModels bool
 	// Speaking rubric (internal/rubric)
 	GraderModel string // LLM for the transcript criteria; empty = OpenRouterModel
-	PitchPython string // e.g. "python3"; empty = no pitch analysis (Pronunciation P-04 uses the monotone signal only)
-	PitchScript string // path to internal/rubric/pitch/pitch_direction.py on disk
+
+	// LLM providers tried in order: claude, gemini (CLIs through the host LLM bridge, using
+	// your own subscription), openrouter (free models). Default: openrouter only.
+	LLMProviders   string
+	LLMBridgeURL   string
+	LLMBridgeToken string
+	ClaudeModel    string // Claude Code model alias (sonnet, haiku, opus); empty = CLI default
+	GeminiModel    string // Gemini CLI model; empty = CLI default
+	PitchPython    string // e.g. "python3"; empty = no pitch analysis (Pronunciation P-04 uses the monotone signal only)
+	PitchScript    string // path to internal/rubric/pitch/pitch_direction.py on disk
 }
 
 func Load() *Config {
@@ -63,8 +71,14 @@ func Load() *Config {
 		AllowPaidModels:          getEnv("ALLOW_PAID_MODELS", "false") == "true",
 
 		GraderModel: getEnv("GRADER_MODEL", ""),
-		PitchPython: getEnv("PITCH_PYTHON", ""),
-		PitchScript: getEnv("PITCH_SCRIPT", "internal/rubric/pitch/pitch_direction.py"),
+
+		LLMProviders:   getEnv("LLM_PROVIDERS", "openrouter"),
+		LLMBridgeURL:   getEnv("LLM_BRIDGE_URL", "http://host.docker.internal:8765"),
+		LLMBridgeToken: getEnv("LLM_BRIDGE_TOKEN", ""),
+		ClaudeModel:    getEnv("CLAUDE_MODEL", "sonnet"),
+		GeminiModel:    getEnv("GEMINI_MODEL", ""),
+		PitchPython:    getEnv("PITCH_PYTHON", ""),
+		PitchScript:    getEnv("PITCH_SCRIPT", "internal/rubric/pitch/pitch_direction.py"),
 	}
 }
 

@@ -43,24 +43,50 @@ func main() {
 	if err != nil {
 		log.Fatalf("load speaking rubric: %v", err)
 	}
-	// Both LLM users share one free-only OpenRouter setup (see service.OpenRouterCompleter).
+	// Every LLM user (grader, sentence and question generators) gets the same provider chain,
+	// tried in order (LLM_PROVIDERS): Claude Code / Gemini CLI through the host LLM bridge
+	// (your own subscription), then free OpenRouter models. A failing provider falls back.
 	fallbacks := service.ParseModelList(cfg.OpenRouterFallbackModels)
-	newLLM := func(model string, temperature float64, timeout time.Duration) *service.OpenRouterCompleter {
-		c, err := service.NewOpenRouterCompleter(cfg.OpenRouterAPIKey, append([]string{model}, fallbacks...), temperature, cfg.AllowPaidModels, timeout)
-		if err != nil {
-			log.Fatalf("openrouter: %v", err)
+	newLLM := func(openRouterModel string, temperature float64, timeout time.Duration) *service.ChainCompleter {
+		chain := service.NewChainCompleter()
+		for _, p := range service.ParseModelList(cfg.LLMProviders) {
+			switch p {
+			case "claude", "gemini":
+				if cfg.LLMBridgeToken == "" {
+					log.Fatalf("LLM_PROVIDERS has %s but LLM_BRIDGE_TOKEN is empty (see tools/llm-bridge)", p)
+				}
+				model := cfg.ClaudeModel
+				if p == "gemini" {
+					model = cfg.GeminiModel
+				}
+				chain.Add(p, service.NewBridgeCompleter(cfg.LLMBridgeURL, cfg.LLMBridgeToken, p, model, timeout))
+			case "openrouter":
+				if cfg.OpenRouterAPIKey == "" {
+					continue
+				}
+				c, err := service.NewOpenRouterCompleter(cfg.OpenRouterAPIKey, append([]string{openRouterModel}, fallbacks...), temperature, cfg.AllowPaidModels, timeout)
+				if err != nil {
+					log.Fatalf("openrouter: %v", err)
+				}
+				chain.Add(p, c)
+			default:
+				log.Fatalf("unknown LLM provider %q in LLM_PROVIDERS (use claude, gemini, openrouter)", p)
+			}
 		}
-		return c
+		return chain
 	}
 	var graderLLM service.LLMCompleter
-	if cfg.OpenRouterAPIKey != "" {
-		model := cfg.GraderModel
-		if model == "" {
-			model = cfg.OpenRouterModel
-		}
-		// temperature 0: grading should be as repeatable as possible. Free models answered the
-		// rubric prompt in 13–50 s in testing, so allow up to 120 s.
-		graderLLM = newLLM(model, 0, 120*time.Second)
+	graderModel := cfg.GraderModel
+	if graderModel == "" {
+		graderModel = cfg.OpenRouterModel
+	}
+	// temperature 0: grading should be as repeatable as possible. Free models answered the
+	// rubric prompt in 13–50 s in testing, so allow up to 120 s.
+	if chain := newLLM(graderModel, 0, 120*time.Second); chain.Len() > 0 {
+		graderLLM = chain
+		log.Printf("llm providers: %v", chain.Names())
+	} else {
+		log.Printf("llm providers: none; IELTS transcript criteria will not be assessed")
 	}
 	var pitchAnalyzer service.PitchAnalyzer
 	if cfg.PitchPython != "" {
@@ -73,7 +99,7 @@ func main() {
 	// learner is close to the end of the bank.
 	questionSetRepo := repository.NewQuestionSetRepository(pool)
 	var questionGen service.QuestionSetGenerator
-	if cfg.OpenRouterAPIKey != "" {
+	if graderLLM != nil {
 		questionGen = service.NewLLMQuestionSetGenerator(newLLM(cfg.OpenRouterModel, 0.9, 90*time.Second))
 	}
 	ieltsQuestionService := service.NewIeltsQuestionService(questionSetRepo, questionGen)

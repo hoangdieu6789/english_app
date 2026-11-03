@@ -55,6 +55,14 @@ services:
       ALLOW_PAID_MODELS: ${ALLOW_PAID_MODELS:-false}
       AZURE_SPEECH_CONCURRENCY: ${AZURE_SPEECH_CONCURRENCY:-1}
       GRADER_MODEL: ${GRADER_MODEL:-}
+      LLM_PROVIDERS: ${LLM_PROVIDERS:-openrouter}
+      LLM_BRIDGE_URL: ${LLM_BRIDGE_URL:-http://host.docker.internal:8765}
+      LLM_BRIDGE_TOKEN: ${LLM_BRIDGE_TOKEN:-}
+      CLAUDE_MODEL: ${CLAUDE_MODEL:-sonnet}
+      GEMINI_MODEL: ${GEMINI_MODEL:-}
+    # Reach the LLM bridge running on the host (tools/llm-bridge).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - audio_data:/data/audio
     ports:
