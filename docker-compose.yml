@@ -59,7 +59,8 @@ services:
       LLM_BRIDGE_URL: ${LLM_BRIDGE_URL:-http://host.docker.internal:8765}
       LLM_BRIDGE_TOKEN: ${LLM_BRIDGE_TOKEN:-}
       CLAUDE_MODEL: ${CLAUDE_MODEL:-sonnet}
-      GEMINI_MODEL: ${GEMINI_MODEL:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-flash-latest}
     # Reach the LLM bridge running on the host (tools/llm-bridge).
     extra_hosts:
       - "host.docker.internal:host-gateway"

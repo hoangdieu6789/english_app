@@ -33,13 +33,15 @@ type Config struct {
 	// Speaking rubric (internal/rubric)
 	GraderModel string // LLM for the transcript criteria; empty = OpenRouterModel
 
-	// LLM providers tried in order: claude, gemini (CLIs through the host LLM bridge, using
-	// your own subscription), openrouter (free models). Default: openrouter only.
+	// LLM providers tried in order: claude (Claude Code through the host LLM bridge, using
+	// your own subscription), gemini (Gemini API, key from Google AI Studio), openrouter
+	// (free models). Default: openrouter only.
 	LLMProviders   string
 	LLMBridgeURL   string
 	LLMBridgeToken string
 	ClaudeModel    string // Claude Code model alias (sonnet, haiku, opus); empty = CLI default
-	GeminiModel    string // Gemini CLI model; empty = CLI default
+	GeminiAPIKey   string
+	GeminiModel    string // Gemini API model; default service.DefaultGeminiModel
 	PitchPython    string // e.g. "python3"; empty = no pitch analysis (Pronunciation P-04 uses the monotone signal only)
 	PitchScript    string // path to internal/rubric/pitch/pitch_direction.py on disk
 }
@@ -76,7 +78,8 @@ func Load() *Config {
 		LLMBridgeURL:   getEnv("LLM_BRIDGE_URL", "http://host.docker.internal:8765"),
 		LLMBridgeToken: getEnv("LLM_BRIDGE_TOKEN", ""),
 		ClaudeModel:    getEnv("CLAUDE_MODEL", "sonnet"),
-		GeminiModel:    getEnv("GEMINI_MODEL", ""),
+		GeminiAPIKey:   getEnv("GEMINI_API_KEY", ""),
+		GeminiModel:    getEnv("GEMINI_MODEL", "gemini-flash-latest"),
 		PitchPython:    getEnv("PITCH_PYTHON", ""),
 		PitchScript:    getEnv("PITCH_SCRIPT", "internal/rubric/pitch/pitch_direction.py"),
 	}

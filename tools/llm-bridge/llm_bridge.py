@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
 """LLM bridge for the English App.
 
-Lets the API (running in Docker) use the Claude Code and Gemini CLIs that are logged in on
-this Mac with your own subscription plan. Claude Code keeps its login in the macOS Keychain,
+Lets the API (running in Docker) use the Claude Code CLI that is logged in on this Mac with
+your own subscription plan. Claude Code keeps its login in the macOS Keychain,
 so it cannot run inside the container; the API calls this bridge instead.
 
-    POST /v1/complete   {"provider": "claude"|"gemini", "model": "", "system": "", "user": "",
+    POST /v1/complete   {"provider": "claude", "model": "", "system": "", "user": "",
                          "timeout_s": 120}
                         -> 200 {"text": "...", "provider": "...", "took_ms": 1234}
                         -> 4xx/5xx {"error": "..."}   (the API then tries its next provider)
-    GET  /healthz       -> {"claude": true, "gemini": false}
+    GET  /healthz       -> {"claude": true}
+
+Gemini is not here: since June 2026 the Gemini CLI no longer accepts Google AI Pro logins,
+and Antigravity CLI (agy) does not allow wrapping it in an app under consumer plans. The API
+calls the Gemini API directly instead (GEMINI_API_KEY).
 
 Security: listens on 127.0.0.1 only (the Colima VM reaches it as host.docker.internal) and
 every /v1 request needs "Authorization: Bearer $LLM_BRIDGE_TOKEN".
 
-The CLIs run with no tools, no MCP servers, no project settings and an empty working
+The CLI runs with no tools, no MCP servers, no project settings and an empty working
 directory, so a prompt can only produce text. Only use this for your own local app: the
 subscription plans are for the subscriber's own use, not for serving other users.
 
@@ -37,7 +41,7 @@ MAX_BODY_BYTES = 2 << 20  # 2 MB
 DEFAULT_TIMEOUT_S = 120
 MAX_TIMEOUT_S = 300
 
-# An empty directory, so the CLIs find no CLAUDE.md / GEMINI.md / project settings.
+# An empty directory, so the CLI finds no CLAUDE.md / project settings.
 WORKDIR = tempfile.mkdtemp(prefix="llm-bridge-")
 
 
@@ -94,32 +98,7 @@ def run_claude(model, system, user, timeout_s):
     return data.get("result") or ""
 
 
-def run_gemini(model, system, user, timeout_s):
-    env = dict(os.environ)
-    sys_file = None
-    if system:
-        # GEMINI_SYSTEM_MD replaces the CLI's own agent system prompt with ours.
-        sys_file = tempfile.NamedTemporaryFile("w", suffix=".md", dir=WORKDIR, delete=False)
-        sys_file.write(system)
-        sys_file.close()
-        env["GEMINI_SYSTEM_MD"] = sys_file.name
-    cmd = ["gemini", "--output-format", "json", "--prompt", " "]
-    if model:
-        cmd += ["--model", model]
-    try:
-        proc = run_cli(cmd, user, timeout_s, env=env)
-    finally:
-        if sys_file:
-            os.unlink(sys_file.name)
-    data = parse_json_output(proc, "gemini")
-    if data.get("error") or proc.returncode != 0:
-        err = data.get("error") or {}
-        msg = err.get("message") if isinstance(err, dict) else str(err)
-        raise BridgeError(502, f"gemini: {str(msg or proc.stderr)[:400]}")
-    return data.get("response") or ""
-
-
-PROVIDERS = {"claude": run_claude, "gemini": run_gemini}
+PROVIDERS = {"claude": run_claude}
 
 
 class Handler(BaseHTTPRequestHandler):

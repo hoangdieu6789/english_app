@@ -44,22 +44,25 @@ func main() {
 		log.Fatalf("load speaking rubric: %v", err)
 	}
 	// Every LLM user (grader, sentence and question generators) gets the same provider chain,
-	// tried in order (LLM_PROVIDERS): Claude Code / Gemini CLI through the host LLM bridge
-	// (your own subscription), then free OpenRouter models. A failing provider falls back.
+	// tried in order (LLM_PROVIDERS): Claude Code through the host LLM bridge (your own
+	// subscription), the Gemini API (free tier key), free OpenRouter models. A failing
+	// provider falls back to the next.
 	fallbacks := service.ParseModelList(cfg.OpenRouterFallbackModels)
 	newLLM := func(openRouterModel string, temperature float64, timeout time.Duration) *service.ChainCompleter {
 		chain := service.NewChainCompleter()
 		for _, p := range service.ParseModelList(cfg.LLMProviders) {
 			switch p {
-			case "claude", "gemini":
+			case "claude":
 				if cfg.LLMBridgeToken == "" {
-					log.Fatalf("LLM_PROVIDERS has %s but LLM_BRIDGE_TOKEN is empty (see tools/llm-bridge)", p)
+					log.Fatalf("LLM_PROVIDERS has claude but LLM_BRIDGE_TOKEN is empty (see tools/llm-bridge)")
 				}
-				model := cfg.ClaudeModel
-				if p == "gemini" {
-					model = cfg.GeminiModel
+				chain.Add(p, service.NewBridgeCompleter(cfg.LLMBridgeURL, cfg.LLMBridgeToken, p, cfg.ClaudeModel, timeout))
+			case "gemini":
+				if cfg.GeminiAPIKey == "" {
+					log.Printf("llm providers: skipping gemini, GEMINI_API_KEY is empty")
+					continue
 				}
-				chain.Add(p, service.NewBridgeCompleter(cfg.LLMBridgeURL, cfg.LLMBridgeToken, p, model, timeout))
+				chain.Add(p, service.NewGeminiCompleter(cfg.GeminiAPIKey, cfg.GeminiModel, temperature, timeout))
 			case "openrouter":
 				if cfg.OpenRouterAPIKey == "" {
 					continue
