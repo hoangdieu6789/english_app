@@ -8,10 +8,11 @@ import { progressQuery } from "@/lib/progress-api";
 import { authApi } from "@/lib/auth-api";
 import { useSessionStore } from "@/lib/session-store";
 
-const NAV_ITEMS = [
+// badge: a small count next to the label (only for real counts, none at the moment).
+const NAV_ITEMS: { key: string; href: string; label: string; icon: string; badge?: string }[] = [
   { key: "dashboard", href: "/dashboard", label: "Trang chủ", icon: "pi pi-home" },
   { key: "practice", href: "/practice", label: "Luyện nói", icon: "pi pi-microphone" },
-  { key: "review", href: "/review", label: "Ôn từ", icon: "pi pi-book", badge: "5" },
+  { key: "review", href: "/review", label: "Ôn từ", icon: "pi pi-book" },
   { key: "progress", href: "/progress", label: "Tiến độ", icon: "pi pi-chart-line" },
 ];
 

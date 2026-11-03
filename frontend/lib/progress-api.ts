@@ -10,12 +10,14 @@ export type ProgressSummary = {
   activeDays: number;
   attempts: number;
   attemptsToday: number;
+  speakingSecondsToday: number;
   last30Days: { attempts: number; accuracy: number; fluency: number; band: number; banded: number };
   weeks: { start: string; attempts: number; accuracy: number; fluency: number; band: number }[];
   hardPhonemes: { phoneme: string; score: number; samples: number }[];
   criteria: { criterion: string; band: number; samples: number }[];
   byTask: { taskType: string; attempts: number; avgBand: number; bestBand: number }[];
   graders: { provider: string; model: string; attempts: number }[];
+  weakWords: { word: string; score: number; times: number }[]; // said wrongly, last 30 days
 };
 
 export function learnerTimeZone(): string {

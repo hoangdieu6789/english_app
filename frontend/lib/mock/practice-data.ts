@@ -1,7 +1,5 @@
-// Mock data for Review (Giai đoạn 3) and hardest-phonemes (Giai đoạn 4) —
-// these features aren't backed by real endpoints yet. Practice (Giai đoạn 2)
-// uses real sentence generation (lib/practice-api.ts) and real scoring
-// (lib/pronunciation-api.ts).
+// Mock data for the Review page (Phase 3, vocabulary) — not backed by a real endpoint yet.
+// Dashboard and Progress use real data (lib/progress-api.ts).
 export type ReviewTag = "pronunciation_gap" | "listening_gap" | "never_seen";
 
 export type ReviewWord = {
@@ -67,11 +65,3 @@ export const REVIEW_TAGS: Record<ReviewTag, { label: string; bg: string; fg: str
   listening_gap: { label: "Nghe chưa ra", bg: "var(--ds-info-bg)", fg: "var(--ds-info)" },
   never_seen: { label: "Từ mới", bg: "var(--ds-surface-muted)", fg: "var(--ds-text-secondary)" },
 };
-
-export const HARD_PHONEMES: [sym: string, score: number][] = [
-  ["/r/", 64],
-  ["/ð/", 66],
-  ["/ʃ/", 68],
-  ["/v/", 71],
-  ["/æ/", 73],
-];
