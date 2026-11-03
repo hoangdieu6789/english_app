@@ -121,6 +121,11 @@ Measured after the changes (2026-11-03):
 - [x] A Part 2 answer (Safari) failed with "failed to score pronunciation": Azure returned `InitialSilenceTimeout`, i.e. the recording was (near) silent — reproduced with an 18 s silent file (same 2.5 s Azure time). Fixes (2026-11-03): the error is logged with audio length, loudest level and a saved copy of the WAV; Azure "no speech" returns 422 with a clear Vietnamese message; the recorder creates its AudioContext inside the click (Safari), shows a live mic level and a warning after 3 s of near-silence, and does not send a silent recording to Azure (saves free quota).
 - [ ] If it happens again with the meter showing sound, check the saved WAV named in the API log (`pronunciation: scoring failed ... file=`).
 
+### 6d. Partial IELTS results
+
+- [x] A too-short Part 1 answer: the LLM marked FC/LR/GRA `insufficient_speech`, and the rubric rule "average over the remaining criteria, mark provisional" (rubric.yaml, overall) gave an overall band 8.0 ~C1 from Pronunciation alone. App-side fix (2026-11-04), rubric unchanged: an IELTS attempt stores an overall band and CEFR only when all 4 criteria are assessed (`hasOverallBand`); migration `000008` cleared the bands already stored; the panel shows "not enough data for an overall band" when fewer than 3 criteria are assessed, "provisional, missing X" with one missing, and CEFR only for a complete band.
+- [ ] Decide in the source rubric (`Document_english/speaking-rubric`, rubric.yaml `overall`) how many criteria an overall band needs, so the rubric and the app agree.
+
 ### 7. Maintenance
 
 - [ ] A command to sync the rubric, for example `make sync-rubric` (`rsync -a --delete` + `diff -rq`), instead of copying by hand.
