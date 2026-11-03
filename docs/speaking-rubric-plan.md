@@ -105,7 +105,13 @@ Measured after the changes (2026-11-03):
 
 - [ ] Old attempts in the database have rubric v1.0.0 (7 criteria, 0–100 scale). The frontend must check `rubric.version` before showing them, or they must be re-scored.
 - [ ] A script to re-score from the stored `azure_result` when thresholds or the rubric version change.
-- [ ] Show the IELTS band on the history / Progress page (`rubric_score`, `cefr_level`).
+- [x] Progress page uses real data (`GET /api/progress/summary?tz=`, `db/queries/progress.sql`) — 2026-11-03: streak in the learner's time zone (also in the header), attempts, 30-day Azure accuracy/fluency, 30-day IELTS band, weekly chart (6 weeks, weeks without practice left empty), band per criterion (90 days), 5 hardest phonemes (Azure symbols shown as IPA), attempts per task type, and which LLM graded. Bands only count rubric v2 attempts; v1 attempts (0–100) are left out.
+- [ ] Dashboard (daily goal ring, accuracy sparkline) and the Review page (`lib/mock/practice-data.ts`, "Ôn từ" badge) still use mock data; vocabulary needs Phase 3.
+
+### 6b. Grader source
+
+- [x] Each attempt stores `grader_provider` and `grader_model` (migration `000006`): the provider and model that actually answered (e.g. `claude` / `claude-sonnet-5-5`, `gemini` / `gemini-3-flash-preview`). The result card shows it; NULL = no LLM (shadowing, LLM failure). All providers get the same rubric prompt (`BuildSystemPrompt`) and the same parser (`ParseEvaluation`); Pronunciation and the overall band are computed in code.
+- [ ] Calibrate the providers: same answers graded by each model differed by 0.5–1 band (2026-11-03: Sonnet 6/5/5, Gemini Flash 5/5/4, Nemotron 6/5/4 for FC/LR/GRA). Collect more pairs before deciding on a correction or a single grader.
 
 ### 7. Maintenance
 
