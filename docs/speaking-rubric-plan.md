@@ -85,7 +85,8 @@ Measured after the changes (2026-11-03):
 - [x] Gemini key live (2026-11-03): `gemini-flash-latest` and `gemini-3.1-flash-lite` answered 503 (high demand), the 2.5 models are closed to new users (404), `gemini-3-flash-preview` works. `GEMINI_MODEL` is now a list tried in order. Fallback test (bridge stopped): claude → gemini-3-flash-preview, Part 3 graded in 18 s, all 4 criteria.
 - [ ] Check the free-tier limits of the project at aistudio.google.com/rate-limit.
 - [x] Run the LLM bridge at login: launchd agent `com.englishapp.llm-bridge` (`tools/llm-bridge/run.sh`, restarts if it stops) — 2026-11-03.
-- [ ] Asynchronous grading: return Azure and Pronunciation at once, grade with the LLM in the background, and let the frontend poll.
+- [x] Two-step grading (migration `000007`, `grading_status`) — 2026-11-03: `POST /api/pronunciation/attempts` returns as soon as Azure and the Pronunciation band are ready (status `pending`); the LLM grades FC/LR/GRA in the background and updates the attempt; the UI polls `GET /api/pronunciation/attempts/:id` every 2 s and fills the panel in. Pending attempts store no overall band, so progress only counts final results. Attempts left pending by a restart are graded again at start-up from the stored Azure JSON. Measured: first result 4 s after stopping a 10.7 s Part 3 answer (before: ~35–40 s for everything), AI result after ~40 s; 38.6 s Part 2: 14 s (Azure F0 was slow), AI after 51 s.
+- [ ] Optional: shorter LLM feedback (fewer tokens) to cut the background step from ~30 s.
 - [ ] Show the free requests left today (for example on the Progress page) and say clearly when the quota is used up (OpenRouter 429).
 - [ ] Prompt caching: skipped for free models (free providers do not support it reliably). Revisit if a paid model is used.
 
