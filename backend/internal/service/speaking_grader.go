@@ -68,31 +68,54 @@ type GradeInput struct {
 	AudioWAV   []byte
 }
 
-// Grade returns the rubric result and the parsed Azure segments (their words carry the
-// break / monotone flags). A failing LLM or pitch step does not fail the grade: the affected
-// criteria are reported in not_assessed.
+// GradeState is what the quick step computed from Azure, reused by the LLM step.
+type GradeState struct {
+	Segs  []rubric.Segment // parsed Azure segments; their words carry the break / monotone flags
+	pron  *rubric.PronunciationResult
+	hints *rubric.SpeechHints
+}
+
+// NeedsLLM reports whether a task has criteria that only the LLM can score (IELTS parts,
+// when an LLM is configured). Shadowing never does.
+func (g *SpeakingGrader) NeedsLLM(taskType string) bool {
+	return taskType != TaskShadowing && g.llm != nil
+}
+
+// Grade runs both steps: GradePronunciation, then GradeTranscriptCriteria when the task
+// needs the LLM. A failing LLM or pitch step does not fail the grade: the affected criteria
+// are reported in not_assessed.
 func (g *SpeakingGrader) Grade(ctx context.Context, in GradeInput) (*rubric.Result, []rubric.Segment, error) {
+	res, st, err := g.GradePronunciation(ctx, in)
+	if err != nil {
+		return nil, nil, err
+	}
+	if g.NeedsLLM(in.Task.Type) {
+		res, _ = g.GradeTranscriptCriteria(ctx, in, st)
+	}
+	return res, st.Segs, nil
+}
+
+// GradePronunciation is the quick step (well under a second): Pronunciation and the speech
+// hints from the Azure result, computed in code. The LLM criteria are left not assessed.
+func (g *SpeakingGrader) GradePronunciation(ctx context.Context, in GradeInput) (*rubric.Result, *GradeState, error) {
 	if !g.HasTask(in.Task.Type) {
 		return nil, nil, fmt.Errorf("unknown task type %q", in.Task.Type)
 	}
-	start := time.Now()
 	pc := g.cfg.Pronunciation
+	st := &GradeState{}
 
-	var segs []rubric.Segment
 	if len(in.AzureRaw) > 0 {
 		var err error
-		segs, err = rubric.ParseAzureSegments([][]byte{in.AzureRaw}, pc.Thresholds.BreakConfidence)
+		st.Segs, err = rubric.ParseAzureSegments([][]byte{in.AzureRaw}, pc.Thresholds.BreakConfidence)
 		if err != nil {
 			return nil, nil, fmt.Errorf("parse azure result: %w", err)
 		}
 	}
 
-	var pron *rubric.PronunciationResult
-	var hints *rubric.SpeechHints
-	if len(segs) > 0 {
+	if len(st.Segs) > 0 {
 		var pitch []rubric.PitchResult
 		if g.pitch != nil && len(in.AudioWAV) > 0 {
-			if items := rubric.PitchItems(segs, 0.3); len(items) > 0 {
+			if items := rubric.PitchItems(st.Segs, 0.3); len(items) > 0 {
 				p, err := g.pitch.Analyze(ctx, in.AudioWAV, items)
 				if err != nil {
 					log.Printf("speaking grader: pitch analysis skipped: %v", err)
@@ -101,29 +124,38 @@ func (g *SpeakingGrader) Grade(ctx context.Context, in GradeInput) (*rubric.Resu
 				}
 			}
 		}
-		r := pc.ScorePronunciation(segs, pitch)
-		pron = &r
-		h := rubric.ComputeSpeechHints(segs)
+		r := pc.ScorePronunciation(st.Segs, pitch)
+		st.pron = &r
+		h := rubric.ComputeSpeechHints(st.Segs)
 		if r.Assessed {
 			h.PronunciationBand = r.Band
 		}
-		hints = &h
+		st.hints = &h
 	}
+	return g.assemble(in.Task.Type, nil, st), st, nil
+}
 
-	shadowing := in.Task.Type == TaskShadowing
+// GradeTranscriptCriteria is the slow step: the LLM scores Fluency and Coherence, Lexical
+// Resource and Grammatical Range and Accuracy, then the full result is assembled. ok is
+// false when the LLM failed (those criteria stay not assessed).
+func (g *SpeakingGrader) GradeTranscriptCriteria(ctx context.Context, in GradeInput, st *GradeState) (res *rubric.Result, ok bool) {
+	start := time.Now()
 	var llmEval *rubric.Evaluation
-	if !shadowing && g.llm != nil {
-		ev, err := g.gradeTranscript(ctx, in, hints)
+	if g.NeedsLLM(in.Task.Type) {
+		ev, err := g.gradeTranscript(ctx, in, st.hints)
 		if err != nil {
 			log.Printf("speaking grader: llm grading failed: %v", err)
 		} else {
 			llmEval = ev
 		}
 	}
-
-	res := g.cfg.Assemble(in.Task.Type, llmEval, pron, hints)
 	log.Printf("speaking grader: task=%s llm=%v took=%s", in.Task.Type, llmEval != nil, time.Since(start).Round(100*time.Millisecond))
-	if shadowing {
+	return g.assemble(in.Task.Type, llmEval, st), llmEval != nil
+}
+
+func (g *SpeakingGrader) assemble(taskType string, llmEval *rubric.Evaluation, st *GradeState) *rubric.Result {
+	res := g.cfg.Assemble(taskType, llmEval, st.pron, st.hints)
+	if taskType == TaskShadowing {
 		// Reading a given sentence shows nothing about fluency, vocabulary or grammar.
 		for i, na := range res.NotAssessed {
 			if na.Reason == "grader_unavailable" {
@@ -131,7 +163,7 @@ func (g *SpeakingGrader) Grade(ctx context.Context, in GradeInput) (*rubric.Resu
 			}
 		}
 	}
-	return &res, segs, nil
+	return &res
 }
 
 func (g *SpeakingGrader) gradeTranscript(ctx context.Context, in GradeInput, hints *rubric.SpeechHints) (*rubric.Evaluation, error) {

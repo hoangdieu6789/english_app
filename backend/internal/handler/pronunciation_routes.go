@@ -9,4 +9,5 @@ import (
 func RegisterPronunciationRoutes(api *echo.Group, h *PronunciationHandler, jwtAuth *middleware.JWTAuth) {
 	pron := api.Group("/pronunciation")
 	pron.POST("/attempts", h.SubmitAttempt, jwtAuth.RequireAuth)
+	pron.GET("/attempts/:id", h.GetAttempt, jwtAuth.RequireAuth)
 }

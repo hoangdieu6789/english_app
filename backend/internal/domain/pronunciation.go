@@ -7,6 +7,24 @@ import (
 	"github.com/google/uuid"
 )
 
+// Grading status of an attempt.
+const (
+	GradingPending = "pending"
+	GradingDone    = "done"
+	GradingFailed  = "failed"
+)
+
+// GradingUpdate is the final result of the background LLM step.
+type GradingUpdate struct {
+	Rubric         json.RawMessage
+	RubricScore    *float32
+	CEFRLevel      *string
+	RubricVersion  *string
+	GraderProvider *string
+	GraderModel    *string
+	Status         string
+}
+
 type PronunciationAttempt struct {
 	ID                uuid.UUID
 	UserID            uuid.UUID
@@ -30,6 +48,7 @@ type PronunciationAttempt struct {
 	TaskPrompt        *string    // the question or cue card answered
 	GraderProvider    *string    // LLM provider that scored FC/LR/GRA (claude, gemini, openrouter); nil = no LLM
 	GraderModel       *string    // model id reported by that provider
+	GradingStatus     string     // pending (LLM step running), done, failed; see migration 000007
 	CreatedAt         time.Time
 }
 

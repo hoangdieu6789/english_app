@@ -116,6 +116,12 @@ func main() {
 	ieltsHandler := handler.NewIeltsHandler(ieltsQuestionService)
 	progressHandler := handler.NewProgressHandler(service.NewProgressService(repository.NewProgressRepository(pool)))
 	pronunciationHandler := handler.NewPronunciationHandler(pronunciationService, ieltsQuestionService)
+	// Finish the background LLM step of attempts left pending by a restart.
+	if n, err := pronunciationService.ResumePending(context.Background()); err != nil {
+		log.Printf("speaking rubric: resume pending grading: %v", err)
+	} else if n > 0 {
+		log.Printf("speaking rubric: resumed grading of %d attempts", n)
+	}
 
 	sentenceGenerator := service.NewLLMSentenceGenerator(newLLM(cfg.OpenRouterModel, 0.9, 90*time.Second))
 	practiceSentenceRepo := repository.NewPracticeSentenceRepository(pool)

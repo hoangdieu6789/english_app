@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 
+	"englishapp/backend/internal/domain"
 	"englishapp/backend/internal/service"
 )
 
@@ -93,17 +94,40 @@ func (h *PronunciationHandler) SubmitAttempt(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Chấm điểm thất bại. Thử lại sau ít phút.")
 	}
 
-	var grader any // null when no LLM scored the attempt (shadowing, LLM failure)
+	return c.JSON(http.StatusCreated, attemptJSON(attempt))
+}
+
+// GetAttempt returns one of the learner's attempts. While gradingStatus is "pending" the
+// LLM criteria are still being graded; poll until it is "done" or "failed".
+func (h *PronunciationHandler) GetAttempt(c echo.Context) error {
+	uid, err := requireUserID(c)
+	if err != nil {
+		return err
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid attempt id")
+	}
+	attempt, err := h.svc.Get(c.Request().Context(), id, uid)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to load attempt")
+	}
+	if attempt == nil {
+		return echo.NewHTTPError(http.StatusNotFound, "attempt not found")
+	}
+	return c.JSON(http.StatusOK, attemptJSON(attempt))
+}
+
+func attemptJSON(attempt *domain.PronunciationAttempt) map[string]any {
+	var grader any // null when no LLM scored the attempt (shadowing, LLM failure, still pending)
 	if attempt.GraderProvider != nil {
 		grader = map[string]string{"provider": *attempt.GraderProvider, "model": deref(attempt.GraderModel)}
 	}
-
 	var rubricResult any // null when grading failed
 	if len(attempt.Rubric) > 0 {
 		rubricResult = json.RawMessage(attempt.Rubric)
 	}
-
-	return c.JSON(http.StatusCreated, map[string]any{
+	return map[string]any{
 		"id":                attempt.ID,
 		"audioUrl":          attempt.AudioURL,
 		"referenceText":     attempt.ReferenceText,
@@ -118,8 +142,9 @@ func (h *PronunciationHandler) SubmitAttempt(c echo.Context) error {
 		"phonemeScores":     attempt.PhonemeScores,
 		"rubric":            rubricResult,
 		"grader":            grader,
+		"gradingStatus":     attempt.GradingStatus,
 		"createdAt":         attempt.CreatedAt,
-	})
+	}
 }
 
 // questionSetID reads the optional questionSetId field and checks that the set exists and
