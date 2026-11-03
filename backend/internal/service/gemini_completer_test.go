@@ -30,7 +30,7 @@ func TestGeminiCompleterRequestAndAnswer(t *testing.T) {
 	if text != `{"ok":true}` {
 		t.Fatalf("text = %q (thought parts must be dropped)", text)
 	}
-	if gotPath != "/v1beta/models/"+DefaultGeminiModel+":generateContent" || gotKey != "test-key" {
+	if gotPath != "/v1beta/models/gemini-flash-latest:generateContent" || gotKey != "test-key" {
 		t.Fatalf("path=%q key=%q", gotPath, gotKey)
 	}
 	sys, _ := json.Marshal(got["systemInstruction"])
@@ -66,5 +66,40 @@ func TestGeminiCompleterErrors(t *testing.T) {
 				t.Fatalf("err = %v, want %q", err, c.want)
 			}
 		})
+	}
+}
+
+func TestGeminiCompleterTriesNextModelWhenBusy(t *testing.T) {
+	var paths []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		paths = append(paths, r.URL.Path)
+		switch {
+		case strings.Contains(r.URL.Path, "busy"):
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte(`{"error":{"code":503,"status":"UNAVAILABLE","message":"high demand"}}`))
+		case strings.Contains(r.URL.Path, "gone"):
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(`{"error":{"code":404,"status":"NOT_FOUND","message":"no longer available"}}`))
+		case strings.Contains(r.URL.Path, "bad"):
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(`{"error":{"code":400,"status":"INVALID_ARGUMENT","message":"bad"}}`))
+		default:
+			_, _ = w.Write([]byte(`{"candidates":[{"content":{"parts":[{"text":"hi"}]}}]}`))
+		}
+	}))
+	defer srv.Close()
+
+	g := NewGeminiCompleter("k", "busy, gone, good", 0, 5*time.Second)
+	g.baseURL = srv.URL + "/"
+	text, err := g.Complete(context.Background(), "", "x")
+	if err != nil || text != "hi" || len(paths) != 3 {
+		t.Fatalf("text=%q err=%v paths=%v", text, err, paths)
+	}
+
+	paths = nil
+	g = NewGeminiCompleter("k", "bad,good", 0, 5*time.Second)
+	g.baseURL = srv.URL + "/"
+	if _, err := g.Complete(context.Background(), "", "x"); err == nil || len(paths) != 1 {
+		t.Fatalf("a 400 must not try the next model: err=%v paths=%v", err, paths)
 	}
 }

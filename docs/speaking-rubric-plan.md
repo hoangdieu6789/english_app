@@ -82,8 +82,9 @@ Measured after the changes (2026-11-03):
 
 - [x] Claude Code with your own subscription, through a host LLM bridge (`tools/llm-bridge`), tried before OpenRouter (`LLM_PROVIDERS=claude,gemini,openrouter`); any failure falls back to the next provider — 2026-11-03. Measured: grading (Part 3) Claude Sonnet 27.7 s, Haiku 23.8 s (the answer is long, so the model size matters little; the CLI adds ~3–4 s); question batch with Haiku 6 s, 5/5 sets usable.
 - [x] Gemini via the Gemini API (`GEMINI_API_KEY`, model `gemini-flash-latest`), not the CLI: since 2026-06-18 the Gemini CLI no longer accepts Google AI Pro logins, and Antigravity CLI (`agy -p`) may not be wrapped in an app under consumer plans. Google AI Pro does not raise Gemini API limits (they apply in the AI Studio web UI only).
-- [ ] Add `GEMINI_API_KEY` to `.env`, then measure grading time with Flash and check the free-tier limits at aistudio.google.com/rate-limit.
-- [ ] Run the LLM bridge at login (launchd agent) so it does not depend on an open terminal.
+- [x] Gemini key live (2026-11-03): `gemini-flash-latest` and `gemini-3.1-flash-lite` answered 503 (high demand), the 2.5 models are closed to new users (404), `gemini-3-flash-preview` works. `GEMINI_MODEL` is now a list tried in order. Fallback test (bridge stopped): claude → gemini-3-flash-preview, Part 3 graded in 18 s, all 4 criteria.
+- [ ] Check the free-tier limits of the project at aistudio.google.com/rate-limit.
+- [x] Run the LLM bridge at login: launchd agent `com.englishapp.llm-bridge` (`tools/llm-bridge/run.sh`, restarts if it stops) — 2026-11-03.
 - [ ] Asynchronous grading: return Azure and Pronunciation at once, grade with the LLM in the background, and let the frontend poll.
 - [ ] Show the free requests left today (for example on the Progress page) and say clearly when the quota is used up (OpenRouter 429).
 - [ ] Prompt caching: skipped for free models (free providers do not support it reliably). Revisit if a paid model is used.

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- launchd agent: starts the LLM bridge at login and restarts it if it stops.
+     Install: see tools/llm-bridge/README.md. __APP_DIR__ and __HOME__ are replaced on install. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.englishapp.llm-bridge</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__APP_DIR__/tools/llm-bridge/run.sh</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+  <key>StandardOutPath</key>
+  <string>__HOME__/Library/Logs/english-llm-bridge.log</string>
+  <key>StandardErrorPath</key>
+  <string>__HOME__/Library/Logs/english-llm-bridge.log</string>
+</dict>
+</plist>

@@ -24,13 +24,28 @@ directly with `GEMINI_API_KEY` instead (see `backend/env.example`).
    LLM_PROVIDERS=claude,gemini,openrouter
    LLM_BRIDGE_TOKEN=<random string, e.g. from: openssl rand -hex 24>
    ```
-3. Start the bridge with the same token, then restart the API:
+3. Start the bridge, then restart the API (`make up` in david_studio):
    ```
-   set -a; . ./.env; set +a
-   python3 tools/llm-bridge/llm_bridge.py
+   tools/llm-bridge/run.sh
    ```
-   The API log shows `llm providers: [claude gemini openrouter]` at start, and
-   `llm bridge: provider=claude model=sonnet took=...` for each call.
+   `run.sh` reads only `LLM_BRIDGE_TOKEN` from `.env`, so the other keys never reach the
+   bridge or the CLI. The API log shows `llm providers: [claude gemini openrouter]` at start,
+   and `llm bridge: provider=claude model=sonnet took=...` for each call.
+
+## Run at login (launchd)
+
+Starts the bridge when you log in and restarts it if it stops:
+
+```
+sed -e "s#__APP_DIR__#$PWD#g" -e "s#__HOME__#$HOME#g" \
+  tools/llm-bridge/com.englishapp.llm-bridge.plist > ~/Library/LaunchAgents/com.englishapp.llm-bridge.plist
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.englishapp.llm-bridge.plist
+```
+
+- Status: `launchctl print gui/$(id -u)/com.englishapp.llm-bridge | grep state`
+- Log: `~/Library/Logs/english-llm-bridge.log`
+- Restart after changing the token: `launchctl kickstart -k gui/$(id -u)/com.englishapp.llm-bridge`
+- Remove: `launchctl bootout gui/$(id -u)/com.englishapp.llm-bridge && rm ~/Library/LaunchAgents/com.englishapp.llm-bridge.plist`
 
 ## How it behaves
 

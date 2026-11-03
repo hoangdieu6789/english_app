@@ -41,7 +41,7 @@ type Config struct {
 	LLMBridgeToken string
 	ClaudeModel    string // Claude Code model alias (sonnet, haiku, opus); empty = CLI default
 	GeminiAPIKey   string
-	GeminiModel    string // Gemini API model; default service.DefaultGeminiModel
+	GeminiModel    string // comma-separated Gemini API models, tried in order
 	PitchPython    string // e.g. "python3"; empty = no pitch analysis (Pronunciation P-04 uses the monotone signal only)
 	PitchScript    string // path to internal/rubric/pitch/pitch_direction.py on disk
 }
@@ -79,7 +79,7 @@ func Load() *Config {
 		LLMBridgeToken: getEnv("LLM_BRIDGE_TOKEN", ""),
 		ClaudeModel:    getEnv("CLAUDE_MODEL", "sonnet"),
 		GeminiAPIKey:   getEnv("GEMINI_API_KEY", ""),
-		GeminiModel:    getEnv("GEMINI_MODEL", "gemini-flash-latest"),
+		GeminiModel:    getEnv("GEMINI_MODEL", "gemini-flash-latest,gemini-3-flash-preview"),
 		PitchPython:    getEnv("PITCH_PYTHON", ""),
 		PitchScript:    getEnv("PITCH_SCRIPT", "internal/rubric/pitch/pitch_direction.py"),
 	}

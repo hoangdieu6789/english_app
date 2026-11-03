@@ -13,9 +13,10 @@ import (
 	"time"
 )
 
-// DefaultGeminiModel is an alias that always points to the current Flash model, which is
-// in the Gemini API free tier.
-const DefaultGeminiModel = "gemini-flash-latest"
+// DefaultGeminiModels are tried in order. gemini-flash-latest always points to the current
+// Flash model (free tier) but is often overloaded (503); gemini-3-flash-preview answered
+// when it was (2026-11-03). The 2.5 models are closed to new users.
+const DefaultGeminiModels = "gemini-flash-latest,gemini-3-flash-preview"
 
 const geminiAPIBase = "https://generativelanguage.googleapis.com/v1beta/models/"
 
@@ -24,19 +25,21 @@ const geminiAPIBase = "https://generativelanguage.googleapis.com/v1beta/models/"
 // Google AI Pro subscription does not raise them.
 type GeminiCompleter struct {
 	apiKey      string
-	model       string
+	models      []string // tried in order when a model is busy, out of quota or gone
 	temperature float64
 	baseURL     string // overridable in tests
 	client      *http.Client
 }
 
-func NewGeminiCompleter(apiKey, model string, temperature float64, timeout time.Duration) *GeminiCompleter {
-	if model == "" {
-		model = DefaultGeminiModel
+// NewGeminiCompleter takes a comma-separated model list; empty = DefaultGeminiModels.
+func NewGeminiCompleter(apiKey, models string, temperature float64, timeout time.Duration) *GeminiCompleter {
+	list := ParseModelList(models)
+	if len(list) == 0 {
+		list = ParseModelList(DefaultGeminiModels)
 	}
 	return &GeminiCompleter{
 		apiKey:      apiKey,
-		model:       model,
+		models:      list,
 		temperature: temperature,
 		baseURL:     geminiAPIBase,
 		client:      &http.Client{Timeout: timeout},
@@ -55,7 +58,36 @@ type geminiContent struct {
 	Parts []geminiPart `json:"parts"`
 }
 
+// geminiStatusError is a non-200 answer; retryable ones move on to the next model.
+type geminiStatusError struct {
+	code int
+	msg  string
+}
+
+func (e *geminiStatusError) Error() string { return e.msg }
+
+func (e *geminiStatusError) retryable() bool {
+	// 404: model closed to new users; 429: free quota of this model used up; 5xx: overloaded.
+	return e.code == http.StatusNotFound || e.code == http.StatusTooManyRequests || e.code >= 500
+}
+
 func (g *GeminiCompleter) Complete(ctx context.Context, system, user string) (string, error) {
+	var errs []error
+	for _, model := range g.models {
+		text, err := g.completeWith(ctx, model, system, user)
+		if err == nil {
+			return text, nil
+		}
+		errs = append(errs, err)
+		var se *geminiStatusError
+		if ctx.Err() != nil || !errors.As(err, &se) || !se.retryable() {
+			break
+		}
+	}
+	return "", errors.Join(errs...)
+}
+
+func (g *GeminiCompleter) completeWith(ctx context.Context, model, system, user string) (string, error) {
 	reqBody := map[string]any{
 		"contents":         []geminiContent{{Role: "user", Parts: []geminiPart{{Text: user}}}},
 		"generationConfig": map[string]any{"temperature": g.temperature},
@@ -67,7 +99,7 @@ func (g *GeminiCompleter) Complete(ctx context.Context, system, user string) (st
 	if err != nil {
 		return "", err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, g.baseURL+g.model+":generateContent", bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, g.baseURL+model+":generateContent", bytes.NewReader(body))
 	if err != nil {
 		return "", err
 	}
@@ -77,12 +109,12 @@ func (g *GeminiCompleter) Complete(ctx context.Context, system, user string) (st
 	started := time.Now()
 	resp, err := g.client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("gemini: %w", err)
+		return "", fmt.Errorf("gemini %s: %w", model, err)
 	}
 	defer resp.Body.Close()
 	raw, err := io.ReadAll(io.LimitReader(resp.Body, 4<<20))
 	if err != nil {
-		return "", fmt.Errorf("gemini: read response: %w", err)
+		return "", fmt.Errorf("gemini %s: read response: %w", model, err)
 	}
 
 	var out struct {
@@ -100,17 +132,17 @@ func (g *GeminiCompleter) Complete(ctx context.Context, system, user string) (st
 		} `json:"error"`
 	}
 	if err := json.Unmarshal(raw, &out); err != nil {
-		return "", fmt.Errorf("gemini: status %d: invalid JSON", resp.StatusCode)
+		return "", fmt.Errorf("gemini %s: status %d: invalid JSON", model, resp.StatusCode)
 	}
 	if resp.StatusCode != http.StatusOK {
 		// 429 RESOURCE_EXHAUSTED = free quota used up; the chain moves on to the next provider.
-		return "", fmt.Errorf("gemini: status %d %s: %s", resp.StatusCode, out.Error.Status, truncate(out.Error.Message, 300))
+		return "", &geminiStatusError{code: resp.StatusCode, msg: fmt.Sprintf("gemini %s: status %d %s: %s", model, resp.StatusCode, out.Error.Status, truncate(out.Error.Message, 300))}
 	}
 	if out.PromptFeedback.BlockReason != "" {
-		return "", fmt.Errorf("gemini: prompt blocked: %s", out.PromptFeedback.BlockReason)
+		return "", fmt.Errorf("gemini %s: prompt blocked: %s", model, out.PromptFeedback.BlockReason)
 	}
 	if len(out.Candidates) == 0 {
-		return "", errors.New("gemini: no candidates")
+		return "", fmt.Errorf("gemini %s: no candidates", model)
 	}
 	var sb strings.Builder
 	for _, p := range out.Candidates[0].Content.Parts {
@@ -120,9 +152,9 @@ func (g *GeminiCompleter) Complete(ctx context.Context, system, user string) (st
 	}
 	text := sb.String()
 	if strings.TrimSpace(text) == "" {
-		return "", fmt.Errorf("gemini: empty answer (finish reason %s)", out.Candidates[0].FinishReason)
+		return "", fmt.Errorf("gemini %s: empty answer (finish reason %s)", model, out.Candidates[0].FinishReason)
 	}
-	log.Printf("gemini: model=%s took=%s", g.model, time.Since(started).Round(time.Millisecond))
+	log.Printf("gemini: model=%s took=%s", model, time.Since(started).Round(time.Millisecond))
 	return text, nil
 }
 
