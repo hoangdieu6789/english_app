@@ -126,6 +126,12 @@ Measured after the changes (2026-11-03):
 - [x] A too-short Part 1 answer: the LLM marked FC/LR/GRA `insufficient_speech`, and the rubric rule "average over the remaining criteria, mark provisional" (rubric.yaml, overall) gave an overall band 8.0 ~C1 from Pronunciation alone. App-side fix (2026-11-04), rubric unchanged: an IELTS attempt stores an overall band and CEFR only when all 4 criteria are assessed (`hasOverallBand`); migration `000008` cleared the bands already stored; the panel shows "not enough data for an overall band" when fewer than 3 criteria are assessed, "provisional, missing X" with one missing, and CEFR only for a complete band.
 - [ ] Decide in the source rubric (`Document_english/speaking-rubric`, rubric.yaml `overall`) how many criteria an overall band needs, so the rubric and the app agree.
 
+### 6e. Transcript accuracy (free speech)
+
+- [x] Whisper transcript + scripted Azure (2026-11-04, migration `000009` `transcript_source`). Azure's own recognition of free speech got 35% of words wrong on 6 real readings of one text ("avid photographer" -> "an event for the Graford", "candid" -> "Candace", "unposed shots" -> "and post shows"); it then scored those words as said well, and the LLM graded LR/GRA on the wrong words. Now IELTS answers are written down by whisper.cpp `medium.en` on the host (LLM bridge `POST /v1/transcribe`, ~1.1–1.5 s), then Azure scores the audio with that transcript as `ReferenceText` (miscue off). WER: Azure 35%, small.en 21%, medium.en 17%. Falls back to Azure recognition when the bridge fails. The UI says which one wrote the transcript.
+- [ ] Some remaining "errors" may be what the learner really said; check by listening, and consider a "read a given text" mode where the reference is known (like shadowing).
+- [ ] Try whisper `--prompt` with the question text (topic words) and measure WER again.
+
 ### 7. Maintenance
 
 - [ ] A command to sync the rubric, for example `make sync-rubric` (`rsync -a --delete` + `diff -rq`), instead of copying by hand.
