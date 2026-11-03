@@ -1,0 +1,89 @@
+# Speaking rubric config — IELTS Speaking Band Descriptors (public version, IELTS.org)
+# Code reads this file first, then loads the markdown files listed below into the grader prompt.
+version: 2.0.0
+source: "IELTS Speaking Band Descriptors — Academic and General Training"
+
+scale:
+  min: 0
+  max: 9          # whole bands per criterion
+
+overall:
+  # Overall speaking band = mean of the four criterion bands, rounded to a half band.
+  # rounding: ielts_half  -> .25 rounds up to .5, .75 rounds up to the next whole band
+  #           floor_half  -> always round down to the nearest .0 / .5
+  # IELTS does not publish the criterion-to-speaking-band rounding; pick one and keep it consistent.
+  rounding: ielts_half
+  # If a criterion is not assessed (e.g. no audio for pronunciation), the band is averaged over
+  # the remaining criteria and marked provisional.
+  cefr_mapping:   # approximate
+    - { min: 0,   max: 3.5, level: "A2 or below" }
+    - { min: 4.0, max: 5.0, level: B1 }
+    - { min: 5.5, max: 6.5, level: B2 }
+    - { min: 7.0, max: 8.0, level: C1 }
+    - { min: 8.5, max: 9.0, level: C2 }
+
+feedback:
+  language: vi           # language of explanations shown to learners (vi | en)
+  max_issues_per_criterion: 5
+
+# Shared docs, loaded once before the criteria (order matters).
+shared:
+  - criteria/00-overview.md
+  - criteria/99-scoring-notes.md
+
+criteria:
+  - id: fluency_coherence
+    file: criteria/01-fluency-and-coherence.md
+    evidence: transcript    # + speech_hints (timing) from Azure
+    scoring: llm
+    weight: 1
+  - id: lexical_resource
+    file: criteria/02-lexical-resource.md
+    evidence: transcript
+    scoring: llm
+    weight: 1
+  - id: grammatical_range_accuracy
+    file: criteria/03-grammatical-range-and-accuracy.md
+    evidence: transcript
+    scoring: llm
+    weight: 1
+  - id: pronunciation
+    file: criteria/04-pronunciation.md
+    evidence: acoustic      # Azure Pronunciation Assessment + pitch analysis of the WAV
+    scoring: rule           # computed in Go (pronunciation.go), NOT sent to the LLM
+    weight: 1
+
+# IELTS parts. Weights are equal in IELTS; the task type is passed to the LLM as context only.
+task_types: [part1, part2, part3, full_test]
+
+# Rule-based scoring of pronunciation (see criteria/04 and pronunciation.go).
+# Each feature has a method: rule (computed in code) | not_measured (excluded, shown as a gap).
+pronunciation:
+  min_measured_items: 3          # fewer measured features -> not_assessed, overall band provisional
+  subcriteria:
+    P-01: { method: rule, weight: 1.5, signal: "% words with ErrorType Mispronunciation" }
+    P-02: { method: rule, weight: 1,   signal: "UnexpectedBreak + MissingBreak per 10 words" }
+    P-03: { method: rule, weight: 1,   signal: "ProsodyScore (duration-weighted)" }
+    P-04: { method: rule, weight: 1,   signal: "non-monotone segments + correct final tone" }
+    P-05: { method: not_measured }
+    P-06: { method: rule, weight: 1.5, signal: "AccuracyScore (duration-weighted)" }
+  # Cut points for bands 9,8,7,6,5,4,3,2 (anything beyond the last -> band 1).
+  # Starting values only — calibrate with teacher-rated recordings.
+  thresholds:
+    break_confidence: 0.75                                   # Azure-suggested threshold
+    mispronounced_pct:   [1, 3, 6, 10, 15, 22, 30, 45]       # lower is better
+    breaks_per_10_words: [0.2, 0.5, 1.0, 1.5, 2.2, 3.0, 4.0, 5.5]  # lower is better
+    prosody_score:       [95, 90, 82, 74, 65, 55, 45, 35]    # higher is better
+    accuracy_score:      [95, 90, 84, 77, 68, 58, 45, 35]    # higher is better
+    intonation_pct:      [95, 88, 78, 66, 55, 42, 30, 20]    # higher is better
+    min_tone_samples: 2
+    min_words: 10
+  pitch:
+    script: pitch/pitch_direction.py
+    rise_semitones: 1.5          # final-region pitch change >= +1.5 st -> rise
+    fall_semitones: -1.5         # <= -1.5 st -> fall ; in between -> level
+
+prompts:
+  system: prompts/system.md
+  output_format: prompts/output-format.md
+output_schema: schema/evaluation.schema.json

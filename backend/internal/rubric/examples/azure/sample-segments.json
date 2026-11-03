@@ -1,0 +1,1059 @@
+[
+ {
+  "DisplayText": "I I think the internet is very useful for students.",
+  "Offset": 5000000,
+  "Duration": 34000000,
+  "NBest": [
+   {
+    "Lexical": "i i think the internet is very useful for students",
+    "Display": "I I think the internet is very useful for students.",
+    "PronunciationAssessment": {
+     "AccuracyScore": 80,
+     "FluencyScore": 78,
+     "CompletenessScore": 0,
+     "ProsodyScore": 72,
+     "PronScore": 80
+    },
+    "Words": [
+     {
+      "Word": "i",
+      "Offset": 5000000,
+      "Duration": 999999,
+      "PronunciationAssessment": {
+       "AccuracyScore": 90,
+       "ErrorType": "None",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.1
+          }
+         }
+        }
+       }
+      }
+     },
+     {
+      "Word": "i",
+      "Offset": 7000000,
+      "Duration": 1000000,
+      "PronunciationAssessment": {
+       "AccuracyScore": 90,
+       "ErrorType": "None",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.1
+          }
+         }
+        }
+       }
+      }
+     },
+     {
+      "Word": "think",
+      "Offset": 8000000,
+      "Duration": 3000000,
+      "PronunciationAssessment": {
+       "AccuracyScore": 90,
+       "ErrorType": "None",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.1
+          }
+         }
+        }
+       }
+      }
+     },
+     {
+      "Word": "the",
+      "Offset": 11000000,
+      "Duration": 999999,
+      "PronunciationAssessment": {
+       "AccuracyScore": 90,
+       "ErrorType": "None",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.1
+          }
+         }
+        }
+       }
+      }
+     },
+     {
+      "Word": "internet",
+      "Offset": 12000000,
+      "Duration": 5000000,
+      "PronunciationAssessment": {
+       "AccuracyScore": 90,
+       "ErrorType": "None",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.1
+          }
+         }
+        }
+       }
+      }
+     },
+     {
+      "Word": "is",
+      "Offset": 17000000,
+      "Duration": 1000000,
+      "PronunciationAssessment": {
+       "AccuracyScore": 90,
+       "ErrorType": "None",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.1
+          }
+         }
+        }
+       }
+      }
+     },
+     {
+      "Word": "very",
+      "Offset": 18000000,
+      "Duration": 3000000,
+      "PronunciationAssessment": {
+       "AccuracyScore": 90,
+       "ErrorType": "None",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.8
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.1
+          }
+         }
+        }
+       }
+      }
+     },
+     {
+      "Word": "useful",
+      "Offset": 28000000,
+      "Duration": 4000000,
+      "PronunciationAssessment": {
+       "AccuracyScore": 90,
+       "ErrorType": "None",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.1
+          }
+         }
+        }
+       }
+      }
+     },
+     {
+      "Word": "for",
+      "Offset": 32000000,
+      "Duration": 999999,
+      "PronunciationAssessment": {
+       "AccuracyScore": 90,
+       "ErrorType": "None",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.1
+          }
+         }
+        }
+       }
+      }
+     },
+     {
+      "Word": "students",
+      "Offset": 33000000,
+      "Duration": 6000000,
+      "PronunciationAssessment": {
+       "AccuracyScore": 45,
+       "ErrorType": "Mispronunciation",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.1
+          }
+         }
+        }
+       }
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "DisplayText": "Um we can learn many knowledge online.",
+  "Offset": 45000000,
+  "Duration": 24000000,
+  "NBest": [
+   {
+    "Lexical": "um we can learn many knowledge online",
+    "Display": "Um we can learn many knowledge online.",
+    "PronunciationAssessment": {
+     "AccuracyScore": 76,
+     "FluencyScore": 78,
+     "CompletenessScore": 0,
+     "ProsodyScore": 68,
+     "PronScore": 80
+    },
+    "Words": [
+     {
+      "Word": "um",
+      "Offset": 45000000,
+      "Duration": 2999999,
+      "PronunciationAssessment": {
+       "AccuracyScore": 90,
+       "ErrorType": "None",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.1
+          }
+         }
+        }
+       }
+      }
+     },
+     {
+      "Word": "we",
+      "Offset": 50000000,
+      "Duration": 999999,
+      "PronunciationAssessment": {
+       "AccuracyScore": 90,
+       "ErrorType": "None",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.1
+          }
+         }
+        }
+       }
+      }
+     },
+     {
+      "Word": "can",
+      "Offset": 51000000,
+      "Duration": 2000000,
+      "PronunciationAssessment": {
+       "AccuracyScore": 90,
+       "ErrorType": "None",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.1
+          }
+         }
+        }
+       }
+      }
+     },
+     {
+      "Word": "learn",
+      "Offset": 53000000,
+      "Duration": 2999999,
+      "PronunciationAssessment": {
+       "AccuracyScore": 90,
+       "ErrorType": "None",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.1
+          }
+         }
+        }
+       }
+      }
+     },
+     {
+      "Word": "many",
+      "Offset": 56000000,
+      "Duration": 3000000,
+      "PronunciationAssessment": {
+       "AccuracyScore": 90,
+       "ErrorType": "None",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.1
+          }
+         }
+        }
+       }
+      }
+     },
+     {
+      "Word": "knowledge",
+      "Offset": 59000000,
+      "Duration": 5000000,
+      "PronunciationAssessment": {
+       "AccuracyScore": 52,
+       "ErrorType": "Mispronunciation",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.1
+          }
+         }
+        }
+       }
+      }
+     },
+     {
+      "Word": "online",
+      "Offset": 64000000,
+      "Duration": 5000000,
+      "PronunciationAssessment": {
+       "AccuracyScore": 90,
+       "ErrorType": "None",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.1
+          }
+         }
+        }
+       }
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "DisplayText": "Do you use it every day?",
+  "Offset": 75000000,
+  "Duration": 11999999,
+  "NBest": [
+   {
+    "Lexical": "do you use it every day",
+    "Display": "Do you use it every day?",
+    "PronunciationAssessment": {
+     "AccuracyScore": 85,
+     "FluencyScore": 78,
+     "CompletenessScore": 0,
+     "ProsodyScore": 65,
+     "PronScore": 80
+    },
+    "Words": [
+     {
+      "Word": "do",
+      "Offset": 75000000,
+      "Duration": 999999,
+      "PronunciationAssessment": {
+       "AccuracyScore": 90,
+       "ErrorType": "None",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.1
+          }
+         }
+        }
+       }
+      }
+     },
+     {
+      "Word": "you",
+      "Offset": 76000000,
+      "Duration": 1000000,
+      "PronunciationAssessment": {
+       "AccuracyScore": 90,
+       "ErrorType": "None",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.1
+          }
+         }
+        }
+       }
+      }
+     },
+     {
+      "Word": "use",
+      "Offset": 77000000,
+      "Duration": 2000000,
+      "PronunciationAssessment": {
+       "AccuracyScore": 90,
+       "ErrorType": "None",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.1
+          }
+         }
+        }
+       }
+      }
+     },
+     {
+      "Word": "it",
+      "Offset": 79000000,
+      "Duration": 999999,
+      "PronunciationAssessment": {
+       "AccuracyScore": 90,
+       "ErrorType": "None",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.1
+          }
+         }
+        }
+       }
+      }
+     },
+     {
+      "Word": "every",
+      "Offset": 80000000,
+      "Duration": 3000000,
+      "PronunciationAssessment": {
+       "AccuracyScore": 90,
+       "ErrorType": "None",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.1
+          }
+         }
+        }
+       }
+      }
+     },
+     {
+      "Word": "day",
+      "Offset": 83000000,
+      "Duration": 3999999,
+      "PronunciationAssessment": {
+       "AccuracyScore": 90,
+       "ErrorType": "None",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.1
+          }
+         }
+        }
+       }
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "DisplayText": "But it is not good for the eyes.",
+  "Offset": 95000000,
+  "Duration": 20000000,
+  "NBest": [
+   {
+    "Lexical": "but it is not good for the eyes",
+    "Display": "But it is not good for the eyes.",
+    "PronunciationAssessment": {
+     "AccuracyScore": 78,
+     "FluencyScore": 78,
+     "CompletenessScore": 0,
+     "ProsodyScore": 55,
+     "PronScore": 80
+    },
+    "Words": [
+     {
+      "Word": "but",
+      "Offset": 95000000,
+      "Duration": 2500000,
+      "PronunciationAssessment": {
+       "AccuracyScore": 90,
+       "ErrorType": "None",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [
+           "Monotone"
+          ],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.9
+          }
+         }
+        }
+       }
+      }
+     },
+     {
+      "Word": "it",
+      "Offset": 97500000,
+      "Duration": 2500000,
+      "PronunciationAssessment": {
+       "AccuracyScore": 90,
+       "ErrorType": "None",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [
+           "Monotone"
+          ],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.9
+          }
+         }
+        }
+       }
+      }
+     },
+     {
+      "Word": "is",
+      "Offset": 100000000,
+      "Duration": 2500000,
+      "PronunciationAssessment": {
+       "AccuracyScore": 90,
+       "ErrorType": "None",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [
+           "Monotone"
+          ],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.9
+          }
+         }
+        }
+       }
+      }
+     },
+     {
+      "Word": "not",
+      "Offset": 102500000,
+      "Duration": 2500000,
+      "PronunciationAssessment": {
+       "AccuracyScore": 90,
+       "ErrorType": "None",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [
+           "Monotone"
+          ],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.9
+          }
+         }
+        }
+       }
+      }
+     },
+     {
+      "Word": "good",
+      "Offset": 105000000,
+      "Duration": 2500000,
+      "PronunciationAssessment": {
+       "AccuracyScore": 90,
+       "ErrorType": "None",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [
+           "Monotone"
+          ],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.9
+          }
+         }
+        }
+       }
+      }
+     },
+     {
+      "Word": "for",
+      "Offset": 107500000,
+      "Duration": 2500000,
+      "PronunciationAssessment": {
+       "AccuracyScore": 90,
+       "ErrorType": "None",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [
+           "Monotone"
+          ],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.9
+          }
+         }
+        }
+       }
+      }
+     },
+     {
+      "Word": "the",
+      "Offset": 110000000,
+      "Duration": 2500000,
+      "PronunciationAssessment": {
+       "AccuracyScore": 90,
+       "ErrorType": "None",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [
+           "Monotone"
+          ],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.9
+          }
+         }
+        }
+       }
+      }
+     },
+     {
+      "Word": "eyes",
+      "Offset": 112500000,
+      "Duration": 2500000,
+      "PronunciationAssessment": {
+       "AccuracyScore": 90,
+       "ErrorType": "None",
+       "Feedback": {
+        "Prosody": {
+         "Break": {
+          "ErrorTypes": [
+           "None"
+          ],
+          "UnexpectedBreak": {
+           "Confidence": 0.01
+          },
+          "MissingBreak": {
+           "Confidence": 0.01
+          },
+          "BreakLength": 0
+         },
+         "Intonation": {
+          "ErrorTypes": [
+           "Monotone"
+          ],
+          "Monotone": {
+           "SyllablePitchDeltaConfidence": 0.9
+          }
+         }
+        }
+       }
+      }
+     }
+    ]
+   }
+  ]
+ }
+]

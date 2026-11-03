@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "speaking-rubric/evaluation.schema.json",
+  "title": "IELTSSpeakingEvaluation",
+  "description": "LLM output for the three transcript-based IELTS criteria. Pronunciation is computed by the application.",
+  "type": "object",
+  "required": ["task_type", "criteria", "not_assessed", "summary"],
+  "additionalProperties": false,
+  "properties": {
+    "task_type": { "type": "string", "enum": ["part1", "part2", "part3", "full_test"] },
+    "criteria": {
+      "type": "array",
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["id", "band", "rationale", "strengths", "issues", "next_step"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "enum": ["fluency_coherence", "lexical_resource", "grammatical_range_accuracy"] },
+          "band": { "type": "integer", "minimum": 1, "maximum": 9 },
+          "rationale": { "type": "string" },
+          "strengths": { "type": "array", "items": { "type": "string" } },
+          "issues": {
+            "type": "array",
+            "maxItems": 5,
+            "items": {
+              "type": "object",
+              "required": ["code", "quote", "correction", "explanation", "impact", "confidence"],
+              "additionalProperties": false,
+              "properties": {
+                "code": { "type": "string", "pattern": "^(FC|LR|GRA)-[0-9]{2}$" },
+                "quote": { "type": "string" },
+                "correction": { "type": "string" },
+                "explanation": { "type": "string" },
+                "impact": { "type": "string", "enum": ["global", "local"] },
+                "confidence": { "type": "string", "enum": ["high", "low"] }
+              }
+            }
+          },
+          "next_step": { "type": "string" }
+        }
+      }
+    },
+    "not_assessed": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "enum": ["fluency_coherence", "lexical_resource", "grammatical_range_accuracy"] },
+          "reason": { "type": "string", "enum": ["insufficient_speech", "off_topic", "memorised_response"] }
+        }
+      }
+    },
+    "summary": { "type": "string" }
+  }
+}

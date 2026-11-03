@@ -23,6 +23,10 @@ type Config struct {
 	AudioPublicURLPrefix string
 	OpenRouterAPIKey     string
 	OpenRouterModel      string
+	// Speaking rubric (internal/rubric)
+	GraderModel string // LLM for the transcript criteria; empty = OpenRouterModel
+	PitchPython string // e.g. "python3"; empty = no pitch analysis (PRO-05/06 not measured)
+	PitchScript string // path to internal/rubric/pitch/pitch_direction.py on disk
 }
 
 func Load() *Config {
@@ -46,6 +50,10 @@ func Load() *Config {
 
 		OpenRouterAPIKey: getEnv("OPENROUTER_API_KEY", ""),
 		OpenRouterModel:  getEnv("OPENROUTER_MODEL", "anthropic/claude-3.5-haiku"),
+
+		GraderModel: getEnv("GRADER_MODEL", ""),
+		PitchPython: getEnv("PITCH_PYTHON", ""),
+		PitchScript: getEnv("PITCH_SCRIPT", "internal/rubric/pitch/pitch_direction.py"),
 	}
 }
 

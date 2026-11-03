@@ -15,21 +15,32 @@ import (
 const createPronunciationAttempt = `-- name: CreatePronunciationAttempt :one
 INSERT INTO pronunciation_attempts (
   user_id, audio_url, reference_text, recognized_text,
-  overall_score, fluency_score, word_scores, phoneme_scores
+  overall_score, fluency_score, word_scores, phoneme_scores,
+  task_type, completeness_score, prosody_score, pron_score,
+  azure_result, rubric, rubric_score, cefr_level, rubric_version
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING id, user_id, audio_url, reference_text, recognized_text, overall_score, fluency_score, word_scores, phoneme_scores, created_at
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+RETURNING id, user_id, audio_url, reference_text, recognized_text, overall_score, fluency_score, word_scores, phoneme_scores, created_at, task_type, completeness_score, prosody_score, pron_score, azure_result, rubric, rubric_score, cefr_level, rubric_version
 `
 
 type CreatePronunciationAttemptParams struct {
-	UserID         uuid.UUID   `json:"user_id"`
-	AudioUrl       string      `json:"audio_url"`
-	ReferenceText  string      `json:"reference_text"`
-	RecognizedText pgtype.Text `json:"recognized_text"`
-	OverallScore   float32     `json:"overall_score"`
-	FluencyScore   float32     `json:"fluency_score"`
-	WordScores     []byte      `json:"word_scores"`
-	PhonemeScores  []byte      `json:"phoneme_scores"`
+	UserID            uuid.UUID     `json:"user_id"`
+	AudioUrl          string        `json:"audio_url"`
+	ReferenceText     string        `json:"reference_text"`
+	RecognizedText    pgtype.Text   `json:"recognized_text"`
+	OverallScore      float32       `json:"overall_score"`
+	FluencyScore      float32       `json:"fluency_score"`
+	WordScores        []byte        `json:"word_scores"`
+	PhonemeScores     []byte        `json:"phoneme_scores"`
+	TaskType          string        `json:"task_type"`
+	CompletenessScore pgtype.Float4 `json:"completeness_score"`
+	ProsodyScore      pgtype.Float4 `json:"prosody_score"`
+	PronScore         pgtype.Float4 `json:"pron_score"`
+	AzureResult       []byte        `json:"azure_result"`
+	Rubric            []byte        `json:"rubric"`
+	RubricScore       pgtype.Float4 `json:"rubric_score"`
+	CefrLevel         pgtype.Text   `json:"cefr_level"`
+	RubricVersion     pgtype.Text   `json:"rubric_version"`
 }
 
 func (q *Queries) CreatePronunciationAttempt(ctx context.Context, arg CreatePronunciationAttemptParams) (PronunciationAttempt, error) {
@@ -42,6 +53,15 @@ func (q *Queries) CreatePronunciationAttempt(ctx context.Context, arg CreatePron
 		arg.FluencyScore,
 		arg.WordScores,
 		arg.PhonemeScores,
+		arg.TaskType,
+		arg.CompletenessScore,
+		arg.ProsodyScore,
+		arg.PronScore,
+		arg.AzureResult,
+		arg.Rubric,
+		arg.RubricScore,
+		arg.CefrLevel,
+		arg.RubricVersion,
 	)
 	var i PronunciationAttempt
 	err := row.Scan(
@@ -55,6 +75,15 @@ func (q *Queries) CreatePronunciationAttempt(ctx context.Context, arg CreatePron
 		&i.WordScores,
 		&i.PhonemeScores,
 		&i.CreatedAt,
+		&i.TaskType,
+		&i.CompletenessScore,
+		&i.ProsodyScore,
+		&i.PronScore,
+		&i.AzureResult,
+		&i.Rubric,
+		&i.RubricScore,
+		&i.CefrLevel,
+		&i.RubricVersion,
 	)
 	return i, err
 }
