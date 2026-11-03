@@ -2,7 +2,9 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 
@@ -81,7 +83,14 @@ func (h *PronunciationHandler) SubmitAttempt(c echo.Context) error {
 	}
 	attempt, err := h.svc.SubmitAttempt(c.Request().Context(), uid, audioBytes, referenceText, task)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to score pronunciation")
+		log.Printf("submit attempt: user=%s task=%s: %v", uid, taskType, err)
+		var noSpeech *service.NoSpeechError
+		if errors.As(err, &noSpeech) {
+			// Learner-facing text stays in Vietnamese.
+			return echo.NewHTTPError(http.StatusUnprocessableEntity,
+				"Không nhận ra lời nói trong bản ghi (Azure: "+noSpeech.Status+"). Kiểm tra micro, nói to và rõ hơn rồi thử lại.")
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, "Chấm điểm thất bại. Thử lại sau ít phút.")
 	}
 
 	var grader any // null when no LLM scored the attempt (shadowing, LLM failure)

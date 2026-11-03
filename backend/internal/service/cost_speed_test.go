@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"net/http"
@@ -360,5 +361,42 @@ func TestParseGeneratedSentences(t *testing.T) {
 	stray := `{"sentences":[{"text":"I usually take the bus to work because it is cheaper.","phonetic":"p","gloss":"g"}]}}`
 	if got, err := parseGeneratedSentences(stray, nil, 10); err != nil || len(got) != 1 {
 		t.Errorf("trailing brace: got %v, err %v", got, err)
+	}
+}
+
+func TestAzureNoSpeechIsReportedAsNoSpeechError(t *testing.T) {
+	for _, status := range []string{"NoMatch", "InitialSilenceTimeout", "BabbleTimeout"} {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_, _ = w.Write([]byte(`{"RecognitionStatus":"` + status + `"}`))
+		}))
+		s := NewAzurePronunciationScorer("k", "eastus", 1)
+		s.endpoint = srv.URL
+		_, err := s.Score(context.Background(), []byte("RIFF"), "")
+		srv.Close()
+		var noSpeech *NoSpeechError
+		if !errors.As(err, &noSpeech) || noSpeech.Status != status {
+			t.Fatalf("%s: err = %v, want NoSpeechError", status, err)
+		}
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"RecognitionStatus":"Error"}`))
+	}))
+	defer srv.Close()
+	s := NewAzurePronunciationScorer("k", "eastus", 1)
+	s.endpoint = srv.URL
+	var noSpeech *NoSpeechError
+	if _, err := s.Score(context.Background(), []byte("RIFF"), ""); err == nil || errors.As(err, &noSpeech) {
+		t.Fatalf("status Error must be a plain error, got %v", err)
+	}
+}
+
+func TestAudioLevel(t *testing.T) {
+	// 0.5 s silence, 1 s tone (amplitude 8000), 0.5 s silence.
+	secs, peak, ok := AudioLevel(toneWAV(0.5, 1))
+	if !ok || secs != 2 || peak < 5000 || peak > 6000 { // RMS of a sine = amplitude / sqrt 2 ≈ 5657
+		t.Fatalf("secs=%v peak=%v ok=%v", secs, peak, ok)
+	}
+	if _, _, ok := AudioLevel([]byte("RIFF")); ok {
+		t.Fatal("bad WAV must not be ok")
 	}
 }

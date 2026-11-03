@@ -125,6 +125,11 @@ func (s *AzurePronunciationScorer) Score(ctx context.Context, audioWAV []byte, r
 	}
 
 	if result.RecognitionStatus != "Success" || len(result.NBest) == 0 {
+		// NoMatch / InitialSilenceTimeout / BabbleTimeout: Azure heard no usable speech
+		// (silent or very quiet microphone, only noise). Error: a problem on Azure's side.
+		if result.RecognitionStatus != "Error" {
+			return nil, &NoSpeechError{Status: result.RecognitionStatus}
+		}
 		return nil, fmt.Errorf("azure speech recognition failed: status=%s", result.RecognitionStatus)
 	}
 
@@ -250,4 +255,13 @@ func normalizeErrorType(azureErrorType string) string {
 	default:
 		return "none"
 	}
+}
+
+// NoSpeechError means Azure returned a result but recognised no speech in the recording.
+type NoSpeechError struct {
+	Status string // Azure RecognitionStatus, e.g. NoMatch, InitialSilenceTimeout
+}
+
+func (e *NoSpeechError) Error() string {
+	return "azure speech recognition: no speech recognised (status=" + e.Status + ")"
 }

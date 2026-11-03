@@ -40,6 +40,14 @@ func (s *PronunciationService) SubmitAttempt(ctx context.Context, userID uuid.UU
 
 	result, err := s.scorer.Score(ctx, audioWAV, referenceText)
 	if err != nil {
+		// Keep the recording so a failed attempt can be listened to later; it is not saved
+		// as an attempt.
+		secs, peak, _ := AudioLevel(audioWAV)
+		saved := "not saved"
+		if url, serr := s.storage.Save(ctx, audioWAV); serr == nil {
+			saved = url
+		}
+		log.Printf("pronunciation: scoring failed: task=%s audio=%.1fs peak_rms=%.0f file=%s: %v", task.Type, secs, peak, saved, err)
 		return nil, fmt.Errorf("score pronunciation: %w", err)
 	}
 
