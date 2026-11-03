@@ -33,8 +33,19 @@ curl -L -o ~/.cache/whisper-models/ggml-medium.en.bin \
   https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.en.bin   # 1.5 GB
 ```
 
-Other model: set `WHISPER_MODEL=/path/to/ggml-<name>.bin` for the bridge. `GET /healthz`
-shows `"whisper": true` when the CLI and model are found. The API uses it when
+Voice activity detection (Silero VAD, 0.9 MB) makes whisper skip non-speech; without it
+whisper sometimes invents a sentence for mumbling or noise at the end. On the same 6 answers
+it lowered the word error rate from 17% to 15% at the same speed. The bridge uses it when the
+file exists:
+
+```
+curl -L -o ~/.cache/whisper-models/ggml-silero-v5.1.2.bin \
+  https://huggingface.co/ggml-org/whisper-vad/resolve/main/ggml-silero-v5.1.2.bin
+```
+
+Other model: set `WHISPER_MODEL=/path/to/ggml-<name>.bin` for the bridge (`WHISPER_VAD_MODEL=`
+empty turns VAD off). `GET /healthz`
+shows `"whisper": true` when the CLI and model are found, `"whisper_vad": true` with VAD. The API uses it when
 `TRANSCRIBER=whisper` (default) and `LLM_BRIDGE_TOKEN` is set; when the bridge or Whisper
 fails it falls back to Azure's own recognition. Shadowing keeps its given sentence.
 

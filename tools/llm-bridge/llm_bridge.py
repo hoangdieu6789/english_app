@@ -11,7 +11,7 @@ so it cannot run inside the container; the API calls this bridge instead.
                         -> 4xx/5xx {"error": "..."}   (the API then tries its next provider)
     POST /v1/transcribe audio/wav body (16 kHz mono PCM, <= 60 s)
                         -> 200 {"text": "...", "model": "ggml-medium.en.bin", "took_ms": 1100}
-    GET  /healthz       -> {"claude": true, "whisper": true}
+    GET  /healthz       -> {"claude": true, "whisper": true, "whisper_vad": true}
 
 Transcription uses whisper.cpp (`brew install whisper-cpp`) with a local model file
 (WHISPER_MODEL, default ~/.cache/whisper-models/ggml-medium.en.bin). It runs on the Mac's GPU
@@ -48,6 +48,11 @@ MAX_BODY_BYTES = 2 << 20  # 2 MB
 MAX_AUDIO_BYTES = 4 << 20  # 16 kHz mono 16-bit: 60 s is ~1.9 MB
 WHISPER_CLI = os.environ.get("WHISPER_CLI", "whisper-cli")
 WHISPER_MODEL = os.path.expanduser(os.environ.get("WHISPER_MODEL", "~/.cache/whisper-models/ggml-medium.en.bin"))
+# Silero VAD (voice activity detection): whisper only transcribes the parts with speech.
+# Without it, whisper sometimes invents a sentence for mumbling or noise at the end ("You
+# might forget me."). Measured on 6 real answers: WER 17% -> 15%, same speed. Used when the
+# file exists; WHISPER_VAD_MODEL="" turns it off.
+WHISPER_VAD_MODEL = os.path.expanduser(os.environ.get("WHISPER_VAD_MODEL", "~/.cache/whisper-models/ggml-silero-v5.1.2.bin"))
 WHISPER_TIMEOUT_S = 60
 DEFAULT_TIMEOUT_S = 120
 MAX_TIMEOUT_S = 300
@@ -114,6 +119,10 @@ def run_claude(model, system, user, timeout_s):
 PROVIDERS = {"claude": run_claude}
 
 
+def vad_ready():
+    return bool(WHISPER_VAD_MODEL) and os.path.isfile(WHISPER_VAD_MODEL)
+
+
 def whisper_ready():
     return shutil.which(WHISPER_CLI) is not None and os.path.isfile(WHISPER_MODEL)
 
@@ -127,7 +136,10 @@ def run_whisper(wav_bytes):
         f.write(wav_bytes)
         f.flush()
         # -nt: no timestamps, -np: only the text on stdout.
-        proc = run_cli([WHISPER_CLI, "-m", WHISPER_MODEL, "-f", f.name, "-l", "en", "-nt", "-np"], None, WHISPER_TIMEOUT_S)
+        cmd = [WHISPER_CLI, "-m", WHISPER_MODEL, "-f", f.name, "-l", "en", "-nt", "-np"]
+        if vad_ready():
+            cmd += ["--vad", "-vm", WHISPER_VAD_MODEL]
+        proc = run_cli(cmd, None, WHISPER_TIMEOUT_S)
     if proc.returncode != 0:
         raise BridgeError(502, f"whisper exit {proc.returncode}: {proc.stderr.strip()[-400:]}")
     return " ".join(line.strip() for line in proc.stdout.splitlines() if line.strip())
@@ -153,6 +165,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/healthz":
             health = {name: shutil.which(name) is not None for name in PROVIDERS}
             health["whisper"] = whisper_ready()
+            health["whisper_vad"] = vad_ready()
             self.send_json(200, health)
         else:
             self.send_json(404, {"error": "not found"})
@@ -206,7 +219,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(e.status, {"error": str(e)})
         took = int((time.monotonic() - started) * 1000)
         print(f"llm-bridge: whisper took={took}ms audio_bytes={len(wav_bytes)} chars={len(text)}", flush=True)
-        self.send_json(200, {"text": text, "model": os.path.basename(WHISPER_MODEL), "took_ms": took})
+        self.send_json(200, {"text": text, "model": os.path.basename(WHISPER_MODEL), "vad": vad_ready(), "took_ms": took})
 
 
 def main():
@@ -226,6 +239,7 @@ def main():
     server = ThreadingHTTPServer((args.host, args.port), Handler)
     found = {name: shutil.which(name) is not None for name in PROVIDERS}
     found["whisper"] = whisper_ready()
+    found["whisper_vad"] = vad_ready()
     print(f"llm-bridge: listening on http://{args.host}:{args.port} providers={found}", flush=True)
     try:
         server.serve_forever()
