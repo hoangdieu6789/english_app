@@ -73,7 +73,9 @@ Form fields: `audio`, `referenceText`, `taskType` (default `shadowing`), `taskPr
 
 A failure in the rubric step (LLM error, too little data) does not lose the attempt: it is still saved, and the criteria that could not be scored are listed in `not_assessed`.
 
-Environment variables (see `backend/env.example`): `OPENROUTER_MODEL`, `OPENROUTER_FALLBACK_MODELS`, `ALLOW_PAID_MODELS`, `AZURE_SPEECH_CONCURRENCY`, `GRADER_MODEL`, `PITCH_PYTHON`, `PITCH_SCRIPT`.
+Environment variables (see `backend/env.example`): `LLM_PROVIDERS`, `LLM_BRIDGE_URL`, `LLM_BRIDGE_TOKEN`, `CLAUDE_MODEL`, `GEMINI_MODEL`, `OPENROUTER_MODEL`, `OPENROUTER_FALLBACK_MODELS`, `ALLOW_PAID_MODELS`, `AZURE_SPEECH_CONCURRENCY`, `GRADER_MODEL`, `PITCH_PYTHON`, `PITCH_SCRIPT`.
+
+LLM providers: `LLM_PROVIDERS` lists them in order (`claude`, `gemini`, `openrouter`); a failing provider falls back to the next. `claude` and `gemini` run the Claude Code / Gemini CLI logged in on your Mac (your own subscription, for your own local use) through the LLM bridge in `tools/llm-bridge/` (see its README). Default: `openrouter` only.
 
 Cost: by default the app uses only OpenRouter `:free` models and refuses to start if a paid model is configured (unless `ALLOW_PAID_MODELS=true`). The free tier allows 50 requests per day, so shadowing sentences are generated in batches of 10 per request (migration `000004`). Azure F0 allows one request at a time, so attempts wait in line. Details and measurements: `docs/speaking-rubric-plan.md`, section 3.
 

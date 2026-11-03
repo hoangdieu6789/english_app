@@ -80,6 +80,9 @@ Measured after the changes (2026-11-03):
 - LLM grading (Part 3): 8–21 s (before: 48–67 s). Bands FC/LR/GRA stayed 6/5/4.
 - Azure F0 varies a lot: the same 2.9 s file took 1.2–21 s. This is Azure-side latency. A new F0 resource in `southeastasia` (closer to Vietnam than `eastus`) may help; measure again.
 
+- [x] Claude Code / Gemini CLI with your own subscription, through a host LLM bridge (`tools/llm-bridge`), tried before OpenRouter (`LLM_PROVIDERS=claude,gemini,openrouter`); any failure falls back to the next provider — 2026-11-03. Measured: grading (Part 3) Claude Sonnet 27.7 s, Haiku 23.8 s (the answer is long, so the model size matters little; the CLI adds ~3–4 s); question batch with Haiku 6 s, 5/5 sets usable.
+- [ ] Gemini CLI: log in (`gemini` → Login with Google), then add `gemini` to `LLM_PROVIDERS` and measure.
+- [ ] Run the LLM bridge at login (launchd agent) so it does not depend on an open terminal.
 - [ ] Asynchronous grading: return Azure and Pronunciation at once, grade with the LLM in the background, and let the frontend poll.
 - [ ] Show the free requests left today (for example on the Progress page) and say clearly when the quota is used up (OpenRouter 429).
 - [ ] Prompt caching: skipped for free models (free providers do not support it reliably). Revisit if a paid model is used.
