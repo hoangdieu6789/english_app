@@ -179,7 +179,7 @@ func gradingUpdate(res *rubric.Result, source *LLMSource) domain.GradingUpdate {
 	}
 	u.Rubric = raw
 	u.RubricVersion = &res.Version
-	if res.Overall.Band > 0 {
+	if hasOverallBand(res) {
 		band := float32(res.Overall.Band)
 		cefr := res.Overall.CEFR
 		u.RubricScore, u.CEFRLevel = &band, &cefr
@@ -205,7 +205,7 @@ func applyRubric(a *domain.PronunciationAttempt, res *rubric.Result, segs []rubr
 	}
 	a.Rubric = raw
 	a.RubricVersion = &res.Version
-	if res.Overall.Band > 0 {
+	if hasOverallBand(res) {
 		band := float32(res.Overall.Band) // IELTS band 0–9 in half bands
 		cefr := res.Overall.CEFR
 		a.RubricScore, a.CEFRLevel = &band, &cefr
@@ -220,4 +220,16 @@ func applyRubric(a *domain.PronunciationAttempt, res *rubric.Result, segs []rubr
 			a.WordScores[i].Monotone = w.Monotone
 		}
 	}
+}
+
+// hasOverallBand reports whether the result's overall band is stored as the attempt's band
+// (used by progress). The rubric averages over the criteria it could assess and marks the
+// band provisional when some are missing; for an IELTS part a band from part of the
+// criteria is not an IELTS band (e.g. a too-short answer leaves only Pronunciation), so only
+// a complete result counts. Shadowing is Pronunciation-only by design and keeps its band.
+func hasOverallBand(res *rubric.Result) bool {
+	if res.Overall.Band <= 0 {
+		return false
+	}
+	return res.TaskType == TaskShadowing || !res.Overall.Provisional
 }

@@ -20,7 +20,7 @@ const PRONUNCIATION_LABELS: Record<string, string> = {
 };
 
 const REASON_LABELS: Record<string, string> = {
-  insufficient_speech: "chưa đủ dữ liệu",
+  insufficient_speech: "bài nói quá ngắn",
   no_acoustic_data: "không có dữ liệu âm thanh",
   grader_unavailable: "AI chấm đang lỗi hoặc hết lượt miễn phí hôm nay",
   not_returned: "AI chưa chấm được",
@@ -72,7 +72,18 @@ export function RubricPanel({
   const pending = pendingSecs != null;
   const pron = rubric.pronunciation;
   const overall = rubric.overall;
-  const scored = overall.band > 0;
+  const ielts = rubric.task_type !== "shadowing";
+  const missing = overall.missing ?? [];
+  // The rubric averages over the criteria it could assess. For an IELTS part a band from fewer
+  // than 3 of the 4 criteria (e.g. a too-short answer: Pronunciation only) is not shown as an
+  // overall band; with one missing it is shown as provisional. CEFR only for a complete band.
+  const scored = overall.band > 0 && (!ielts || !overall.provisional || missing.length <= 1);
+  const showCefr = !!overall.cefr && !overall.provisional;
+  const bandLabel = !ielts
+    ? "band phát âm"
+    : overall.provisional
+      ? `tạm tính, thiếu ${missing.map((id) => CRITERION_LABELS[id] ?? id).join(", ")}`
+      : "band tổng";
   const rows: { id: string; band: number | null }[] = [
     ...rubric.criteria.map((c) => ({ id: c.id, band: c.band })),
     ...(pending ? LLM_CRITERIA.filter((id) => !rubric.criteria.some((c) => c.id === id)).map((id) => ({ id, band: null })) : []),
@@ -111,10 +122,10 @@ export function RubricPanel({
                 {formatBand(overall.band)}
               </div>
               <div style={{ fontSize: 11, color: "var(--ds-text-muted)" }}>
-                {overall.provisional ? "band tạm tính" : "band tổng"}
+                {bandLabel}
               </div>
             </div>
-            {overall.cefr && (
+            {showCefr && (
               <span
                 title="Ước lượng, chưa hiệu chỉnh"
                 style={{
@@ -131,7 +142,9 @@ export function RubricPanel({
             )}
           </div>
         ) : (
-          <span style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>Chưa đủ dữ liệu để chấm</span>
+          <span style={{ fontSize: 13, color: "var(--ds-text-muted)", textAlign: "right", maxWidth: 220 }}>
+            {ielts && overall.band > 0 ? "Chưa đủ dữ liệu để tính band tổng" : "Chưa đủ dữ liệu để chấm"}
+          </span>
         )}
       </div>
 

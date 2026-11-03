@@ -368,3 +368,28 @@ func TestResumePendingFinishesLeftoverAttempts(t *testing.T) {
 		t.Fatalf("broken attempt status = %q, want failed", repo.status[broken.ID])
 	}
 }
+
+func TestPartialIELTSResultHasNoOverallBand(t *testing.T) {
+	cfg := loadRubric(t)
+	g := NewSpeakingGrader(cfg, nil, nil)
+	in := GradeInput{Task: SpeakingTask{Type: "part1"}, AzureRaw: firstSampleSegment(t)}
+	res, _, err := g.GradePronunciation(context.Background(), in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Only Pronunciation was assessed: the rubric gives a provisional band from it alone.
+	if res.Overall.Band <= 0 || !res.Overall.Provisional {
+		t.Fatalf("overall = %+v", res.Overall)
+	}
+	if hasOverallBand(res) {
+		t.Fatal("a Pronunciation-only IELTS result must not be stored as the attempt's band")
+	}
+	u := gradingUpdate(res, &LLMSource{})
+	if u.RubricScore != nil || u.CEFRLevel != nil {
+		t.Fatalf("update = %+v", u)
+	}
+	res.TaskType = TaskShadowing
+	if !hasOverallBand(res) {
+		t.Fatal("shadowing keeps its Pronunciation band")
+	}
+}
