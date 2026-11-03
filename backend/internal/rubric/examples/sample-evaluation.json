@@ -1,0 +1,58 @@
+{
+  "task_type": "part3",
+  "criteria": [
+    {
+      "id": "fluency_coherence",
+      "band": 5,
+      "rationale": "Giữ được mạch nói nhưng dừng giữa câu để tìm từ cơ bản (4 lần ngừng giữa câu, 1 lần lặp 'I I'); lạm dụng 'and' và 'because'. Chưa đạt 6: mạch ý đôi lúc bị mất.",
+      "strengths": ["Trả lời đúng trọng tâm câu hỏi"],
+      "issues": [
+        {
+          "code": "FC-04",
+          "quote": "and it is good and we can learn and",
+          "correction": "It's useful because we can learn a lot. On the other hand, ...",
+          "explanation": "Dùng 'and' lặp lại để nối mọi ý; nên đa dạng từ nối (on the other hand, for example, as a result).",
+          "impact": "local",
+          "confidence": "high"
+        }
+      ],
+      "next_step": "Luyện trả lời Part 3 theo khung: quan điểm → lý do → ví dụ → mặt trái, mỗi bước dùng một từ nối khác nhau."
+    },
+    {
+      "id": "lexical_resource",
+      "band": 5,
+      "rationale": "Đủ từ để nói về chủ đề quen thuộc nhưng ít linh hoạt; lặp 'very good', 'useful'. Chưa đạt 6: chưa thấy diễn đạt lại (paraphrase) thành công.",
+      "strengths": ["Dùng được 'online', 'information' đúng ngữ cảnh"],
+      "issues": [
+        {
+          "code": "LR-02",
+          "quote": "learn many knowledge",
+          "correction": "gain a lot of knowledge",
+          "explanation": "'knowledge' là danh từ không đếm được và thường đi với 'gain/acquire', không đi với 'learn'.",
+          "impact": "local",
+          "confidence": "high"
+        }
+      ],
+      "next_step": "Thay 'very good' bằng 3 cách nói khác (extremely helpful, really worthwhile, a great way to...)."
+    },
+    {
+      "id": "grammatical_range_accuracy",
+      "band": 5,
+      "rationale": "Câu đơn kiểm soát khá tốt; có thử câu phức nhưng gần như luôn có lỗi. Chưa đạt 6: thiếu sự kết hợp câu ngắn và câu phức.",
+      "strengths": ["Dùng đúng thì hiện tại đơn ở câu đơn"],
+      "issues": [
+        {
+          "code": "GRA-04",
+          "quote": "my brother like playing games",
+          "correction": "my brother likes playing games",
+          "explanation": "Chủ ngữ ngôi thứ ba số ít ở thì hiện tại đơn cần động từ thêm -s.",
+          "impact": "local",
+          "confidence": "high"
+        }
+      ],
+      "next_step": "Mỗi câu trả lời thêm ít nhất một mệnh đề 'which/because/if' và tự kiểm tra động từ."
+    }
+  ],
+  "not_assessed": [],
+  "summary": "Bạn truyền đạt được ý chính, ở mức khoảng band 5. Ưu tiên: giảm ngừng giữa câu, đa dạng từ nối và luyện câu phức có kiểm soát."
+}
