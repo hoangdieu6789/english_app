@@ -106,7 +106,9 @@ Measured after the changes (2026-11-03):
 - [ ] Old attempts in the database have rubric v1.0.0 (7 criteria, 0–100 scale). The frontend must check `rubric.version` before showing them, or they must be re-scored.
 - [ ] A script to re-score from the stored `azure_result` when thresholds or the rubric version change.
 - [x] Progress page uses real data (`GET /api/progress/summary?tz=`, `db/queries/progress.sql`) — 2026-11-03: streak in the learner's time zone (also in the header), attempts, 30-day Azure accuracy/fluency, 30-day IELTS band, weekly chart (6 weeks, weeks without practice left empty), band per criterion (90 days), 5 hardest phonemes (Azure symbols shown as IPA), attempts per task type, and which LLM graded. Bands only count rubric v2 attempts; v1 attempts (0–100) are left out.
-- [ ] Dashboard (daily goal ring, accuracy sparkline) and the Review page (`lib/mock/practice-data.ts`, "Ôn từ" badge) still use mock data; vocabulary needs Phase 3.
+- [x] Dashboard uses real data — 2026-11-03: greeting by time of day, daily goal ring (attempts today / 10), speaking time today (end of the last word Azure heard, summed), 30-day IELTS band, "words to practise again" (Azure mispronounced or under 60 in the last 30 days, omissions left out), weekly accuracy sparkline with the change from the previous practised week. The mock "listening minutes" card and the "Ôn từ" badge were removed (no listening feature yet).
+- [ ] Review page (`lib/mock/practice-data.ts`) still uses mock words; vocabulary needs Phase 3. The weak words above could feed it.
+- [ ] Daily goal is fixed at 10 attempts; make it a user setting (users.target_goal) if needed.
 
 ### 6b. Grader source
 
