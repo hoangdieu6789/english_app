@@ -51,6 +51,7 @@ services:
       AUDIO_PUBLIC_URL_PREFIX: /uploads
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       OPENROUTER_MODEL: ${OPENROUTER_MODEL:-anthropic/claude-3.5-haiku}
+      GRADER_MODEL: ${GRADER_MODEL:-}
     volumes:
       - audio_data:/data/audio
     ports:

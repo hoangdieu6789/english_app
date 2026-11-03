@@ -12,6 +12,7 @@ import (
 	"englishapp/backend/internal/handler"
 	"englishapp/backend/internal/middleware"
 	"englishapp/backend/internal/repository"
+	"englishapp/backend/internal/rubric"
 	"englishapp/backend/internal/service"
 	"englishapp/backend/internal/storage"
 	"englishapp/backend/pkg/config"
@@ -37,8 +38,25 @@ func main() {
 		log.Fatalf("init audio storage: %v", err)
 	}
 	pronunciationScorer := service.NewAzurePronunciationScorer(cfg.AzureSpeechKey, cfg.AzureSpeechRegion)
+	rubricCfg, err := rubric.Load()
+	if err != nil {
+		log.Fatalf("load speaking rubric: %v", err)
+	}
+	var graderLLM service.LLMCompleter
+	if cfg.OpenRouterAPIKey != "" {
+		model := cfg.GraderModel
+		if model == "" {
+			model = cfg.OpenRouterModel
+		}
+		graderLLM = service.NewOpenRouterCompleter(cfg.OpenRouterAPIKey, model)
+	}
+	var pitchAnalyzer service.PitchAnalyzer
+	if cfg.PitchPython != "" {
+		pitchAnalyzer = service.NewScriptPitchAnalyzer(cfg.PitchPython, cfg.PitchScript, rubricCfg.Pronunciation)
+	}
+	speakingGrader := service.NewSpeakingGrader(rubricCfg, graderLLM, pitchAnalyzer)
 	pronunciationRepo := repository.NewPronunciationRepository(pool)
-	pronunciationService := service.NewPronunciationService(pronunciationScorer, audioStorage, pronunciationRepo)
+	pronunciationService := service.NewPronunciationService(pronunciationScorer, speakingGrader, audioStorage, pronunciationRepo)
 	pronunciationHandler := handler.NewPronunciationHandler(pronunciationService)
 
 	sentenceGenerator := service.NewOpenRouterSentenceGenerator(cfg.OpenRouterAPIKey, cfg.OpenRouterModel)

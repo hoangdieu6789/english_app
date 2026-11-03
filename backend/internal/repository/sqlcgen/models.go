@@ -29,16 +29,25 @@ type ProgressSnapshot struct {
 }
 
 type PronunciationAttempt struct {
-	ID             uuid.UUID          `json:"id"`
-	UserID         uuid.UUID          `json:"user_id"`
-	AudioUrl       string             `json:"audio_url"`
-	ReferenceText  string             `json:"reference_text"`
-	RecognizedText pgtype.Text        `json:"recognized_text"`
-	OverallScore   float32            `json:"overall_score"`
-	FluencyScore   float32            `json:"fluency_score"`
-	WordScores     []byte             `json:"word_scores"`
-	PhonemeScores  []byte             `json:"phoneme_scores"`
-	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	ID                uuid.UUID          `json:"id"`
+	UserID            uuid.UUID          `json:"user_id"`
+	AudioUrl          string             `json:"audio_url"`
+	ReferenceText     string             `json:"reference_text"`
+	RecognizedText    pgtype.Text        `json:"recognized_text"`
+	OverallScore      float32            `json:"overall_score"`
+	FluencyScore      float32            `json:"fluency_score"`
+	WordScores        []byte             `json:"word_scores"`
+	PhonemeScores     []byte             `json:"phoneme_scores"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	TaskType          string             `json:"task_type"`
+	CompletenessScore pgtype.Float4      `json:"completeness_score"`
+	ProsodyScore      pgtype.Float4      `json:"prosody_score"`
+	PronScore         pgtype.Float4      `json:"pron_score"`
+	AzureResult       []byte             `json:"azure_result"`
+	Rubric            []byte             `json:"rubric"`
+	RubricScore       pgtype.Float4      `json:"rubric_score"`
+	CefrLevel         pgtype.Text        `json:"cefr_level"`
+	RubricVersion     pgtype.Text        `json:"rubric_version"`
 }
 
 type RefreshToken struct {
