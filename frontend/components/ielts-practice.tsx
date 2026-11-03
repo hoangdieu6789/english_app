@@ -54,7 +54,14 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
   const question = !set ? "" : part === "part2" ? set.prompt : (set.questions[qIndex] ?? "");
   const taskPrompt = set && part === "part2" ? cueCardText(set) : question;
 
-  const recorder = useRecorder(MAX_ANSWER_SECONDS, (wav) => submit(wav));
+  const recorder = useRecorder(
+    MAX_ANSWER_SECONDS,
+    (wav) => submit(wav),
+    (err) => {
+      setError(err.message);
+      setPhase("error");
+    },
+  );
 
   function clearTimers() {
     if (prepRef.current) clearInterval(prepRef.current);
@@ -367,9 +374,25 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
                   Đang ghi âm {formatSecs(recorder.secs)} / {formatSecs(MAX_ANSWER_SECONDS)} · Dừng
                 </span>
               </button>
-              <div style={{ fontSize: 13, color: "var(--ds-primary)", fontWeight: 600 }}>
-                {recorder.secs >= MAX_ANSWER_SECONDS - 10 ? "Sắp hết thời gian, hãy kết thúc ý" : "🔴 Đang nghe bạn nói..."}
+              <div style={{ width: 220, height: 6, borderRadius: 99, background: "var(--ds-surface-muted)", overflow: "hidden" }} title="Mức âm thanh micro">
+                <div
+                  style={{
+                    height: "100%",
+                    width: `${Math.min(100, Math.round(recorder.level * 400))}%`,
+                    background: recorder.quiet ? "var(--ds-danger)" : "var(--ds-success)",
+                    transition: "width .2s",
+                  }}
+                />
               </div>
+              {recorder.quiet ? (
+                <div style={{ fontSize: 13, color: "var(--ds-danger)", fontWeight: 600, textAlign: "center", maxWidth: 460 }}>
+                  Micro gần như không thu được tiếng. Kiểm tra micro đang chọn hoặc nói to hơn.
+                </div>
+              ) : (
+                <div style={{ fontSize: 13, color: "var(--ds-primary)", fontWeight: 600 }}>
+                  {recorder.secs >= MAX_ANSWER_SECONDS - 10 ? "Sắp hết thời gian, hãy kết thúc ý" : "🔴 Đang nghe bạn nói..."}
+                </div>
+              )}
             </>
           )}
           {phase === "processing" && (

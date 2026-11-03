@@ -1,5 +1,20 @@
 const TARGET_SAMPLE_RATE = 16000;
 
+// Loudest block RMS (0–1) under which a recording counts as silent. The backend uses
+// ~300/32768 ≈ 0.009 as its speech floor; a silent mic measured ~0.0015. Sending a silent
+// recording to Azure only wastes free quota and returns "InitialSilenceTimeout".
+export const SILENT_RMS = 0.01;
+
+export class SilentRecordingError extends Error {
+  constructor() {
+    super(
+      "Micro gần như không thu được tiếng nên bản ghi chưa được gửi đi chấm. " +
+        "Kiểm tra micro đang chọn (System Settings → Sound → Input), quyền micro của trình duyệt, rồi nói to hơn và thử lại.",
+    );
+    this.name = "SilentRecordingError";
+  }
+}
+
 /**
  * Records microphone audio as 16-bit PCM mono WAV at 16kHz — the exact
  * format Azure Pronunciation Assessment expects. MediaRecorder can't produce
@@ -13,10 +28,32 @@ export class WavRecorder {
   private source: MediaStreamAudioSourceNode | null = null;
   private chunks: Float32Array[] = [];
   private sampleRate = TARGET_SAMPLE_RATE;
+  private lastRms = 0;
+  private maxRms = 0;
 
+  /** RMS (0–1) of the latest audio block, for a level meter. */
+  get level(): number {
+    return this.lastRms;
+  }
+
+  /** Loudest block RMS (0–1) since start. */
+  get maxLevel(): number {
+    return this.maxRms;
+  }
+
+  /** Call from a click handler: the AudioContext is created before the first await, so
+   * Safari still counts it as started by the user and does not leave it suspended. */
   async start(): Promise<void> {
-    this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     this.audioContext = new AudioContext();
+    const resumed = this.audioContext.state === "suspended" ? this.audioContext.resume() : Promise.resolve();
+    try {
+      this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err) {
+      this.audioContext.close();
+      this.audioContext = null;
+      throw err;
+    }
+    await resumed;
     if (this.audioContext.state === "suspended") {
       await this.audioContext.resume();
     }
@@ -24,10 +61,15 @@ export class WavRecorder {
     this.source = this.audioContext.createMediaStreamSource(this.stream);
     this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
     this.chunks = [];
+    this.lastRms = this.maxRms = 0;
 
     this.processor.onaudioprocess = (e) => {
       const input = e.inputBuffer.getChannelData(0);
       this.chunks.push(new Float32Array(input));
+      let sum = 0;
+      for (let i = 0; i < input.length; i++) sum += input[i] * input[i];
+      this.lastRms = Math.sqrt(sum / input.length);
+      this.maxRms = Math.max(this.maxRms, this.lastRms);
     };
 
     this.source.connect(this.processor);
@@ -43,6 +85,9 @@ export class WavRecorder {
 
     if (this.chunks.length === 0) {
       throw new Error("Không thu được âm thanh từ microphone — kiểm tra quyền truy cập mic.");
+    }
+    if (this.maxRms < SILENT_RMS) {
+      throw new SilentRecordingError();
     }
 
     const merged = mergeFloat32(this.chunks);
