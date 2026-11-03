@@ -129,6 +129,7 @@ Measured after the changes (2026-11-03):
 ### 6e. Transcript accuracy (free speech)
 
 - [x] Whisper transcript + scripted Azure (2026-11-04, migration `000009` `transcript_source`). Azure's own recognition of free speech got 35% of words wrong on 6 real readings of one text ("avid photographer" -> "an event for the Graford", "candid" -> "Candace", "unposed shots" -> "and post shows"); it then scored those words as said well, and the LLM graded LR/GRA on the wrong words. Now IELTS answers are written down by whisper.cpp `medium.en` on the host (LLM bridge `POST /v1/transcribe`, ~1.1–1.5 s), then Azure scores the audio with that transcript as `ReferenceText` (miscue off). WER: Azure 35%, small.en 21%, medium.en 17%. Falls back to Azure recognition when the bridge fails. The UI says which one wrote the transcript.
+- [x] Silero VAD in whisper.cpp (2026-11-04): WER 17% -> 15% (vs the text the learner read), same speed (~1.2 s); removed an invented ending ("You might forget me.") on one answer. Threshold 0.5 (default) was best; 0.35 and +200 ms padding were not better.
 - [ ] Some remaining "errors" may be what the learner really said; check by listening, and consider a "read a given text" mode where the reference is known (like shadowing).
 - [ ] Try whisper `--prompt` with the question text (topic words) and measure WER again.
 
