@@ -69,7 +69,23 @@ func main() {
 	speakingGrader := service.NewSpeakingGrader(rubricCfg, graderLLM, pitchAnalyzer)
 	pronunciationRepo := repository.NewPronunciationRepository(pool)
 	pronunciationService := service.NewPronunciationService(pronunciationScorer, speakingGrader, audioStorage, pronunciationRepo)
-	pronunciationHandler := handler.NewPronunciationHandler(pronunciationService)
+	// IELTS question sets: seed bank on start, new sets written by the free LLM when a
+	// learner is close to the end of the bank.
+	questionSetRepo := repository.NewQuestionSetRepository(pool)
+	var questionGen service.QuestionSetGenerator
+	if cfg.OpenRouterAPIKey != "" {
+		questionGen = service.NewLLMQuestionSetGenerator(newLLM(cfg.OpenRouterModel, 0.9, 90*time.Second))
+	}
+	ieltsQuestionService := service.NewIeltsQuestionService(questionSetRepo, questionGen)
+	seedCtx, cancelSeed := context.WithTimeout(context.Background(), 30*time.Second)
+	if added, err := ieltsQuestionService.Seed(seedCtx); err != nil {
+		log.Fatalf("seed ielts questions: %v", err)
+	} else if added > 0 {
+		log.Printf("ielts questions: seeded %d sets", added)
+	}
+	cancelSeed()
+	ieltsHandler := handler.NewIeltsHandler(ieltsQuestionService)
+	pronunciationHandler := handler.NewPronunciationHandler(pronunciationService, ieltsQuestionService)
 
 	sentenceGenerator := service.NewLLMSentenceGenerator(newLLM(cfg.OpenRouterModel, 0.9, 90*time.Second))
 	practiceSentenceRepo := repository.NewPracticeSentenceRepository(pool)
@@ -91,6 +107,7 @@ func main() {
 	handler.RegisterAuthRoutes(api, authHandler, jwtAuth)
 	handler.RegisterPronunciationRoutes(api, pronunciationHandler, jwtAuth)
 	handler.RegisterPracticeRoutes(api, practiceHandler, jwtAuth)
+	handler.RegisterIeltsRoutes(api, ieltsHandler, jwtAuth)
 
 	e.GET("/healthz", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})

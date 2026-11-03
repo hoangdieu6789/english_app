@@ -9,6 +9,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type IeltsQuestionSet struct {
+	ID        uuid.UUID          `json:"id"`
+	Kind      string             `json:"kind"`
+	Topic     string             `json:"topic"`
+	Prompt    string             `json:"prompt"`
+	Points    []byte             `json:"points"`
+	Questions []byte             `json:"questions"`
+	Source    string             `json:"source"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
 type PracticeSentence struct {
 	ID        uuid.UUID          `json:"id"`
 	UserID    uuid.UUID          `json:"user_id"`
@@ -49,6 +60,8 @@ type PronunciationAttempt struct {
 	RubricScore       pgtype.Float4      `json:"rubric_score"`
 	CefrLevel         pgtype.Text        `json:"cefr_level"`
 	RubricVersion     pgtype.Text        `json:"rubric_version"`
+	QuestionSetID     pgtype.UUID        `json:"question_set_id"`
+	TaskPrompt        pgtype.Text        `json:"task_prompt"`
 }
 
 type RefreshToken struct {

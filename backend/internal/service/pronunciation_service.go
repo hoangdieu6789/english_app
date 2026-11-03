@@ -62,6 +62,10 @@ func (s *PronunciationService) SubmitAttempt(ctx context.Context, userID uuid.UU
 		WordScores:        result.WordScores,
 		PhonemeScores:     result.PhonemeScores,
 		AzureResult:       result.Raw,
+		QuestionSetID:     task.QuestionSetID,
+	}
+	if task.Prompt != "" {
+		attempt.TaskPrompt = &task.Prompt
 	}
 
 	graded, segs, err := s.grader.Grade(ctx, GradeInput{

@@ -8,6 +8,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/google/uuid"
+
 	"englishapp/backend/internal/rubric"
 )
 
@@ -23,6 +25,8 @@ const ReasonNotInTask = "not_in_task"
 type SpeakingTask struct {
 	Type   string `json:"task_type"`
 	Prompt string `json:"questions,omitempty"` // the question(s) or cue card the learner answered
+	// QuestionSetID is the IELTS question set answered (stored with the attempt, not sent to the LLM).
+	QuestionSetID *uuid.UUID `json:"-"`
 }
 
 // LLMCompleter sends one system + user prompt and returns the model's text reply.

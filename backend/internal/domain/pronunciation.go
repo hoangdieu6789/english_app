@@ -26,6 +26,8 @@ type PronunciationAttempt struct {
 	RubricScore       *float32        // overall IELTS band (0–9, half bands); nil when no band
 	CEFRLevel         *string
 	RubricVersion     *string
+	QuestionSetID     *uuid.UUID // IELTS question set answered; nil for shadowing
+	TaskPrompt        *string    // the question or cue card answered
 	CreatedAt         time.Time
 }
 
