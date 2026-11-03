@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { ProgressRing } from "@/components/charts/progress-ring";
 import { Waveform } from "@/components/charts/waveform";
+import { RubricPanel } from "@/components/rubric-panel";
 import { fetchNextSentence, type PracticeSentence } from "@/lib/practice-api";
 import { submitPronunciationAttempt, resolveAudioUrl, type PronunciationAttempt } from "@/lib/pronunciation-api";
 import { WavRecorder } from "@/lib/wav-recorder";
@@ -433,6 +434,8 @@ export default function PracticePage() {
                 </div>
               </div>
             )}
+
+            {result.rubric && <RubricPanel rubric={result.rubric} />}
 
             <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
               <button onClick={retryRecord} className="ds-btn ds-btn-outline">
