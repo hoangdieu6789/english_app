@@ -70,7 +70,11 @@ Form fields: `audio`, `referenceText`, `taskType` (mặc định `shadowing`), `
 
 Lỗi ở bước rubric (LLM lỗi, thiếu dữ liệu) không làm mất lượt nói: lượt vẫn được lưu, tiêu chí không chấm được nằm trong `not_assessed`.
 
-Biến môi trường (xem `backend/env.example`): `GRADER_MODEL`, `PITCH_PYTHON`, `PITCH_SCRIPT`. Phân tích cao độ (P-04) **mặc định tắt**: image Docker không có Python, vì `praat-parselmouth` không có bản cài sẵn (wheel) cho Linux ARM64, nên trên Mac Apple Silicon phải biên dịch Praat từ mã nguồn. Muốn bật khi chạy `go run`: tạo venv, `pip install praat-parselmouth numpy`, rồi đặt `PITCH_PYTHON=<venv>/bin/python`. Test thật: `PITCH_PYTHON=<venv>/bin/python go test ./internal/service/ -run Pitch`.
+Biến môi trường (xem `backend/env.example`): `OPENROUTER_MODEL`, `OPENROUTER_FALLBACK_MODELS`, `ALLOW_PAID_MODELS`, `AZURE_SPEECH_CONCURRENCY`, `GRADER_MODEL`, `PITCH_PYTHON`, `PITCH_SCRIPT`.
+
+Chi phí: mặc định app chỉ dùng model `:free` của OpenRouter và không khởi động nếu có model trả phí (trừ khi `ALLOW_PAID_MODELS=true`). Gói free có 50 request/ngày, nên câu shadowing được sinh theo lô 10 câu/1 request (migration `000004`). Azure F0 chỉ cho 1 request cùng lúc, nên các lượt nói xếp hàng. Chi tiết và số đo: `docs/speaking-rubric-plan.md`, mục 3.
+
+Phân tích cao độ (P-04) **mặc định tắt**: image Docker không có Python, vì `praat-parselmouth` không có bản cài sẵn (wheel) cho Linux ARM64, nên trên Mac Apple Silicon phải biên dịch Praat từ mã nguồn. Muốn bật khi chạy `go run`: tạo venv, `pip install praat-parselmouth numpy`, rồi đặt `PITCH_PYTHON=<venv>/bin/python`. Test thật: `PITCH_PYTHON=<venv>/bin/python go test ./internal/service/ -run Pitch`.
 
 Test: `cd backend && go test ./...`
 
