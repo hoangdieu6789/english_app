@@ -115,6 +115,11 @@ Measured after the changes (2026-11-03):
 - [x] Each attempt stores `grader_provider` and `grader_model` (migration `000006`): the provider and model that actually answered (e.g. `claude` / `claude-sonnet-5-5`, `gemini` / `gemini-3-flash-preview`). The result card shows it; NULL = no LLM (shadowing, LLM failure). All providers get the same rubric prompt (`BuildSystemPrompt`) and the same parser (`ParseEvaluation`); Pronunciation and the overall band are computed in code.
 - [ ] Calibrate the providers: same answers graded by each model differed by 0.5–1 band (2026-11-03: Sonnet 6/5/5, Gemini Flash 5/5/4, Nemotron 6/5/4 for FC/LR/GRA). Collect more pairs before deciding on a correction or a single grader.
 
+### 6c. Silent recordings
+
+- [x] A Part 2 answer (Safari) failed with "failed to score pronunciation": Azure returned `InitialSilenceTimeout`, i.e. the recording was (near) silent — reproduced with an 18 s silent file (same 2.5 s Azure time). Fixes (2026-11-03): the error is logged with audio length, loudest level and a saved copy of the WAV; Azure "no speech" returns 422 with a clear Vietnamese message; the recorder creates its AudioContext inside the click (Safari), shows a live mic level and a warning after 3 s of near-silence, and does not send a silent recording to Azure (saves free quota).
+- [ ] If it happens again with the meter showing sound, check the saved WAV named in the API log (`pronunciation: scoring failed ... file=`).
+
 ### 7. Maintenance
 
 - [ ] A command to sync the rubric, for example `make sync-rubric` (`rsync -a --delete` + `diff -rq`), instead of copying by hand.
