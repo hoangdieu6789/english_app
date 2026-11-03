@@ -1,98 +1,103 @@
-# Kế hoạch: chấm nói theo IELTS — các phần còn thiếu
+# Plan: IELTS speaking assessment — missing parts
 
-Ghi lại những gì chưa xong sau khi chuyển sang bộ tiêu chí IELTS (rubric v2.0.0). Làm xong mục nào thì đánh dấu `[x]` và ghi ngày + commit.
+What is still open after the switch to the IELTS rubric (rubric v2.0.0). When an item is done, tick it (`[x]`) and add the date and commit.
 
-Bản gốc bộ tiêu chí: `~/WorkSpace/Document_english/speaking-rubric`. Bản trong app: `backend/internal/rubric/` (phải giống hệt bản gốc).
+Rubric source: `~/WorkSpace/Document_english/speaking-rubric`. Copy in the app: `backend/internal/rubric/` (must be identical to the source).
 
-## Đã xong (v2.0.0)
+## Done (v2.0.0)
 
-- [x] Chép bộ IELTS vào `backend/internal/rubric/` (4 tiêu chí, band 0–9).
-- [x] `SpeakingGrader`: LLM chấm FC/LR/GRA, code chấm Pronunciation, band tổng + CEFR do code tính.
-- [x] `shadowing` chỉ chấm Pronunciation, 3 tiêu chí còn lại ghi `not_in_task`.
-- [x] API nhận `taskType` = `shadowing | part1 | part2 | part3 | full_test`, `taskPrompt`.
-- [x] Thẻ "Chấm theo bộ tiêu chí" hiện band /9, 6 đặc điểm phát âm, từ phát âm sai.
-- [x] Test Go + thử thật với Azure và OpenRouter (shadowing band 8, Part 3 band 5.5).
+- [x] Copy the IELTS rubric into `backend/internal/rubric/` (4 criteria, bands 0–9).
+- [x] `SpeakingGrader`: the LLM scores FC/LR/GRA, code scores Pronunciation, code computes the overall band and CEFR.
+- [x] `shadowing` scores Pronunciation only; the other 3 criteria are reported as `not_in_task`.
+- [x] The API accepts `taskType` = `shadowing | part1 | part2 | part3 | full_test` and `taskPrompt`.
+- [x] The rubric card shows bands /9, the 6 Pronunciation features and mispronounced words.
+- [x] Go tests + live tests with Azure and OpenRouter (shadowing band 8, Part 3 band 5.5).
+- [x] Commit the rubric work (rubric, backend, frontend, docs) — 2026-11-03, `ea29296`…`abb90f0`.
 
-## Cần làm
+## To do
 
-Thứ tự là mức ưu tiên đề xuất.
+Order = suggested priority.
 
-### 1. Ghi âm dài cho Part 2 và full test — chặn
+### 1. Long recordings for Part 2 and the full test — blocking
 
-- [ ] Azure REST (short audio) chỉ nhận tối đa khoảng 60 giây. Part 2 là 1–2 phút, full test còn dài hơn.
-  - Hướng làm: chuyển sang Speech SDK / continuous recognition, hoặc cắt WAV thành nhiều đoạn rồi gửi từng đoạn.
-  - Grader hiện chỉ chuyền **một** JSON Azure (`[][]byte{in.AzureRaw}`). Cần chuyền nhiều segment, để `speech_hints` (ngừng giữa câu) và P-04 (lên/xuống giọng cuối câu) đúng.
-  - Kiểm tra giới hạn thời lượng của `WavRecorder` ở frontend và `maxAudioUploadBytes` ở handler.
-  - Xong khi: một bài nói 2 phút được chấm đủ 4 tiêu chí.
+- [ ] Azure REST (short audio) accepts at most about 60 seconds. Part 2 is 1–2 minutes; the full test is longer.
+  - Options: move to the Speech SDK / continuous recognition, or split the WAV into chunks and send each chunk.
+  - The grader passes only **one** Azure JSON (`[][]byte{in.AzureRaw}`). It must pass several segments so that `speech_hints` (mid-sentence pauses) and P-04 (final rise/fall) stay correct.
+  - Check the `WavRecorder` length limit in the frontend and `maxAudioUploadBytes` in the handler.
+  - Done when: a 2-minute answer is scored on all 4 criteria.
 
-### 2. Giao diện cho IELTS Part
+### 2. UI for the IELTS parts
 
-- [x] Trang luyện nói cho chọn loại bài: Shadowing / IELTS Part 1 / Part 2 / Part 3 (`frontend/components/ielts-practice.tsx`).
-- [x] Nguồn câu hỏi: bộ câu hỏi cố định viết cho app (`frontend/lib/ielts-questions.ts`): 6 chủ đề Part 1 × 4 câu, 6 cue card Part 2, mỗi cue card có 3 câu Part 3 liên quan. Không gọi LLM, không tốn lượt free.
-- [x] Part 2: 1 phút chuẩn bị (đếm ngược, ô ghi chú, có thể bắt đầu sớm).
-- [x] Gửi `taskType` và `taskPrompt` từ trang. Part 2 gửi cả cue card và các ý.
-- [x] Trạng thái "Đang chấm điểm… Ns" (đo thật: ~15 s cho bài Part 3 qua giao diện).
-- [x] Ghi âm tự dừng ở 55 giây và tự gửi chấm (giới hạn 60 giây của Azure REST). Đổi tab giữa lúc ghi âm thì mic được tắt.
-- [ ] Part 2 đủ 1–2 phút: còn chờ mục 1.
-- [ ] Bộ câu hỏi lớn hơn, hoặc sinh câu hỏi bằng LLM theo lô (như câu shadowing) nếu muốn nhiều chủ đề hơn.
-- [ ] Bài thi thử đủ 3 Part liên tiếp (`full_test`).
+- [x] The practice page offers Shadowing / IELTS Part 1 / Part 2 / Part 3 (`frontend/components/ielts-practice.tsx`) — 2026-11-03, `4f963d1`.
+- [x] Question source: a fixed bank written for the app (`frontend/lib/ielts-questions.ts`): 6 Part 1 topics × 4 questions, 6 Part 2 cue cards, each with 3 linked Part 3 questions. No LLM call, no free quota used.
+- [x] Part 2: 1-minute preparation (countdown, notes, can start early).
+- [x] The page sends `taskType` and `taskPrompt`. Part 2 sends the cue card with its points.
+- [x] "Grading… Ns" state (measured: ~15 s for a Part 3 answer through the UI).
+- [x] Recording stops at 55 seconds and is sent automatically (Azure REST 60-second limit). Switching tabs while recording releases the microphone.
+- [ ] Part 2 for the full 1–2 minutes: waits for item 1.
+- [ ] A larger question bank (see "Question bank" below).
+- [ ] A mock test with all 3 parts in a row (`full_test`).
 
-### 3. Chi phí và thời gian chấm của LLM
+### 3. Cost and LLM grading time
 
-Giới hạn gói free (kiểm tra ngày 2026-11-03):
-- OpenRouter `:free`: 20 request/phút, **50 request/ngày** (1000/ngày nếu từng nạp ≥ 10 credit). Xem còn bao nhiêu: `GET https://openrouter.ai/api/v1/key` → `free_model_daily_requests`.
-- Azure Speech F0: **1 request cùng lúc**, số giờ âm thanh miễn phí mỗi tháng có hạn (xem bảng giá Azure).
+Free-tier limits (checked 2026-11-03):
+- OpenRouter `:free`: 20 requests/minute, **50 requests/day** (1000/day after buying at least 10 credits). Remaining quota: `GET https://openrouter.ai/api/v1/key` → `free_model_daily_requests`.
+- Azure Speech F0: **1 concurrent request**; the free audio hours per month are limited (see the Azure pricing page).
 
-Đo trên prompt chấm thật (bài Part 3, 3 tiêu chí):
+Measured on the real grading prompt (Part 3 answer, 3 criteria):
 
-| Model | Thời gian | Band FC/LR/GRA |
+| Model | Time | Bands FC/LR/GRA |
 |---|---|---|
-| nemotron-3.5-super-vl:free (reasoning bật) | 48,5 s | 6/5/4 |
-| nemotron-3.5-super-vl:free (reasoning tắt) | 13,4 s | 6/5/4 |
-| gemma-4-31b-it:free | 31,0 s | 5/5/5 |
-| nemotron-3.5-lightning:free | 52,7 s | 8/5/5 |
-| gemma-4-26b-a4b-it:free, xing4.0-29b-a4b:free | lỗi 429 (quá tải) | — |
+| nemotron-3.5-super-vl:free (reasoning on) | 48.5 s | 6/5/4 |
+| nemotron-3.5-super-vl:free (reasoning off) | 13.4 s | 6/5/4 |
+| gemma-4-31b-it:free | 31.0 s | 5/5/5 |
+| nemotron-3.5-lightning:free | 52.7 s | 8/5/5 |
+| gemma-4-26b-a4b-it:free, xing4.0-29b-a4b:free | 429 (overloaded) | — |
 
-- [x] Tắt reasoning cho mọi request OpenRouter (nhanh hơn ~3,6 lần, band không đổi).
-- [x] Model dự phòng `google/gemma-4-31b-it:free` qua tham số `models` của OpenRouter (cùng một request, không tốn thêm lượt khi model đầu chạy được).
-- [x] Chặn model trả phí: app không khởi động nếu có model không có đuôi `:free`, trừ khi đặt `ALLOW_PAID_MODELS=true`. Mặc định trong `docker-compose.yml` và `config.go` không còn trỏ tới `claude-3.5-haiku`.
-- [x] Câu shadowing sinh theo lô 10 câu/1 request, lưu hàng đợi trong DB (migration `000004`), tự nạp thêm ở nền khi còn < 3 câu. Trước: 1 request/câu.
-- [x] Azure: xếp hàng (tối đa `AZURE_SPEECH_CONCURRENCY`, mặc định 1) và thử lại khi gặp 429.
-- [x] Azure: mỗi lần gọi tối đa 30 giây; treo quá lâu hoặc lỗi 5xx thì thử lại một lần (đã gặp một lần treo 60 giây).
-- [x] OpenRouter trả 200 nhưng body có `error` / không có câu trả lời: thử lại một lần chỉ với model dự phòng. Lỗi 429 (hết lượt) không thử lại.
-- [x] Cắt khoảng lặng đầu/cuối bản ghi trước khi gửi Azure (bớt giờ âm thanh, Azure trả nhanh hơn).
-- [x] Log thời gian: `azure speech: ... took=`, `openrouter: model=... took=`, `speaking grader: ... took=`.
+- [x] Reasoning off for every OpenRouter request (~3.6× faster, same bands).
+- [x] Fallback model `google/gemma-4-31b-it:free` through OpenRouter's `models` parameter (same request; no extra quota when the first model answers).
+- [x] Paid models blocked: the app does not start if a model lacks the `:free` suffix, unless `ALLOW_PAID_MODELS=true`. The defaults in `docker-compose.yml` and `config.go` no longer point to `claude-3.5-haiku`.
+- [x] Shadowing sentences are generated in batches of 10 per request, queued in the database (migration `000004`), and refilled in the background when fewer than 3 are left. Before: 1 request per sentence.
+- [x] Azure: calls wait in line (at most `AZURE_SPEECH_CONCURRENCY`, default 1) and a 429 is retried.
+- [x] Azure: each call is limited to 30 seconds; a hung call or a 5xx is retried once (one 60-second hang was seen).
+- [x] OpenRouter returns 200 with an `error` body or no answer: retry once with the fallback models only. A 429 (quota) is not retried.
+- [x] Leading and trailing silence is trimmed before Azure (less free audio time, faster answers).
+- [x] Timing logs: `azure speech: ... took=`, `openrouter: model=... took=`, `speaking grader: ... took=`.
 
-Kết quả đo thật sau khi tối ưu (2026-11-03):
-- Câu shadowing mới: ~7 ms khi lấy từ hàng đợi; ~6 s khi hàng đợi trống (lần đầu). 15 câu = 2 request (trước: 15).
-- Cắt khoảng lặng: bản ghi 5,7 s còn 2,9 s; 13,6 s còn 10,7 s. Điểm không đổi.
-- Chấm LLM (Part 3): 8–21 s (trước: 48–67 s). Band FC/LR/GRA giữ nguyên 6/5/4.
-- Azure F0 dao động mạnh: cùng file 2,9 s mất 1,2–21 s. Đây là độ trễ bên Azure. Có thể thử tạo resource F0 ở vùng `southeastasia` (gần Việt Nam hơn `eastus`) rồi đo lại.
-- [ ] Chấm bất đồng bộ: trả kết quả Azure và Phát âm ngay, chấm LLM ở nền, frontend hỏi lại (polling). Làm cùng giao diện Part (mục 2).
-- [ ] Hiện số request free còn lại trong ngày (ví dụ ở trang Tiến độ) và báo rõ khi hết lượt (lỗi 429 từ OpenRouter).
-- [ ] Prompt caching: bỏ qua với model free (nhà cung cấp free không hỗ trợ ổn định). Xem lại nếu chuyển sang model trả phí.
+Measured after the changes (2026-11-03):
+- New shadowing sentence: ~7 ms from the queue; ~6 s when the queue is empty (first use). 15 sentences = 2 requests (before: 15).
+- Silence trimming: a 5.7 s recording became 2.9 s; 13.6 s became 10.7 s. Scores did not change.
+- LLM grading (Part 3): 8–21 s (before: 48–67 s). Bands FC/LR/GRA stayed 6/5/4.
+- Azure F0 varies a lot: the same 2.9 s file took 1.2–21 s. This is Azure-side latency. A new F0 resource in `southeastasia` (closer to Vietnam than `eastus`) may help; measure again.
+
+- [ ] Asynchronous grading: return Azure and Pronunciation at once, grade with the LLM in the background, and let the frontend poll.
+- [ ] Show the free requests left today (for example on the Progress page) and say clearly when the quota is used up (OpenRouter 429).
+- [ ] Prompt caching: skipped for free models (free providers do not support it reliably). Revisit if a paid model is used.
 
 ### 4. Shadowing
 
-- [x] Câu dưới 10 từ: Phát âm ra `insufficient_speech` (`min_words: 10`). Đã chọn: chỉ sinh câu shadowing từ 10 từ trở lên (lấy `min_words` từ `rubric.yaml`, lọc câu ngắn hơn), không sửa ngưỡng của bộ tiêu chí.
-- [ ] Band tổng và CEFR khi chỉ có một tiêu chí là ước lượng rất thô. Cần quyết định: ẩn CEFR với shadowing, hay giữ nhãn "band tạm tính".
+- [x] Sentences under 10 words give `insufficient_speech` for Pronunciation (`min_words: 10`). Decision: generate only shadowing sentences of 10 words or more (`min_words` read from `rubric.yaml`, shorter ones are dropped); the rubric thresholds are unchanged.
+- [ ] The overall band and CEFR from one criterion are very rough. Decide: hide CEFR for shadowing, or keep the "provisional band" label.
 
-### 5. Độ chính xác của Phát âm
+### 5. Pronunciation accuracy
 
-- [ ] Thử với giọng người thật. Giọng TTS (`say`) bị Azure đánh dấu `Monotone` ở mọi từ, nên P-04 = 1/9.
-- [ ] Hiệu chỉnh `pronunciation.thresholds` bằng bài nói đã có giáo viên IELTS chấm. Hiện ngưỡng chỉ là điểm xuất phát.
-- [ ] Phân tích cao độ (P-04, `pitch_direction.py`) đang tắt trong Docker: `praat-parselmouth` không có wheel Linux ARM64. Hướng làm: image Python riêng build trên amd64, hoặc thêm bước biên dịch Praat vào Dockerfile.
-- [ ] P-05 (nối âm) chưa đo được. Giữ `not_measured` cho đến khi có tín hiệu tin cậy.
+- [ ] Test with real human voices. The TTS voice (`say`) gets `Monotone` on every word from Azure, so P-04 = 1/9.
+- [ ] Calibrate `pronunciation.thresholds` with answers rated by IELTS-trained teachers. The thresholds are only a starting point.
+- [ ] Pitch analysis (P-04, `pitch_direction.py`) is off in Docker: `praat-parselmouth` has no Linux ARM64 wheel. Options: a separate Python image built for amd64, or compile Praat in the Dockerfile.
+- [ ] P-05 (connected speech) is not measured. Keep `not_measured` until there is a reliable signal.
 
-### 6. Dữ liệu cũ và lịch sử
+### 6. Old data and history
 
-- [ ] Lượt nói cũ trong DB có rubric v1.0.0 (dạng 7 tiêu chí, thang 0–100). Frontend cần kiểm tra `rubric.version` trước khi hiện, hoặc chấm lại.
-- [ ] Script chấm lại từ `azure_result` đã lưu khi đổi ngưỡng hoặc đổi phiên bản rubric.
-- [ ] Hiện band IELTS ở trang lịch sử / Tiến độ (dùng `rubric_score`, `cefr_level`).
+- [ ] Old attempts in the database have rubric v1.0.0 (7 criteria, 0–100 scale). The frontend must check `rubric.version` before showing them, or they must be re-scored.
+- [ ] A script to re-score from the stored `azure_result` when thresholds or the rubric version change.
+- [ ] Show the IELTS band on the history / Progress page (`rubric_score`, `cefr_level`).
 
-### 7. Bảo trì
+### 7. Maintenance
 
-- [ ] Thêm lệnh đồng bộ bộ tiêu chí, ví dụ `make sync-rubric` (`rsync -a --delete` + `diff -rq`), để không sửa tay.
-- [ ] Xử lý `off_topic` / `memorised_response` trên giao diện (đã có nhãn, chưa thử thật).
-- [ ] Sửa 2 lỗi lint có từ trước: `frontend/app/practice/page.tsx`, `frontend/components/charts/vocab-donut.tsx`.
-- [ ] Commit phần rubric hiện tại (chia 3 commit: rubric, backend, frontend).
+- [ ] A command to sync the rubric, for example `make sync-rubric` (`rsync -a --delete` + `diff -rq`), instead of copying by hand.
+- [ ] Handle `off_topic` / `memorised_response` in the UI (labels exist, not tested live).
+- [ ] Fix 2 pre-existing lint errors: `frontend/app/practice/page.tsx`, `frontend/components/charts/vocab-donut.tsx`.
+
+### Question bank
+
+- [ ] Grow the question bank. Do not copy questions from IELTS books or "recent exam questions" websites into the repo (copyright, site terms). Use topic lists only as a guide and write the questions in the app's own words, or generate them in batches with a free LLM and review them.

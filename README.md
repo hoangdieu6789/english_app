@@ -1,39 +1,40 @@
-# English Learning App — Giai đoạn 1
+# English Learning App — Phase 1
 
-Web app học tiếng Anh nghe-nói (Comprehensible Input + Shadowing). Backend Go tách hoàn toàn khỏi frontend Next.js để port mobile dễ sau này (mobile gọi thẳng cùng REST API).
+A web app for learning English listening and speaking (Comprehensible Input + Shadowing). The Go backend is fully separate from the Next.js frontend, so a mobile app can be added later and call the same REST API.
 
-## Cấu trúc
+## Structure
 
 ```
 backend/    Go (Echo + sqlc + pgx + golang-migrate), Clean Architecture
 frontend/   Next.js App Router + TypeScript + Tailwind + React Query + Zustand
+docs/       Plans and notes
 ```
 
-## Quyết định kiến trúc — Giai đoạn 1
+## Architecture decisions — Phase 1
 
-### Refresh token: DB-backed + rotation
-Lưu trong bảng `refresh_tokens` (hash SHA-256, không lưu raw token) thay vì stateless JWT, để có thể revoke trước hạn (logout, đổi mật khẩu, phát hiện xâm nhập). Mỗi lần gọi `/api/auth/refresh`, token cũ bị revoke ngay và token mới được cấp (rotation) — chặn replay attack nếu refresh token bị đánh cắp nhưng đã dùng qua 1 lần.
+### Refresh token: stored in the database, rotated on use
+Refresh tokens are stored in the `refresh_tokens` table (SHA-256 hash, never the raw token) instead of stateless JWTs, so they can be revoked early (logout, password change, suspected break-in). Every call to `/api/auth/refresh` revokes the old token at once and issues a new one (rotation). This blocks replay attacks when a stolen refresh token has already been used once.
 
-- Access token: JWT HS256, 15 phút, verify signing method tường minh (chống algorithm-confusion attack).
-- Refresh token: random 256-bit hex, 30 ngày.
+- Access token: JWT HS256, 15 minutes, signing method checked explicitly (prevents algorithm-confusion attacks).
+- Refresh token: random 256-bit hex, 30 days.
 
-### Cookie transport (không phải localStorage)
-Access + refresh token set qua **httpOnly, SameSite=Lax cookie** — access token path `/`, refresh token giới hạn path `/api/auth` để giảm bề mặt lộ. Tránh XSS đọc token qua JS. CORS bật `AllowCredentials: true` với `AllowOrigins` là domain frontend cụ thể (không dùng `*`, bắt buộc khi dùng credentialed cookie).
+### Cookie transport (not localStorage)
+Access and refresh tokens are set as **httpOnly, SameSite=Lax cookies**. The access token uses path `/`; the refresh token is limited to path `/api/auth` to reduce exposure. JavaScript cannot read the tokens, which protects against XSS. CORS uses `AllowCredentials: true` with `AllowOrigins` set to the exact frontend domain (never `*`, which credentialed cookies do not allow).
 
-Middleware `internal/middleware/jwt_auth.go` đọc token theo thứ tự: `Authorization: Bearer` header trước (dành cho mobile app sau này), fallback cookie (web). Nhờ vậy cùng 1 API phục vụ cả web và mobile mà không đổi backend.
+The middleware `internal/middleware/jwt_auth.go` reads the token in this order: the `Authorization: Bearer` header first (for a future mobile app), then the cookie (web). The same API serves web and mobile without backend changes.
 
-### sqlc: query tổ chức theo domain
-`db/queries/{auth,pronunciation,vocab,progress}.sql` — mỗi domain 1 file, dễ maintain khi tính năng tăng (đặc biệt các query tính toán spaced repetition, progress snapshot ở giai đoạn sau). sqlc dùng driver `pgx/v5` (không phải `database/sql`) để khớp trực tiếp với `pgxpool.Pool` — cột `TIMESTAMPTZ`/`TEXT` nullable sinh ra kiểu `pgtype.Timestamptz`/`pgtype.Text`, được convert sang `*time.Time`/`*string` thuần ở lớp repository trước khi trả `internal/domain` structs — service/handler layer không phụ thuộc pgtype.
+### sqlc: queries grouped by domain
+`db/queries/{auth,pronunciation,practice,vocab,progress}.sql`: one file per domain, easy to maintain as features grow (especially the spaced-repetition and progress-snapshot queries of later phases). sqlc uses the `pgx/v5` driver (not `database/sql`) to match `pgxpool.Pool` directly. Nullable `TIMESTAMPTZ`/`TEXT` columns become `pgtype.Timestamptz`/`pgtype.Text`; the repository layer converts them to plain `*time.Time`/`*string` before returning `internal/domain` structs, so the service and handler layers do not depend on pgtype.
 
 ### Clean Architecture
-`domain` (structs thuần) ← `repository` (interface + sqlc impl) ← `service` (business logic, không import Echo) ← `handler` (Echo, chỉ parse request/response). Cho phép mock repository khi viết unit test service, và tái sử dụng service layer nếu sau này thêm gRPC/CLI.
+`domain` (plain structs) ← `repository` (interface + sqlc implementation) ← `service` (business logic, no Echo import) ← `handler` (Echo, request/response parsing only). Repositories can be mocked in service unit tests, and the service layer can be reused if gRPC or a CLI is added later.
 
-## Chạy local
+## Run locally
 
 ### Backend
 ```bash
 cd backend
-cp env.example .env   # điền JWT_ACCESS_SECRET, JWT_REFRESH_PEPPER
+cp env.example .env   # fill in JWT_ACCESS_SECRET, JWT_REFRESH_PEPPER
 docker compose up -d
 migrate -database "$DATABASE_URL" -path db/migrations up
 go run cmd/api/main.go
@@ -46,41 +47,43 @@ cp env.local.example .env.local
 npm run dev
 ```
 
-### Full stack qua Docker Compose (khuyến nghị để demo/test nhanh)
+### Full stack with Docker Compose (recommended for a quick demo or test)
 ```bash
 docker compose up -d --build
 ```
-Chạy: Postgres (5432) → `migrate` job (áp schema, tự exit) → backend (8080) → frontend (3000). Set `JWT_ACCESS_SECRET`/`JWT_REFRESH_PEPPER` qua env trước khi chạy nếu không dùng giá trị dev mặc định. `backend/docker-compose.yml` (chỉ Postgres) vẫn giữ lại cho workflow `go run` local không cần build image.
+Order: Postgres (5432) → `migrate` job (applies the schema, then exits) → backend (8080) → frontend (3000). Set `JWT_ACCESS_SECRET`/`JWT_REFRESH_PEPPER` in the environment first if you do not want the dev defaults. `backend/docker-compose.yml` (Postgres only) is kept for the local `go run` workflow without building images.
 
-## Chấm điểm nói (speaking rubric)
+## Speaking assessment (speaking rubric)
 
-Bộ tiêu chí nằm ở `backend/internal/rubric/` (theo *IELTS Speaking Band Descriptors*: 4 tiêu chí, band 0–9). Bản gốc ở `Document_english/speaking-rubric`; khi đổi tiêu chí, chép lại nguyên thư mục. Đọc `backend/internal/rubric/README.md` để biết chi tiết.
+The rubric lives in `backend/internal/rubric/` (based on the *IELTS Speaking Band Descriptors*: 4 criteria, bands 0–9). The source copy is `Document_english/speaking-rubric`; when the criteria change, copy the whole folder again. See `backend/internal/rubric/README.md` for details.
 
-Mỗi lần gửi `POST /api/pronunciation/attempts`:
+The practice page (`/practice`) has four modes: **Shadowing** (read a given sentence) and **IELTS Part 1, 2 and 3** (answer a question; questions come from a fixed bank in `frontend/lib/ielts-questions.ts`, so picking one costs nothing).
 
-1. Azure Pronunciation Assessment (REST, `en-US`, **bật prosody**) chấm phát âm như trước: điểm chính xác, trôi chảy, đầy đủ, từng từ, từng âm.
-2. `SpeakingGrader` (`internal/service/speaking_grader.go`) áp bộ tiêu chí:
-   - **Pronunciation** tính bằng code từ JSON Azure (không gọi LLM). Cần ít nhất 10 từ; câu ngắn hơn sẽ ghi `insufficient_speech`.
-   - **shadowing** (đọc theo câu mẫu, không phải một Part của IELTS) chỉ chấm Pronunciation. 3 tiêu chí còn lại ghi `not_in_task`, band tổng là tạm tính (`provisional`).
-   - **IELTS Part** (`taskType` = `part1`, `part2`, `part3`, `full_test`, không cần `referenceText`) gọi thêm LLM qua OpenRouter để chấm Fluency and Coherence, Lexical Resource, Grammatical Range and Accuracy từ transcript và `speech_hints` (tốc độ nói, chỗ ngừng, từ đệm).
-   - Band tổng (làm tròn .0/.5) và CEFR ước lượng do code tính.
-3. Kết quả lưu ở `pronunciation_attempts.rubric` (JSON), kèm JSON gốc của Azure ở `azure_result` để chấm lại khi đổi ngưỡng. `rubric_score` là band tổng 0–9 (migration `000003`).
+Each `POST /api/pronunciation/attempts`:
 
-Form fields: `audio`, `referenceText`, `taskType` (mặc định `shadowing`), `taskPrompt` (câu hỏi hoặc cue card).
+1. Trims leading and trailing silence, then sends the audio to Azure Pronunciation Assessment (REST, `en-US`, **prosody on**): accuracy, fluency, completeness, per-word and per-phoneme scores.
+2. `SpeakingGrader` (`internal/service/speaking_grader.go`) applies the rubric:
+   - **Pronunciation** is computed in code from the Azure JSON (no LLM). It needs at least 10 words; shorter speech is reported as `insufficient_speech`.
+   - **shadowing** (reading a given sentence; not an IELTS part) scores Pronunciation only. The other 3 criteria are reported as `not_in_task` and the overall band is `provisional`.
+   - **IELTS parts** (`taskType` = `part1`, `part2`, `part3`, `full_test`; no `referenceText`) also call an LLM through OpenRouter to score Fluency and Coherence, Lexical Resource, and Grammatical Range and Accuracy from the transcript and `speech_hints` (speech rate, pauses, fillers).
+   - The overall band (rounded to .0/.5) and an estimated CEFR level are computed in code.
+3. The result is stored in `pronunciation_attempts.rubric` (JSON), with the raw Azure JSON in `azure_result` so attempts can be re-scored when thresholds change. `rubric_score` is the overall band 0–9 (migration `000003`).
 
-Lỗi ở bước rubric (LLM lỗi, thiếu dữ liệu) không làm mất lượt nói: lượt vẫn được lưu, tiêu chí không chấm được nằm trong `not_assessed`.
+Form fields: `audio`, `referenceText`, `taskType` (default `shadowing`), `taskPrompt` (the question or cue card).
 
-Biến môi trường (xem `backend/env.example`): `OPENROUTER_MODEL`, `OPENROUTER_FALLBACK_MODELS`, `ALLOW_PAID_MODELS`, `AZURE_SPEECH_CONCURRENCY`, `GRADER_MODEL`, `PITCH_PYTHON`, `PITCH_SCRIPT`.
+A failure in the rubric step (LLM error, too little data) does not lose the attempt: it is still saved, and the criteria that could not be scored are listed in `not_assessed`.
 
-Chi phí: mặc định app chỉ dùng model `:free` của OpenRouter và không khởi động nếu có model trả phí (trừ khi `ALLOW_PAID_MODELS=true`). Gói free có 50 request/ngày, nên câu shadowing được sinh theo lô 10 câu/1 request (migration `000004`). Azure F0 chỉ cho 1 request cùng lúc, nên các lượt nói xếp hàng. Chi tiết và số đo: `docs/speaking-rubric-plan.md`, mục 3.
+Environment variables (see `backend/env.example`): `OPENROUTER_MODEL`, `OPENROUTER_FALLBACK_MODELS`, `ALLOW_PAID_MODELS`, `AZURE_SPEECH_CONCURRENCY`, `GRADER_MODEL`, `PITCH_PYTHON`, `PITCH_SCRIPT`.
 
-Phân tích cao độ (P-04) **mặc định tắt**: image Docker không có Python, vì `praat-parselmouth` không có bản cài sẵn (wheel) cho Linux ARM64, nên trên Mac Apple Silicon phải biên dịch Praat từ mã nguồn. Muốn bật khi chạy `go run`: tạo venv, `pip install praat-parselmouth numpy`, rồi đặt `PITCH_PYTHON=<venv>/bin/python`. Test thật: `PITCH_PYTHON=<venv>/bin/python go test ./internal/service/ -run Pitch`.
+Cost: by default the app uses only OpenRouter `:free` models and refuses to start if a paid model is configured (unless `ALLOW_PAID_MODELS=true`). The free tier allows 50 requests per day, so shadowing sentences are generated in batches of 10 per request (migration `000004`). Azure F0 allows one request at a time, so attempts wait in line. Details and measurements: `docs/speaking-rubric-plan.md`, section 3.
 
-Test: `cd backend && go test ./...`
+Pitch analysis (P-04) is **off by default**: the Docker image has no Python, because `praat-parselmouth` has no prebuilt wheel for Linux ARM64, so on Apple Silicon Macs Praat would have to be compiled from source. To turn it on with `go run`: create a venv, `pip install praat-parselmouth numpy`, then set `PITCH_PYTHON=<venv>/bin/python`. Real test: `PITCH_PYTHON=<venv>/bin/python go test ./internal/service/ -run Pitch`.
 
-Các phần còn thiếu và thứ tự làm: `docs/speaking-rubric-plan.md`.
+Tests: `cd backend && go test ./...`
 
-## Giai đoạn tiếp theo
-- Giai đoạn 2: Pronunciation scoring (Azure Pronunciation Assessment qua REST, `PronunciationScorer` interface, audio storage S3/Supabase).
-- Giai đoạn 3: Vocabulary gap detection + spaced repetition (SM-2).
-- Giai đoạn 4: Progress tracking dashboard (recharts).
+Missing parts and their order: `docs/speaking-rubric-plan.md`.
+
+## Next phases
+- Phase 2: Pronunciation scoring (Azure Pronunciation Assessment over REST, `PronunciationScorer` interface, audio storage on S3/Supabase).
+- Phase 3: Vocabulary gap detection + spaced repetition (SM-2).
+- Phase 4: Progress tracking dashboard (recharts).

@@ -1,1 +1,1 @@
--- Placeholder for Giai đoạn 4 — progress tracking queries.
+-- Placeholder for Phase 4 — progress tracking queries.

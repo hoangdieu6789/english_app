@@ -15,7 +15,7 @@ import (
 
 const openRouterURL = "https://openrouter.ai/api/v1/chat/completions"
 
-// Free defaults (see docs/speaking-rubric-plan.md, "Chi phí"). Measured on the rubric prompt:
+// Free defaults (see docs/speaking-rubric-plan.md, section 3 "Cost"). Measured on the rubric prompt:
 // nemotron-3.5-super-vl with reasoning off answered in ~13 s with the same bands as with
 // reasoning on (~49 s); gemma-4-31b took ~31 s and is the fallback when the first is busy.
 const (
