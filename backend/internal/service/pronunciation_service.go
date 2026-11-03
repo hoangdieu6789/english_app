@@ -26,9 +26,15 @@ type PronunciationService struct {
 	storage storage.AudioStorage
 	repo    repository.PronunciationRepository
 
+	transcriber Transcriber // nil = Azure recognises free speech by itself
+
 	bgTimeout time.Duration
 	wg        sync.WaitGroup // background LLM steps
 }
+
+// SetTranscriber makes free-speech tasks (IELTS parts) transcribe the audio first and score
+// it with Azure against that transcript. Shadowing keeps its given sentence.
+func (s *PronunciationService) SetTranscriber(t Transcriber) { s.transcriber = t }
 
 func NewPronunciationService(scorer PronunciationScorer, grader *SpeakingGrader, storage storage.AudioStorage, repo repository.PronunciationRepository) *PronunciationService {
 	return &PronunciationService{scorer: scorer, grader: grader, storage: storage, repo: repo, bgTimeout: backgroundGradeTimeout}
@@ -59,7 +65,7 @@ func (s *PronunciationService) SubmitAttempt(ctx context.Context, userID uuid.UU
 	// audio, so word offsets stay consistent.
 	audioWAV = TrimSilenceWAV(audioWAV)
 
-	result, err := s.scorer.Score(ctx, audioWAV, referenceText)
+	result, source, err := s.score(ctx, audioWAV, referenceText)
 	if err != nil {
 		// Keep the recording so a failed attempt can be listened to later; it is not saved
 		// as an attempt.
@@ -92,6 +98,7 @@ func (s *PronunciationService) SubmitAttempt(ctx context.Context, userID uuid.UU
 		PhonemeScores:     result.PhonemeScores,
 		AzureResult:       result.Raw,
 		QuestionSetID:     task.QuestionSetID,
+		TranscriptSource:  &source,
 	}
 	if task.Prompt != "" {
 		attempt.TaskPrompt = &task.Prompt
@@ -126,6 +133,30 @@ func (s *PronunciationService) SubmitAttempt(ctx context.Context, userID uuid.UU
 		s.gradeInBackground(saved.ID, in, st)
 	}
 	return saved, nil
+}
+
+// score runs Azure. Free speech (no referenceText) is transcribed first when a Transcriber is
+// set; if transcription or the scripted Azure call fails, Azure recognises it by itself.
+func (s *PronunciationService) score(ctx context.Context, audioWAV []byte, referenceText string) (*ScoreResult, string, error) {
+	if referenceText == "" && s.transcriber != nil {
+		transcript, err := s.transcriber.Transcribe(ctx, audioWAV)
+		if err == nil {
+			result, err := s.scorer.ScoreTranscribed(ctx, audioWAV, transcript)
+			if err == nil {
+				// Azure's DisplayText follows the reference; keep whisper's punctuation.
+				result.RecognizedText = transcript
+				return result, TranscriptWhisper, nil
+			}
+			if ctx.Err() != nil {
+				return nil, "", err
+			}
+			log.Printf("pronunciation: scoring against the transcript failed, using Azure recognition: %v", err)
+		} else {
+			log.Printf("pronunciation: transcription failed, using Azure recognition: %v", err)
+		}
+	}
+	result, err := s.scorer.Score(ctx, audioWAV, referenceText)
+	return result, TranscriptAzure, err
 }
 
 // gradeInBackground runs the LLM step and stores the final result.

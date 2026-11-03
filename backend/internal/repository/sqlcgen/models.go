@@ -65,6 +65,7 @@ type PronunciationAttempt struct {
 	GraderProvider    pgtype.Text        `json:"grader_provider"`
 	GraderModel       pgtype.Text        `json:"grader_model"`
 	GradingStatus     string             `json:"grading_status"`
+	TranscriptSource  pgtype.Text        `json:"transcript_source"`
 }
 
 type RefreshToken struct {

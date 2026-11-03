@@ -49,6 +49,7 @@ type PronunciationAttempt struct {
 	GraderProvider    *string    // LLM provider that scored FC/LR/GRA (claude, gemini, openrouter); nil = no LLM
 	GraderModel       *string    // model id reported by that provider
 	GradingStatus     string     // pending (LLM step running), done, failed; see migration 000007
+	TranscriptSource  *string    // azure (its own recognition) or whisper; nil for attempts before migration 000009
 	CreatedAt         time.Time
 }
 

@@ -98,6 +98,15 @@ func main() {
 	speakingGrader := service.NewSpeakingGrader(rubricCfg, graderLLM, pitchAnalyzer)
 	pronunciationRepo := repository.NewPronunciationRepository(pool)
 	pronunciationService := service.NewPronunciationService(pronunciationScorer, speakingGrader, audioStorage, pronunciationRepo)
+	switch {
+	case cfg.Transcriber == "whisper" && cfg.LLMBridgeToken != "":
+		pronunciationService.SetTranscriber(service.NewBridgeTranscriber(cfg.LLMBridgeURL, cfg.LLMBridgeToken))
+		log.Printf("transcriber: whisper through the LLM bridge (falls back to Azure recognition)")
+	case cfg.Transcriber == "whisper":
+		log.Printf("transcriber: azure (TRANSCRIBER=whisper needs LLM_BRIDGE_TOKEN, see tools/llm-bridge)")
+	default:
+		log.Printf("transcriber: azure")
+	}
 	// IELTS question sets: seed bank on start, new sets written by the free LLM when a
 	// learner is close to the end of the bank.
 	questionSetRepo := repository.NewQuestionSetRepository(pool)

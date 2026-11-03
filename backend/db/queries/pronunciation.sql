@@ -4,9 +4,9 @@ INSERT INTO pronunciation_attempts (
   overall_score, fluency_score, word_scores, phoneme_scores,
   task_type, completeness_score, prosody_score, pron_score,
   azure_result, rubric, rubric_score, cefr_level, rubric_version,
-  question_set_id, task_prompt, grader_provider, grader_model, grading_status
+  question_set_id, task_prompt, grader_provider, grader_model, grading_status, transcript_source
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
 RETURNING *;
 
 -- name: GetPronunciationAttempt :one

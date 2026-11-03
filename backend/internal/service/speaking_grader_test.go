@@ -208,6 +208,10 @@ func (f fakeScorer) Score(context.Context, []byte, string) (*ScoreResult, error)
 	}, nil
 }
 
+func (f fakeScorer) ScoreTranscribed(ctx context.Context, wav []byte, transcript string) (*ScoreResult, error) {
+	return f.Score(ctx, wav, transcript)
+}
+
 type fakeStorage struct{}
 
 func (fakeStorage) Save(context.Context, []byte) (string, error) { return "/uploads/x.wav", nil }

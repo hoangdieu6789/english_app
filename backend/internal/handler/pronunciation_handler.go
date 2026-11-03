@@ -143,6 +143,7 @@ func attemptJSON(attempt *domain.PronunciationAttempt) map[string]any {
 		"rubric":            rubricResult,
 		"grader":            grader,
 		"gradingStatus":     attempt.GradingStatus,
+		"transcriptSource":  attempt.TranscriptSource,
 		"createdAt":         attempt.CreatedAt,
 	}
 }

@@ -18,10 +18,10 @@ INSERT INTO pronunciation_attempts (
   overall_score, fluency_score, word_scores, phoneme_scores,
   task_type, completeness_score, prosody_score, pron_score,
   azure_result, rubric, rubric_score, cefr_level, rubric_version,
-  question_set_id, task_prompt, grader_provider, grader_model, grading_status
+  question_set_id, task_prompt, grader_provider, grader_model, grading_status, transcript_source
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
-RETURNING id, user_id, audio_url, reference_text, recognized_text, overall_score, fluency_score, word_scores, phoneme_scores, created_at, task_type, completeness_score, prosody_score, pron_score, azure_result, rubric, rubric_score, cefr_level, rubric_version, question_set_id, task_prompt, grader_provider, grader_model, grading_status
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
+RETURNING id, user_id, audio_url, reference_text, recognized_text, overall_score, fluency_score, word_scores, phoneme_scores, created_at, task_type, completeness_score, prosody_score, pron_score, azure_result, rubric, rubric_score, cefr_level, rubric_version, question_set_id, task_prompt, grader_provider, grader_model, grading_status, transcript_source
 `
 
 type CreatePronunciationAttemptParams struct {
@@ -47,6 +47,7 @@ type CreatePronunciationAttemptParams struct {
 	GraderProvider    pgtype.Text   `json:"grader_provider"`
 	GraderModel       pgtype.Text   `json:"grader_model"`
 	GradingStatus     string        `json:"grading_status"`
+	TranscriptSource  pgtype.Text   `json:"transcript_source"`
 }
 
 func (q *Queries) CreatePronunciationAttempt(ctx context.Context, arg CreatePronunciationAttemptParams) (PronunciationAttempt, error) {
@@ -73,6 +74,7 @@ func (q *Queries) CreatePronunciationAttempt(ctx context.Context, arg CreatePron
 		arg.GraderProvider,
 		arg.GraderModel,
 		arg.GradingStatus,
+		arg.TranscriptSource,
 	)
 	var i PronunciationAttempt
 	err := row.Scan(
@@ -100,12 +102,13 @@ func (q *Queries) CreatePronunciationAttempt(ctx context.Context, arg CreatePron
 		&i.GraderProvider,
 		&i.GraderModel,
 		&i.GradingStatus,
+		&i.TranscriptSource,
 	)
 	return i, err
 }
 
 const getPronunciationAttempt = `-- name: GetPronunciationAttempt :one
-SELECT id, user_id, audio_url, reference_text, recognized_text, overall_score, fluency_score, word_scores, phoneme_scores, created_at, task_type, completeness_score, prosody_score, pron_score, azure_result, rubric, rubric_score, cefr_level, rubric_version, question_set_id, task_prompt, grader_provider, grader_model, grading_status FROM pronunciation_attempts WHERE id = $1 AND user_id = $2
+SELECT id, user_id, audio_url, reference_text, recognized_text, overall_score, fluency_score, word_scores, phoneme_scores, created_at, task_type, completeness_score, prosody_score, pron_score, azure_result, rubric, rubric_score, cefr_level, rubric_version, question_set_id, task_prompt, grader_provider, grader_model, grading_status, transcript_source FROM pronunciation_attempts WHERE id = $1 AND user_id = $2
 `
 
 type GetPronunciationAttemptParams struct {
@@ -141,12 +144,13 @@ func (q *Queries) GetPronunciationAttempt(ctx context.Context, arg GetPronunciat
 		&i.GraderProvider,
 		&i.GraderModel,
 		&i.GradingStatus,
+		&i.TranscriptSource,
 	)
 	return i, err
 }
 
 const listPendingGrading = `-- name: ListPendingGrading :many
-SELECT id, user_id, audio_url, reference_text, recognized_text, overall_score, fluency_score, word_scores, phoneme_scores, created_at, task_type, completeness_score, prosody_score, pron_score, azure_result, rubric, rubric_score, cefr_level, rubric_version, question_set_id, task_prompt, grader_provider, grader_model, grading_status FROM pronunciation_attempts
+SELECT id, user_id, audio_url, reference_text, recognized_text, overall_score, fluency_score, word_scores, phoneme_scores, created_at, task_type, completeness_score, prosody_score, pron_score, azure_result, rubric, rubric_score, cefr_level, rubric_version, question_set_id, task_prompt, grader_provider, grader_model, grading_status, transcript_source FROM pronunciation_attempts
 WHERE grading_status = 'pending'
 ORDER BY created_at
 LIMIT $1
@@ -187,6 +191,7 @@ func (q *Queries) ListPendingGrading(ctx context.Context, limit int32) ([]Pronun
 			&i.GraderProvider,
 			&i.GraderModel,
 			&i.GradingStatus,
+			&i.TranscriptSource,
 		); err != nil {
 			return nil, err
 		}

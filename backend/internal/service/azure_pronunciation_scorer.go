@@ -95,12 +95,24 @@ type azurePhoneme struct {
 }
 
 func (s *AzurePronunciationScorer) Score(ctx context.Context, audioWAV []byte, referenceText string) (*ScoreResult, error) {
+	// Miscue (omitted / inserted words) needs a reference text.
+	return s.score(ctx, audioWAV, referenceText, referenceText != "")
+}
+
+// ScoreTranscribed scores free speech against a transcript of the same audio (from the
+// Transcriber). Miscue is off: the transcript is what was said, so Azure only has to align
+// it and score each word; with miscue on it reported false insertions.
+func (s *AzurePronunciationScorer) ScoreTranscribed(ctx context.Context, audioWAV []byte, transcript string) (*ScoreResult, error) {
+	return s.score(ctx, audioWAV, transcript, false)
+}
+
+func (s *AzurePronunciationScorer) score(ctx context.Context, audioWAV []byte, referenceText string, miscue bool) (*ScoreResult, error) {
 	cfg := azurePronAssessmentConfig{
 		ReferenceText:           referenceText,
 		GradingSystem:           "HundredMark",
 		Granularity:             "Phoneme",
 		Dimension:               "Comprehensive",
-		EnableMiscue:            referenceText != "", // miscue needs a reference text
+		EnableMiscue:            miscue,
 		EnableProsodyAssessment: "True",
 	}
 	cfgJSON, err := json.Marshal(cfg)

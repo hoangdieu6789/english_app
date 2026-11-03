@@ -75,6 +75,7 @@ func (r *pronunciationRepository) Create(ctx context.Context, attempt *domain.Pr
 		GraderProvider:    toText(attempt.GraderProvider),
 		GraderModel:       toText(attempt.GraderModel),
 		GradingStatus:     gradingStatus(attempt.GradingStatus),
+		TranscriptSource:  toText(attempt.TranscriptSource),
 	})
 	if err != nil {
 		return nil, err
@@ -116,6 +117,7 @@ func toDomainPronunciationAttempt(row sqlcgen.PronunciationAttempt) (*domain.Pro
 		GraderProvider:    fromText(row.GraderProvider),
 		GraderModel:       fromText(row.GraderModel),
 		GradingStatus:     row.GradingStatus,
+		TranscriptSource:  fromText(row.TranscriptSource),
 		CreatedAt:         row.CreatedAt.Time,
 	}
 	if row.RecognizedText.Valid {
