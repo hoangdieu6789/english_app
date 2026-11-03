@@ -12,7 +12,12 @@ import {
   type IeltsPart,
   type QuestionSet,
 } from "@/lib/ielts-api";
-import { submitPronunciationAttempt, resolveAudioUrl, type PronunciationAttempt } from "@/lib/pronunciation-api";
+import {
+  fetchPronunciationAttempt,
+  submitPronunciationAttempt,
+  resolveAudioUrl,
+  type PronunciationAttempt,
+} from "@/lib/pronunciation-api";
 import { scoreColor } from "@/lib/score-color";
 import { speakEnglish } from "@/lib/text-to-speech";
 import { MAX_ANSWER_SECONDS, formatSecs, useRecorder } from "@/lib/use-recorder";
@@ -117,13 +122,38 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
       setPhase("result");
       queryClient.invalidateQueries({ queryKey: ["ielts-sets", part] });
       queryClient.invalidateQueries({ queryKey: ["progress-summary"] });
+      // The AI grades FC/LR/GRA in the background: keep the timer running until it is done.
+      if (attempt.gradingStatus !== "pending") stopWaitTimer();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Chấm điểm thất bại. Thử lại.");
       setPhase("error");
-    } finally {
-      if (waitRef.current) clearInterval(waitRef.current);
+      stopWaitTimer();
     }
   }
+
+  function stopWaitTimer() {
+    if (waitRef.current) clearInterval(waitRef.current);
+    waitRef.current = null;
+  }
+
+  // Poll the attempt while the AI is still grading; the panel fills in when it is done.
+  const graded = useQuery({
+    queryKey: ["attempt", result?.id],
+    queryFn: async () => {
+      const a = await fetchPronunciationAttempt(result!.id);
+      if (a.gradingStatus !== "pending") {
+        stopWaitTimer();
+        queryClient.invalidateQueries({ queryKey: ["progress-summary"] });
+        queryClient.invalidateQueries({ queryKey: ["ielts-sets", part] });
+      }
+      return a;
+    },
+    enabled: result?.gradingStatus === "pending",
+    refetchInterval: (q) => (q.state.data && q.state.data.gradingStatus !== "pending" ? false : 2000),
+    gcTime: 0,
+  });
+  const shown = result && graded.data?.id === result.id ? graded.data : result;
+  const pendingSecs = shown?.gradingStatus === "pending" ? waitSecs : undefined;
 
   function stopRecording() {
     try {
@@ -402,38 +432,38 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
                 <span>Đang chấm điểm... {waitSecs}s</span>
               </button>
               <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>
-                Azure chấm phát âm, rồi AI chấm trôi chảy, từ vựng, ngữ pháp (thường 10–30 giây)
+                Azure chấm phát âm (thường 3–10 giây); AI chấm trôi chảy, từ vựng, ngữ pháp tiếp ngay sau đó
               </div>
             </>
           )}
         </div>
       </div>
 
-      {phase === "result" && result && (
+      {phase === "result" && shown && (
         <div className="fade" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div className="ds-card" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
               <div style={{ font: "700 16px var(--font-display)" }}>Bạn đã nói</div>
-              <audio controls src={resolveAudioUrl(result.audioUrl)} style={{ height: 32 }} />
+              <audio controls src={resolveAudioUrl(shown.audioUrl)} style={{ height: 32 }} />
             </div>
-            <div style={{ fontSize: 15, lineHeight: 1.7, color: "var(--ds-text)" }}>{result.recognizedText || "(không nhận diện được)"}</div>
+            <div style={{ fontSize: 15, lineHeight: 1.7, color: "var(--ds-text)" }}>{shown.recognizedText || "(không nhận diện được)"}</div>
             <div style={{ display: "flex", gap: 18, fontSize: 13, color: "var(--ds-text-muted)", flexWrap: "wrap" }}>
               <span>
-                Chính xác <b style={{ color: scoreColor(result.overallScore) }}>{Math.round(result.overallScore)}</b>
+                Chính xác <b style={{ color: scoreColor(shown.overallScore) }}>{Math.round(shown.overallScore)}</b>
               </span>
               <span>
-                Trôi chảy <b style={{ color: scoreColor(result.fluencyScore) }}>{Math.round(result.fluencyScore)}</b>
+                Trôi chảy <b style={{ color: scoreColor(shown.fluencyScore) }}>{Math.round(shown.fluencyScore)}</b>
               </span>
-              {result.prosodyScore != null && (
+              {shown.prosodyScore != null && (
                 <span>
-                  Ngữ điệu <b style={{ color: scoreColor(result.prosodyScore) }}>{Math.round(result.prosodyScore)}</b>
+                  Ngữ điệu <b style={{ color: scoreColor(shown.prosodyScore) }}>{Math.round(shown.prosodyScore)}</b>
                 </span>
               )}
               <span>(điểm Azure 0–100)</span>
             </div>
           </div>
 
-          {result.rubric && <RubricPanel rubric={result.rubric} grader={result.grader} />}
+          {shown.rubric && <RubricPanel rubric={shown.rubric} grader={shown.grader} pendingSecs={pendingSecs} />}
 
           <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
             <button onClick={reset} className="ds-btn ds-btn-outline">

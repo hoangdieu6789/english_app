@@ -57,14 +57,28 @@ function Bar({ pct, color }: { pct: number; color: string }) {
   );
 }
 
-export function RubricPanel({ rubric, grader }: { rubric: RubricResult; grader?: PronunciationAttempt["grader"] }) {
+const LLM_CRITERIA = ["fluency_coherence", "lexical_resource", "grammatical_range_accuracy"];
+
+// pendingSecs: set while the AI is still grading FC/LR/GRA in the background (seconds waited).
+export function RubricPanel({
+  rubric,
+  grader,
+  pendingSecs,
+}: {
+  rubric: RubricResult;
+  grader?: PronunciationAttempt["grader"];
+  pendingSecs?: number;
+}) {
+  const pending = pendingSecs != null;
   const pron = rubric.pronunciation;
   const overall = rubric.overall;
   const scored = overall.band > 0;
-  const rows = [
+  const rows: { id: string; band: number | null }[] = [
     ...rubric.criteria.map((c) => ({ id: c.id, band: c.band })),
+    ...(pending ? LLM_CRITERIA.filter((id) => !rubric.criteria.some((c) => c.id === id)).map((id) => ({ id, band: null })) : []),
     ...(pron?.assessed && pron.band ? [{ id: pron.id, band: pron.band }] : []),
   ];
+  const notAssessed = pending ? rubric.not_assessed.filter((n) => !LLM_CRITERIA.includes(n.id)) : rubric.not_assessed;
   const mispronounced = pron?.mispronounced_words ?? [];
 
   return (
@@ -76,14 +90,21 @@ export function RubricPanel({ rubric, grader }: { rubric: RubricResult; grader?:
             IELTS Speaking · {TASK_LABELS[rubric.task_type] ?? rubric.task_type} · v{rubric.version}
           </div>
           <div style={{ fontSize: 12, color: "var(--ds-text-muted)" }} title="Phát âm luôn do code chấm từ dữ liệu Azure">
-            {grader
+            {pending
+              ? `AI đang chấm trôi chảy, từ vựng, ngữ pháp... ${pendingSecs}s`
+              : grader
               ? `Trôi chảy, từ vựng, ngữ pháp chấm bởi ${grader.provider}${grader.model ? ` · ${grader.model}` : ""}`
               : rubric.task_type === "shadowing"
                 ? "Chấm bằng code từ dữ liệu Azure (không dùng AI)"
                 : "AI không chấm được bài này"}
           </div>
         </div>
-        {scored ? (
+        {pending ? (
+          <div style={{ textAlign: "right", fontSize: 13, color: "var(--ds-text-muted)" }}>
+            <i className="pi pi-spinner" style={{ animation: "spin 1s linear infinite", marginRight: 6 }} />
+            Đang chấm band tổng...
+          </div>
+        ) : scored ? (
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ textAlign: "right" }}>
               <div style={{ font: "700 26px var(--font-display)", color: bandColor(overall.band), lineHeight: 1.1 }}>
@@ -118,13 +139,25 @@ export function RubricPanel({ rubric, grader }: { rubric: RubricResult; grader?:
 
       {rows.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-          {rows.map((r) => (
-            <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontSize: 13, width: 160, color: "var(--ds-text-secondary)" }}>{CRITERION_LABELS[r.id] ?? r.id}</span>
-              <Bar pct={(r.band / 9) * 100} color={bandColor(r.band)} />
-              <span style={{ fontSize: 12, fontWeight: 600, width: 30, textAlign: "right", color: bandColor(r.band) }}>{r.band}/9</span>
-            </div>
-          ))}
+          {rows.map((r) =>
+            r.band == null ? (
+              <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 13, width: 160, color: "var(--ds-text-secondary)" }}>{CRITERION_LABELS[r.id] ?? r.id}</span>
+                <div style={{ flex: 1, height: 8, borderRadius: 99, background: "var(--ds-surface-muted)", overflow: "hidden" }}>
+                  <div style={{ width: "35%", height: "100%", background: "var(--ds-border-strong)", animation: "recpulse 1.6s infinite" }} />
+                </div>
+                <span style={{ fontSize: 12, width: 30, textAlign: "right", color: "var(--ds-text-muted)" }}>
+                  <i className="pi pi-spinner" style={{ fontSize: 11, animation: "spin 1s linear infinite" }} />
+                </span>
+              </div>
+            ) : (
+              <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 13, width: 160, color: "var(--ds-text-secondary)" }}>{CRITERION_LABELS[r.id] ?? r.id}</span>
+                <Bar pct={(r.band / 9) * 100} color={bandColor(r.band)} />
+                <span style={{ fontSize: 12, fontWeight: 600, width: 30, textAlign: "right", color: bandColor(r.band) }}>{r.band}/9</span>
+              </div>
+            ),
+          )}
         </div>
       )}
 
@@ -189,10 +222,10 @@ export function RubricPanel({ rubric, grader }: { rubric: RubricResult; grader?:
         </div>
       )}
 
-      {rubric.not_assessed.length > 0 && (
+      {notAssessed.length > 0 && (
         <div style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>
           Chưa chấm:{" "}
-          {rubric.not_assessed
+          {notAssessed
             .map((n) => `${CRITERION_LABELS[n.id] ?? n.id} (${REASON_LABELS[n.reason] ?? n.reason})`)
             .join(", ")}
         </div>

@@ -102,6 +102,8 @@ export type PronunciationAttempt = {
   rubric: RubricResult | null;
   // LLM that scored FC/LR/GRA; null when no LLM was used (shadowing, LLM failure).
   grader: { provider: string; model: string } | null;
+  // pending: the AI is still grading FC/LR/GRA in the background (poll fetchPronunciationAttempt).
+  gradingStatus: "pending" | "done" | "failed";
   createdAt: string;
 };
 
@@ -136,5 +138,14 @@ export async function submitPronunciationAttempt(
     throw new Error(body.message ?? "Failed to submit pronunciation attempt");
   }
 
+  return res.json();
+}
+
+export async function fetchPronunciationAttempt(id: string): Promise<PronunciationAttempt> {
+  const res = await fetch(`${API_BASE_URL}/pronunciation/attempts/${id}`, { credentials: "include" });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ message: res.statusText }));
+    throw new Error(body.message ?? "Failed to load attempt");
+  }
   return res.json();
 }
