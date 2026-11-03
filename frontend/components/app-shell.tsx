@@ -16,7 +16,7 @@ const NAV_ITEMS = [
 
 const TITLES: Record<string, [string, string]> = {
   "/dashboard": ["Trang chủ", "Tổng quan việc học của bạn hôm nay"],
-  "/practice": ["Luyện nói · Practice", "Chấm phát âm theo phương pháp shadowing"],
+  "/practice": ["Luyện nói · Practice", "Shadowing và IELTS Speaking Part 1–3"],
   "/review": ["Ôn từ · Review", "Ôn lại những từ còn yếu bằng spaced repetition"],
   "/progress": ["Tiến độ · Progress", "Theo dõi accuracy, fluency và vốn từ theo thời gian"],
 };

@@ -22,7 +22,7 @@ const PRONUNCIATION_LABELS: Record<string, string> = {
 const REASON_LABELS: Record<string, string> = {
   insufficient_speech: "chưa đủ dữ liệu",
   no_acoustic_data: "không có dữ liệu âm thanh",
-  grader_unavailable: "chưa cấu hình AI chấm",
+  grader_unavailable: "AI chấm đang lỗi hoặc hết lượt miễn phí hôm nay",
   not_returned: "AI chưa chấm được",
   invalid_band: "AI chưa chấm được",
   not_in_task: "bài đọc theo câu mẫu không chấm tiêu chí này",
