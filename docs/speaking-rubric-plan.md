@@ -35,7 +35,7 @@ Order = suggested priority.
 - [x] "Grading… Ns" state (measured: ~15 s for a Part 3 answer through the UI).
 - [x] Recording stops at 55 seconds and is sent automatically (Azure REST 60-second limit). Switching tabs while recording releases the microphone.
 - [ ] Part 2 for the full 1–2 minutes: waits for item 1.
-- [ ] A larger question bank (see "Question bank" below).
+- [x] A larger question bank: 24 Part 1 topics × 4 questions and 20 cue cards × 3 Part 3 questions (156 questions), written in the app's own words around the topic areas that commonly appear in the test — 2026-11-03.
 - [ ] A mock test with all 3 parts in a row (`full_test`).
 
 ### 3. Cost and LLM grading time
@@ -100,4 +100,7 @@ Measured after the changes (2026-11-03):
 
 ### Question bank
 
-- [ ] Grow the question bank. Do not copy questions from IELTS books or "recent exam questions" websites into the repo (copyright, site terms). Use topic lists only as a guide and write the questions in the app's own words, or generate them in batches with a free LLM and review them.
+Policy: do not copy questions from IELTS books or "recent exam questions" websites into the repo (copyright, site terms). Use topic areas only as a guide and write the questions in the app's own words.
+
+- [ ] More cue cards for rarer topic types (advertisements, rules, noise, a waste of time, an invention...).
+- [ ] Optional: generate extra questions in batches with a free LLM, review them, then add them to `frontend/lib/ielts-questions.ts`.
