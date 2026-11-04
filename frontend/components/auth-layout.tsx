@@ -77,9 +77,20 @@ export function AuthLayout({
   );
 }
 
+// Reveal timings (ms). Kept in JS because the per-letter delays depend on the length.
+const STRIKE_MS = 170; // the bolt reaches the button
+const LETTER_MS = 320; // one letter lights up
+const HIDE_LETTER_MS = 200;
+const MAX_FX_LETTERS = 32; // longer values skip the letter effect (the input would scroll)
+
 /**
  * A labelled input row (label above, optional link on the right of the label).
- * Password fields get a show/hide button and a Caps Lock warning.
+ * Password fields get a bolt show/hide button and a Caps Lock warning.
+ *
+ * Reveal: a bolt draws down onto the button, a shock ring and sparks burst from it, then a
+ * current runs left to right and every dot turns into its letter with a gold glow.
+ * Hide: letters fall back into dots right to left. The letters are an overlay that sits exactly
+ * on the input's text; the real input stays underneath (transparent text) for the caret.
  */
 export function AuthField({
   id,
@@ -90,35 +101,45 @@ export function AuthField({
 }: { id: string; label: string; aside?: React.ReactNode } & React.InputHTMLAttributes<HTMLInputElement>) {
   const { t } = useI18n();
   const [shown, setShown] = useState(false);
-  // "strike": a bolt draws itself onto the field and a soft gold light hides the swap to text;
-  // "fade": a veil hides the swap back to dots. Timings match the CSS (pw-*).
   const [fx, setFx] = useState<"" | "strike" | "fade">("");
+  const [step, setStep] = useState(28);
   const timers = useRef<number[]>([]);
   const [caps, setCaps] = useState(false);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
 
+  const value = String(input.value ?? "");
+  const letters = value.length <= MAX_FX_LETTERS ? Array.from(value) : [];
+
   function toggle() {
     timers.current.forEach(clearTimeout);
     timers.current = [];
-    const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (still) {
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
       setFx("");
       setShown((v) => !v);
       return;
     }
     const later = (ms: number, fn: () => void) => timers.current.push(window.setTimeout(fn, ms));
+    const n = Math.max(letters.length, 1);
     if (!shown) {
+      const st = Math.min(32, 420 / n);
+      setStep(st);
       setFx("strike");
-      later(220, () => setShown(true)); // at the peak of the light
-      later(720, () => setFx(""));
+      setShown(true);
+      later(STRIKE_MS + st * n + LETTER_MS + 60, () => setFx(""));
     } else {
+      const st = Math.min(20, 240 / n);
+      setStep(st);
       setFx("fade");
-      later(170, () => setShown(false)); // at the peak of the veil
-      later(420, () => setFx(""));
+      later(st * n + HIDE_LETTER_MS, () => {
+        setShown(false);
+        setFx("");
+      });
     }
   }
+
   const isPassword = type === "password";
   const onKey = (e: React.KeyboardEvent<HTMLInputElement>) => setCaps(e.getModifierState("CapsLock"));
+  const n = letters.length;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
@@ -128,12 +149,7 @@ export function AuthField({
         {aside}
       </div>
       {isPassword ? (
-        <div className="auth-pw" data-fx={fx || undefined}>
-          <svg className="auth-pw-bolt" viewBox="0 0 24 60" aria-hidden focusable="false">
-            <path className="auth-pw-bolt-glow" d="M15 1 7 25h8L9 59" pathLength={1} />
-            <path className="auth-pw-bolt-core" d="M15 1 7 25h8L9 59" pathLength={1} />
-          </svg>
-          <span className="auth-pw-light" aria-hidden />
+        <div className="auth-pw" data-fx={fx || undefined} data-letters={fx && n ? "" : undefined} style={{ "--pw-step": `${step}ms` } as React.CSSProperties}>
           <input
             id={id}
             className="ds-input"
@@ -144,6 +160,28 @@ export function AuthField({
             aria-describedby={caps ? `${id}-caps` : undefined}
             {...input}
           />
+          {fx && n > 0 && (
+            <span className="auth-pw-chars" aria-hidden>
+              {letters.map((c, i) => (
+                <span key={i} className="pw-ch" style={{ "--i": fx === "strike" ? i : n - 1 - i } as React.CSSProperties}>
+                  <span className="pw-glyph">{c === " " ? "\u00a0" : c}</span>
+                  <span className="pw-dot" />
+                </span>
+              ))}
+            </span>
+          )}
+          {fx === "strike" && (
+            <span className="auth-pw-burst" aria-hidden>
+              <svg className="auth-pw-bolt" viewBox="0 0 24 60" focusable="false">
+                <path className="auth-pw-bolt-glow" d="M15 1 7 25h8L9 59" pathLength={1} />
+                <path className="auth-pw-bolt-core" d="M15 1 7 25h8L9 59" pathLength={1} />
+              </svg>
+              <span className="pw-ring" />
+              {[0, 1, 2, 3, 4, 5, 6, 7].map((k) => (
+                <span key={k} className="pw-spark" style={{ "--a": `${k * 45 + 20}deg` } as React.CSSProperties} />
+              ))}
+            </span>
+          )}
           <button
             type="button"
             className="auth-pw-toggle"
