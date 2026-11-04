@@ -90,7 +90,8 @@ export function AuthField({
 }: { id: string; label: string; aside?: React.ReactNode } & React.InputHTMLAttributes<HTMLInputElement>) {
   const { t } = useI18n();
   const [shown, setShown] = useState(false);
-  // "strike": a bolt hits the field and the text appears; "fade": the text fades before the dots return.
+  // "strike": a bolt draws itself onto the field and a soft gold light hides the swap to text;
+  // "fade": a veil hides the swap back to dots. Timings match the CSS (pw-*).
   const [fx, setFx] = useState<"" | "strike" | "fade">("");
   const timers = useRef<number[]>([]);
   const [caps, setCaps] = useState(false);
@@ -108,14 +109,12 @@ export function AuthField({
     const later = (ms: number, fn: () => void) => timers.current.push(window.setTimeout(fn, ms));
     if (!shown) {
       setFx("strike");
-      later(170, () => setShown(true)); // the text appears in the flash
-      later(700, () => setFx(""));
+      later(220, () => setShown(true)); // at the peak of the light
+      later(720, () => setFx(""));
     } else {
       setFx("fade");
-      later(260, () => {
-        setShown(false);
-        setFx("");
-      });
+      later(170, () => setShown(false)); // at the peak of the veil
+      later(420, () => setFx(""));
     }
   }
   const isPassword = type === "password";
@@ -130,9 +129,11 @@ export function AuthField({
       </div>
       {isPassword ? (
         <div className="auth-pw" data-fx={fx || undefined}>
-          <svg className="auth-pw-bolt" viewBox="0 0 24 64" aria-hidden focusable="false">
-            <path d="M15 0 4 30h7L6 64 21 24h-8L18 0z" />
+          <svg className="auth-pw-bolt" viewBox="0 0 24 60" aria-hidden focusable="false">
+            <path className="auth-pw-bolt-glow" d="M15 1 7 25h8L9 59" pathLength={1} />
+            <path className="auth-pw-bolt-core" d="M15 1 7 25h8L9 59" pathLength={1} />
           </svg>
+          <span className="auth-pw-light" aria-hidden />
           <input
             id={id}
             className="ds-input"
@@ -152,7 +153,10 @@ export function AuthField({
             aria-label={shown ? t("auth.field.hidePassword") : t("auth.field.showPassword")}
             title={shown ? t("auth.field.hidePassword") : t("auth.field.showPassword")}
           >
-            <Icon name={shown ? "hide" : "show"} size="md" />
+            <span className="auth-pw-icons" data-shown={shown || undefined}>
+              <Icon name="show" size="md" />
+              <Icon name="hide" size="md" />
+            </span>
           </button>
         </div>
       ) : (

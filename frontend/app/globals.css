@@ -813,54 +813,105 @@ a:hover {
 .auth-pw-toggle[aria-pressed="true"] {
   color: var(--ds-bolt);
 }
+/* The two button icons cross-fade (bolt <-> crossed bolt). */
+.auth-pw-icons {
+  display: grid;
+}
+.auth-pw-icons > * {
+  grid-area: 1 / 1;
+  transition:
+    opacity 0.3s var(--pw-ease),
+    transform 0.3s var(--pw-ease);
+}
+.auth-pw-icons > :last-child,
+.auth-pw-icons[data-shown] > :first-child {
+  opacity: 0;
+  transform: scale(0.6) rotate(-20deg);
+}
+.auth-pw-icons[data-shown] > :last-child {
+  opacity: 1;
+  transform: none;
+}
 
-/* Reveal: a bolt strikes the field from above, the field flashes, the text appears.
-   Hide: the text fades out, then the dots come back. (No effect with reduced motion.) */
+/* Reveal: a thin bolt draws itself down onto the field, a soft gold light swells over the
+   input (the text swaps in under it) and fades. Hide: a veil fades in, the dots swap in under
+   it, the veil fades out. Only opacity, transform and stroke animate; no effect with
+   reduced motion (the component skips it). */
+.auth-pw {
+  --pw-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
 .auth-pw-bolt {
   position: absolute;
   z-index: 3;
-  left: 50%;
-  bottom: 50%;
-  width: 26px;
-  height: 70px;
-  translate: -50% 0;
-  fill: var(--ds-bolt-fill);
-  stroke: var(--ds-logo-edge);
-  stroke-width: 1.2;
-  stroke-linejoin: round;
+  right: 52px;
+  top: 3px;
+  bottom: 3px;
+  width: 14px;
+  height: auto;
+  overflow: visible;
   opacity: 0;
   pointer-events: none;
-  transform-origin: 50% 100%;
+}
+.auth-pw-bolt path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+.auth-pw-bolt-glow {
+  stroke: var(--ds-bolt-glow);
+  stroke-width: 7;
+}
+.auth-pw-bolt-core {
+  stroke: var(--ds-bolt-fill);
+  stroke-width: 2.5;
+}
+.auth-pw-light {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: var(--ds-radius-lg);
+  background: radial-gradient(120% 140% at calc(100% - 22px) 0%, var(--ds-pw-flash) 0%, var(--ds-pw-flash) 45%, transparent 100%);
+  box-shadow: 0 0 0 3px var(--ds-bolt-glow), 0 0 22px var(--ds-bolt-glow);
+  opacity: 0;
+  pointer-events: none;
+}
+.auth-pw-toggle {
+  z-index: 2;
 }
 .auth-pw[data-fx="strike"] .auth-pw-bolt {
-  animation: pw-bolt 0.55s ease-out both;
+  animation: pw-bolt-fade 0.72s ease-out both;
 }
-.auth-pw[data-fx="strike"] .ds-input {
-  animation: pw-flash 0.7s ease-out both;
+.auth-pw[data-fx="strike"] .auth-pw-bolt path {
+  animation: pw-draw 0.24s var(--pw-ease) both;
 }
-.auth-pw[data-fx="strike"] .auth-pw-toggle {
-  animation: bolt-flicker 0.6s ease-out 1;
+.auth-pw[data-fx="strike"] .auth-pw-light {
+  animation: pw-light 0.72s var(--pw-ease) both;
 }
-.auth-pw .ds-input {
-  transition: color 0.25s ease;
+.auth-pw[data-fx="fade"] .auth-pw-light {
+  background: var(--ds-surface);
+  box-shadow: none;
+  animation: pw-veil 0.42s ease-in-out both;
 }
-.auth-pw[data-fx="fade"] .ds-input {
-  color: transparent;
+@keyframes pw-draw {
+  to { stroke-dashoffset: 0; }
 }
-@keyframes pw-bolt {
-  0% { opacity: 0; transform: translateY(-34px) scaleY(0.2); }
-  25% { opacity: 1; transform: translateY(0) scaleY(1); }
-  40% { opacity: 0.4; }
-  55% { opacity: 1; }
-  100% { opacity: 0; transform: translateY(6px) scaleY(0.9); }
+@keyframes pw-bolt-fade {
+  0%, 40% { opacity: 1; }
+  100% { opacity: 0; }
 }
-@keyframes pw-flash {
-  0% { box-shadow: 0 0 0 0 var(--ds-bolt-glow); }
-  20% { background: var(--ds-pw-flash); box-shadow: 0 0 0 6px var(--ds-bolt-glow); }
-  35% { background: var(--ds-surface); }
-  50% { background: var(--ds-pw-flash); }
-  100% { background: var(--ds-surface); box-shadow: 0 0 0 0 transparent; }
+@keyframes pw-light {
+  0% { opacity: 0; }
+  30% { opacity: 0.92; }
+  100% { opacity: 0; }
 }
+@keyframes pw-veil {
+  0% { opacity: 0; }
+  40% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+
 
 /* Storm effects on the brand panel (all stop with prefers-reduced-motion):
    - a slow drifting glow behind the text (the one looping animation on the page),
