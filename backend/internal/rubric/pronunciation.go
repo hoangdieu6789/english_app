@@ -60,6 +60,12 @@ type AzureWord struct {
 	AccuracyScore           float64        `json:"AccuracyScore"` // flat REST fields
 	ErrorType               string         `json:"ErrorType"`
 	Feedback                *AzureFeedback `json:"Feedback"`
+	Phonemes                []AzurePhoneme `json:"Phonemes"`
+}
+
+// AzurePhoneme is one phoneme of a word (en-US phoneme set, e.g. "t", "ih", "ng").
+type AzurePhoneme struct {
+	Phoneme string `json:"Phoneme"`
 }
 
 func (w AzureWord) pa() AzureWordPA {
@@ -112,6 +118,9 @@ type Word struct {
 	UnexpectedBreak bool
 	MissingBreak    bool
 	Monotone        bool
+	// First and last phoneme (Azure en-US set), empty when Azure sent no phonemes.
+	FirstPhone, LastPhone string
+	PunctBefore           bool // the Display text has , ; : . ! ? right before this word
 }
 
 type Segment struct {
@@ -160,6 +169,10 @@ func ParseAzureSegments(raw [][]byte, breakConfidence float64) ([]Segment, error
 				Text:  aw.Word,
 				Start: float64(aw.Offset) / ticksPerSec, End: float64(aw.Offset+aw.Duration) / ticksPerSec,
 				Accuracy: pa.AccuracyScore, ErrorType: pa.ErrorType,
+				PunctBefore: punct[j],
+			}
+			if n := len(aw.Phonemes); n > 0 {
+				w.FirstPhone, w.LastPhone = strings.ToLower(aw.Phonemes[0].Phoneme), strings.ToLower(aw.Phonemes[n-1].Phoneme)
 			}
 			if fb := aw.feedback(); fb != nil {
 				br := fb.Prosody.Break
@@ -411,6 +424,9 @@ type PronunciationConfig struct {
 		ProsodyScore     []float64 `yaml:"prosody_score"`
 		AccuracyScore    []float64 `yaml:"accuracy_score"`
 		IntonationPct    []float64 `yaml:"intonation_pct"`
+		LinkingPct       []float64 `yaml:"linking_pct"`
+		LinkGapSeconds   float64   `yaml:"link_gap_seconds"`
+		MinLinkPairs     int       `yaml:"min_link_pairs"`
 		MinToneSamples   int       `yaml:"min_tone_samples"`
 		MinWords         int       `yaml:"min_words"`
 	} `yaml:"thresholds"`
@@ -428,7 +444,7 @@ func DefaultPronunciationConfig() PronunciationConfig {
 	c.Subcriteria = map[string]SubCriterion{
 		"P-01": {Method: "rule", Weight: 1.5}, "P-02": {Method: "rule", Weight: 1},
 		"P-03": {Method: "rule", Weight: 1}, "P-04": {Method: "rule", Weight: 1},
-		"P-05": {Method: "not_measured"}, "P-06": {Method: "rule", Weight: 1.5},
+		"P-05": {Method: "rule", Weight: 1}, "P-06": {Method: "rule", Weight: 1.5},
 	}
 	t := &c.Thresholds
 	t.BreakConfidence = 0.75
@@ -437,6 +453,9 @@ func DefaultPronunciationConfig() PronunciationConfig {
 	t.ProsodyScore = []float64{95, 90, 82, 74, 65, 55, 45, 35}
 	t.AccuracyScore = []float64{95, 90, 84, 77, 68, 58, 45, 35}
 	t.IntonationPct = []float64{95, 88, 78, 66, 55, 42, 30, 20}
+	t.LinkingPct = []float64{95, 90, 84, 76, 66, 55, 42, 30}
+	t.LinkGapSeconds = 0.03
+	t.MinLinkPairs = 3
 	t.MinToneSamples = 2
 	t.MinWords = 10
 	c.Pitch.Script = "pitch/pitch_direction.py"
@@ -469,6 +488,7 @@ type PronunciationResult struct {
 	Coverage      string       `json:"coverage"`       // e.g. "5/6"
 	Items         []ItemResult `json:"items"`
 	Mispronounced []string     `json:"mispronounced_words,omitempty"`
+	UnlinkedPairs []string     `json:"unlinked_pairs,omitempty"` // P-05: "turn off" said with a pause
 	ToneIssues    []ToneIssue  `json:"tone_issues,omitempty"`
 	Reason        string       `json:"reason,omitempty"` // when not assessed
 }
@@ -618,6 +638,16 @@ func (pc PronunciationConfig) ScorePronunciation(segs []Segment, pitch []PitchRe
 	} else {
 		put("P-04", false, 0, 0, 0, "no segments")
 	}
+	// P-05 connected speech (estimate): consonant-to-vowel linking
+	linked, pairs, unlinked := Linking(segs, th.LinkGapSeconds)
+	res.UnlinkedPairs = unlinked
+	if pairs >= th.MinLinkPairs {
+		v := float64(linked) / float64(pairs) * 100
+		put("P-05", true, bandHigher(v, th.LinkingPct), v, pairs,
+			fmt.Sprintf("estimate from word timing: %d/%d consonant-vowel joins linked", linked, pairs))
+	} else {
+		put("P-05", false, 0, 0, pairs, fmt.Sprintf("fewer than %d consonant-vowel joins", th.MinLinkPairs))
+	}
 	// P-06 intelligibility (proxy)
 	if enough && accDur > 0 {
 		v := acc / accDur
@@ -650,6 +680,48 @@ func (pc PronunciationConfig) ScorePronunciation(segs []Segment, pitch []PitchRe
 	res.Assessed = true
 	res.Band = int(math.Round(sum / wsum))
 	return res
+}
+
+// ---------- Connected speech (P-05, estimate) ----------
+
+// Vowel phonemes of Azure's en-US phoneme set; every other phoneme is a consonant.
+var vowelPhones = wordSet("aa", "ae", "ah", "ao", "aw", "ax", "ay", "eh", "er", "ey", "ih", "iy", "ow", "oy", "uh", "uw")
+
+// Linking counts consonant-to-vowel joins inside a segment ("turn off", "look at"): a word
+// that ends in a consonant sound followed by a word that starts with a vowel sound, with no
+// punctuation between them (a pause is natural there) and no filler on either side. A join
+// counts as linked when the gap between the words is at most maxGap seconds. Azure aligns
+// words to 10 ms frames: joined words are 10–30 ms apart, a real pause is 90 ms or more.
+// unlinked lists up to 10 joins said with a pause, as "word word".
+func Linking(segs []Segment, maxGap float64) (linked, pairs int, unlinked []string) {
+	const eps = 0.001 // timings are whole 10 ms frames
+	for _, s := range segs {
+		for i := 1; i < len(s.Words); i++ {
+			a, b := s.Words[i-1], s.Words[i]
+			if a.LastPhone == "" || b.FirstPhone == "" || b.PunctBefore {
+				continue
+			}
+			if _, f := fillers[strings.ToLower(a.Text)]; f {
+				continue
+			}
+			if _, f := fillers[strings.ToLower(b.Text)]; f {
+				continue
+			}
+			if _, v := vowelPhones[a.LastPhone]; v {
+				continue
+			}
+			if _, v := vowelPhones[b.FirstPhone]; !v {
+				continue
+			}
+			pairs++
+			if b.Start-a.End <= maxGap+eps {
+				linked++
+			} else if len(unlinked) < 10 {
+				unlinked = append(unlinked, a.Text+" "+b.Text)
+			}
+		}
+	}
+	return linked, pairs, unlinked
 }
 
 // ---------- helpers ----------

@@ -38,7 +38,7 @@ The LLM cannot hear the audio, so the application maps the descriptor features t
 | P-02 | Chunking | rule | (`UnexpectedBreak` + `MissingBreak`, confidence ≥ 0.75) per 10 words |
 | P-03 | Rhythm, stress-timing, speech rate | rule (proxy) | `ProsodyScore` (Azure combines stress, intonation, speed, rhythm) |
 | P-04 | Intonation and stress | rule | share of non-monotone segments + % correct final tone (statements fall, yes-no questions rise) from pitch analysis |
-| P-05 | Connected speech (linking, weak forms, elision) | not_measured | no reliable signal yet |
+| P-05 | Connected speech (linking, weak forms, elision) | rule (estimate) | % of consonant-to-vowel joins said without a pause (see below) |
 | P-06 | Overall intelligibility, effect of accent | rule (proxy) | duration-weighted `AccuracyScore` |
 
 Each measured feature gets a band 1–9 from the thresholds in `rubric.yaml → pronunciation.thresholds`. The criterion band is the weighted mean of measured features, rounded to a whole band. The result always reports `coverage` (e.g. `5/6`).
@@ -50,4 +50,5 @@ Each measured feature gets a band 1–9 from the thresholds in `rubric.yaml → 
 
 - Azure scores are **not calibrated to IELTS bands**. The thresholds are a starting point; calibrate them with recordings that have been rated by IELTS-trained teachers.
 - Accent itself is not penalised by IELTS — only its effect on intelligibility. Azure accuracy is measured against a native (en-US) model, so it may be stricter than IELTS for clear but accented speech.
-- Connected speech and "subtle meaning" (bands 8–9) cannot be measured automatically; the rule-based band is therefore capped in practice by the thresholds, and a teacher should confirm bands 8–9.
+- P-05 only estimates **linking** (a final consonant sound joined to a starting vowel sound, e.g. "turn_off", "look_at"), from the first/last phoneme of each word and the gap between words. Azure aligns words to 10 ms frames: joined words are 10–30 ms apart, a pause is 90 ms or more, so a join counts as linked when the gap is ≤ `link_gap_seconds` (0.03). Joins after punctuation and around fillers are skipped; fewer than `min_link_pairs` joins → not measured. Weak forms and elision are not measured. Thresholds were checked on 25 real answers (81% of joins linked); calibrate with teacher ratings.
+- "Subtle meaning" and the rest of connected speech (bands 8–9) cannot be measured automatically; the rule-based band is therefore capped in practice by the thresholds, and a teacher should confirm bands 8–9.
