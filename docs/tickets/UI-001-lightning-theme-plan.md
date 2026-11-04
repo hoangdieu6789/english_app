@@ -1,6 +1,6 @@
 # UI-001: Lightning bolt theme (light / dark / system / by time)
 
-Status: **plan, waiting for approval**. Branch: `feat/ui-lightning-theme`.
+Status: **done** (results: `UI-001-review-checklist.md`). Branch: `feat/ui-lightning-theme`.
 
 Goal: make SpeakUp look like part of David Studio (Dracula / Alucard colors, Hogwarts humor, toy-like 3D)
 with a **lightning bolt** as the app's own motif, and let the learner pick Light, Dark, System, or a
