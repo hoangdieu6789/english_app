@@ -833,22 +833,26 @@ a:hover {
   transform: none;
 }
 
-/* Password reveal (components/auth-layout.tsx AuthField). Only opacity, transform, stroke and
-   text-shadow animate; with reduced motion the component skips all of it. */
+/* Password reveal (components/auth-layout.tsx AuthField). No fake black dots: the real dots
+   cross-fade into gold "seeds", a bolt hits the button, sparks burst, then left to right every
+   seed pops into its letter with a gold glow. Hide runs it backwards.
+   Only opacity, transform, stroke and text-shadow animate; reduced motion skips it all. */
 .auth-pw {
   --pw-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --pw-strike: 170ms;
+  --pw-strike: 260ms;
 }
 .auth-pw-toggle {
   z-index: 4;
 }
-/* While letters animate, the real input text is invisible (the caret stays). */
+.auth-pw .ds-input {
+  transition: color 0.18s ease;
+}
 .auth-pw[data-letters] .ds-input {
   color: transparent;
   caret-color: var(--ds-text);
 }
 .auth-pw[data-fx="strike"] .ds-input {
-  animation: pw-field 0.9s var(--pw-ease) both;
+  animation: pw-field 1.2s var(--pw-ease) both;
 }
 
 /* Letters overlay: same box, padding and font as .ds-input so letters sit on the real text. */
@@ -869,32 +873,39 @@ a:hover {
   position: relative;
   display: inline-block;
 }
-.pw-dot {
+.pw-glyph {
+  display: inline-block;
+}
+/* A seed = a small glowing gold diamond where a letter will be. */
+.pw-seed {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 7px;
-  height: 7px;
-  margin: -3.5px 0 0 -3.5px;
-  border-radius: 50%;
-  background: var(--ds-text);
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  rotate: 45deg;
+  border-radius: 1px;
+  background: var(--ds-bolt-fill);
+  box-shadow: 0 0 6px 1px var(--ds-bolt-glow);
 }
 .auth-pw[data-fx="strike"] .pw-glyph {
-  display: inline-block;
-  animation: pw-letter-in 320ms var(--pw-ease) calc(var(--pw-strike) + var(--i) * var(--pw-step)) both;
+  animation: pw-letter-in 420ms var(--pw-ease) calc(var(--pw-strike) + var(--i) * var(--pw-step)) both;
 }
-.auth-pw[data-fx="strike"] .pw-dot {
-  animation: pw-dot-out 220ms ease-in calc(var(--pw-strike) + var(--i) * var(--pw-step)) both;
+.auth-pw[data-fx="strike"] .pw-seed {
+  animation:
+    pw-seed-in 180ms ease-out both,
+    pw-seed-pop 260ms ease-in calc(var(--pw-strike) + var(--i) * var(--pw-step)) forwards;
 }
 .auth-pw[data-fx="fade"] .pw-glyph {
-  display: inline-block;
-  animation: pw-letter-out 200ms ease-in calc(var(--i) * var(--pw-step)) both;
+  animation: pw-letter-out 260ms ease-in calc(var(--i) * var(--pw-step)) both;
 }
-.auth-pw[data-fx="fade"] .pw-dot {
-  animation: pw-dot-in 200ms var(--pw-ease) calc(var(--i) * var(--pw-step)) both;
+.auth-pw[data-fx="fade"] .pw-seed {
+  opacity: 0;
+  animation: pw-seed-flash 320ms ease-out calc(var(--i) * var(--pw-step)) both;
 }
 
-/* Burst at the button: bolt drawn from the top edge, a shock ring and eight sparks. */
+/* Burst at the button: bolt drawn from above the field, shock ring, ten sparks. */
 .auth-pw-burst {
   position: absolute;
   z-index: 3;
@@ -906,12 +917,12 @@ a:hover {
 }
 .auth-pw-bolt {
   position: absolute;
-  left: -7px;
-  top: 2px;
-  width: 14px;
-  height: calc(50% - 8px);
+  left: -8px;
+  top: 1px;
+  width: 16px;
+  height: calc(50% - 10px);
   overflow: visible;
-  animation: pw-fade-late 0.6s ease-out both;
+  animation: pw-fade-late 0.8s ease-out both;
 }
 .auth-pw-bolt path {
   fill: none;
@@ -919,80 +930,89 @@ a:hover {
   stroke-linejoin: round;
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
-  animation: pw-draw var(--pw-strike) cubic-bezier(0.5, 0, 1, 1) both;
+  animation: pw-draw var(--pw-strike) cubic-bezier(0.55, 0, 1, 0.45) both;
 }
 .auth-pw-bolt-glow {
   stroke: var(--ds-bolt-glow);
-  stroke-width: 7;
+  stroke-width: 9;
 }
 .auth-pw-bolt-core {
   stroke: var(--ds-bolt-fill);
-  stroke-width: 2.5;
+  stroke-width: 3;
 }
 .pw-ring {
   position: absolute;
-  left: -20px;
-  top: calc(50% - 20px);
-  width: 40px;
-  height: 40px;
+  left: -22px;
+  top: calc(50% - 22px);
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  border: 2px solid var(--ds-bolt-fill);
-  box-shadow: 0 0 12px var(--ds-bolt-glow);
+  border: 3px solid var(--ds-bolt-fill);
+  box-shadow: 0 0 16px var(--ds-bolt-glow), inset 0 0 10px var(--ds-bolt-glow);
   opacity: 0;
-  animation: pw-ring 0.6s var(--pw-ease) var(--pw-strike) both;
+  animation: pw-ring 0.75s var(--pw-ease) var(--pw-strike) both;
 }
 .pw-spark {
   position: absolute;
-  left: -1.5px;
-  top: calc(50% - 1.5px);
-  width: 9px;
+  left: 0;
+  top: 50%;
+  width: 14px;
   height: 3px;
+  margin-top: -1.5px;
   border-radius: 2px;
-  background: var(--ds-bolt-fill);
+  background: linear-gradient(90deg, transparent, var(--ds-bolt-fill));
   box-shadow: 0 0 6px var(--ds-bolt-glow);
   opacity: 0;
   transform-origin: 0 50%;
-  animation: pw-spark 0.5s var(--pw-ease) var(--pw-strike) both;
+  animation: pw-spark 0.7s var(--pw-ease) var(--pw-strike) both;
 }
-
 @keyframes pw-draw {
   to { stroke-dashoffset: 0; }
 }
 @keyframes pw-fade-late {
-  0%, 45% { opacity: 1; }
+  0%, 50% { opacity: 1; }
   100% { opacity: 0; }
 }
 @keyframes pw-ring {
-  0% { opacity: 1; transform: scale(0.3); }
-  100% { opacity: 0; transform: scale(2.2); }
+  0% { opacity: 0; transform: scale(0.3); }
+  4% { opacity: 1; transform: scale(0.35); }
+  100% { opacity: 0; transform: scale(2.6); }
 }
 @keyframes pw-spark {
-  0% { opacity: 1; transform: rotate(var(--a)) translateX(6px) scaleX(1.4); }
-  100% { opacity: 0; transform: rotate(var(--a)) translateX(30px) scaleX(0.3); }
+  0% { opacity: 0; transform: rotate(var(--a)) translateX(8px) scaleX(1.6); }
+  4% { opacity: 1; transform: rotate(var(--a)) translateX(9px) scaleX(1.6); }
+  100% { opacity: 0; transform: rotate(var(--a)) translateX(var(--d)) scaleX(0.4); }
 }
 @keyframes pw-field {
-  0% { box-shadow: 0 0 0 0 var(--ds-bolt-glow); border-color: var(--ds-border-strong); }
-  25% { box-shadow: 0 0 0 4px var(--ds-bolt-glow), 0 0 24px var(--ds-bolt-glow); border-color: var(--ds-bolt-fill); }
+  0% { box-shadow: 0 0 0 0 transparent; }
+  22% { box-shadow: 0 0 0 4px var(--ds-bolt-glow), 0 0 28px var(--ds-bolt-glow); border-color: var(--ds-bolt-fill); }
   100% { box-shadow: 0 0 0 0 transparent; }
 }
-@keyframes pw-letter-in {
-  0% { opacity: 0; transform: translateY(6px) scale(0.6); color: var(--ds-bolt); text-shadow: 0 0 0 transparent; }
-  45% { opacity: 1; transform: translateY(-2px) scale(1.18); color: var(--ds-bolt); text-shadow: 0 0 10px var(--ds-bolt-glow), 0 0 2px var(--ds-bolt-fill); }
-  100% { opacity: 1; transform: none; color: var(--ds-text); text-shadow: 0 0 0 transparent; }
+@keyframes pw-seed-in {
+  from { opacity: 0; transform: scale(0.2); }
+  to { opacity: 1; transform: none; }
 }
-@keyframes pw-dot-out {
-  0% { opacity: 1; transform: scale(1); background: var(--ds-text); }
-  40% { background: var(--ds-bolt-fill); transform: scale(1.6); }
+@keyframes pw-seed-pop {
+  0% { opacity: 1; transform: scale(1); }
+  35% { opacity: 1; transform: scale(2.2); }
   100% { opacity: 0; transform: scale(0); }
 }
+@keyframes pw-seed-flash {
+  0% { opacity: 0; transform: scale(0.4); }
+  40% { opacity: 1; transform: scale(1.8); }
+  100% { opacity: 0; transform: scale(0); }
+}
+@keyframes pw-letter-in {
+  0% { opacity: 0; transform: translateY(8px) scale(0.4); color: var(--ds-bolt); text-shadow: none; }
+  45% { opacity: 1; transform: translateY(-3px) scale(1.25); color: var(--ds-bolt); text-shadow: 0 0 12px var(--ds-bolt-glow), 0 0 3px var(--ds-bolt-fill); }
+  100% { opacity: 1; transform: none; color: var(--ds-text); text-shadow: none; }
+}
 @keyframes pw-letter-out {
-  0% { opacity: 1; transform: none; }
-  100% { opacity: 0; transform: translateY(4px) scale(0.4); }
+  0% { opacity: 1; transform: none; color: var(--ds-text); }
+  50% { color: var(--ds-bolt); text-shadow: 0 0 10px var(--ds-bolt-glow); }
+  100% { opacity: 0; transform: translateY(-6px) scale(0.3); }
 }
-@keyframes pw-dot-in {
-  0% { opacity: 0; transform: scale(0); }
-  100% { opacity: 1; transform: scale(1); }
-}
+
 
 
 

@@ -78,9 +78,9 @@ export function AuthLayout({
 }
 
 // Reveal timings (ms). Kept in JS because the per-letter delays depend on the length.
-const STRIKE_MS = 170; // the bolt reaches the button
-const LETTER_MS = 320; // one letter lights up
-const HIDE_LETTER_MS = 200;
+const STRIKE_MS = 260; // the bolt reaches the button
+const LETTER_MS = 420; // one letter lights up
+const HIDE_LETTER_MS = 320;
 const MAX_FX_LETTERS = 32; // longer values skip the letter effect (the input would scroll)
 
 /**
@@ -121,13 +121,13 @@ export function AuthField({
     const later = (ms: number, fn: () => void) => timers.current.push(window.setTimeout(fn, ms));
     const n = Math.max(letters.length, 1);
     if (!shown) {
-      const st = Math.min(32, 420 / n);
+      const st = Math.min(55, 650 / n);
       setStep(st);
       setFx("strike");
       setShown(true);
       later(STRIKE_MS + st * n + LETTER_MS + 60, () => setFx(""));
     } else {
-      const st = Math.min(20, 240 / n);
+      const st = Math.min(35, 380 / n);
       setStep(st);
       setFx("fade");
       later(st * n + HIDE_LETTER_MS, () => {
@@ -165,7 +165,7 @@ export function AuthField({
               {letters.map((c, i) => (
                 <span key={i} className="pw-ch" style={{ "--i": fx === "strike" ? i : n - 1 - i } as React.CSSProperties}>
                   <span className="pw-glyph">{c === " " ? "\u00a0" : c}</span>
-                  <span className="pw-dot" />
+                  <span className="pw-seed" />
                 </span>
               ))}
             </span>
@@ -177,8 +177,8 @@ export function AuthField({
                 <path className="auth-pw-bolt-core" d="M15 1 7 25h8L9 59" pathLength={1} />
               </svg>
               <span className="pw-ring" />
-              {[0, 1, 2, 3, 4, 5, 6, 7].map((k) => (
-                <span key={k} className="pw-spark" style={{ "--a": `${k * 45 + 20}deg` } as React.CSSProperties} />
+              {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((k) => (
+                <span key={k} className="pw-spark" style={{ "--a": `${k * 36 + 10}deg`, "--d": `${38 + (k % 3) * 12}px` } as React.CSSProperties} />
               ))}
             </span>
           )}
