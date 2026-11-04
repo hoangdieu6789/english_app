@@ -22,6 +22,29 @@ function formatBand(band: number) {
   return Number.isInteger(band) ? `${band}.0` : band.toFixed(1);
 }
 
+// IELTS criteria as Hogwarts houses: a colored bar and a small house label; the criterion
+// name stays the main label (docs/tickets/UI-001).
+const HOUSES: Record<string, { house: string; color: string }> = {
+  fluency_coherence: { house: "Gryffindor", color: "var(--ds-house-fc)" },
+  lexical_resource: { house: "Ravenclaw", color: "var(--ds-house-lr)" },
+  grammatical_range_accuracy: { house: "Slytherin", color: "var(--ds-house-gra)" },
+  pronunciation: { house: "Hufflepuff", color: "var(--ds-house-pron)" },
+};
+
+function CriterionLabel({ id, name }: { id: string; name: string }) {
+  const h = HOUSES[id];
+  return (
+    <span style={{ width: 190, flex: "none", display: "flex", flexDirection: "column", lineHeight: 1.25 }}>
+      {h && (
+        <span className="ds-eyebrow" style={{ color: h.color }}>
+          {h.house}
+        </span>
+      )}
+      <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ds-text)" }}>{name}</span>
+    </span>
+  );
+}
+
 function Bar({ pct, color }: { pct: number; color: string }) {
   return (
     <div style={{ flex: 1, height: 8, background: "var(--ds-surface-muted)", borderRadius: 99, overflow: "hidden" }}>
@@ -71,11 +94,11 @@ export function RubricPanel({
     <div className="ds-card" style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
         <div>
-          <div style={{ font: "700 16px var(--font-display)" }}>{t("rubric.title")}</div>
-          <div style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>
+          <div style={{ font: "700 var(--text-base)/1.3 var(--font-display)" }}>{t("rubric.title")}</div>
+          <div style={{ fontSize: "var(--text-xs)", color: "var(--ds-text-muted)" }}>
             IELTS Speaking · {label(t, "rubric.task", rubric.task_type)} · v{rubric.version}
           </div>
-          <div style={{ fontSize: 12, color: "var(--ds-text-muted)" }} title={t("rubric.graderNote")}>
+          <div style={{ fontSize: "var(--text-xs)", color: "var(--ds-text-muted)" }} title={t("rubric.graderNote")}>
             {pending
               ? t("rubric.graderPending", { secs: pendingSecs })
               : grader
@@ -86,17 +109,17 @@ export function RubricPanel({
           </div>
         </div>
         {pending ? (
-          <div style={{ textAlign: "right", fontSize: 13, color: "var(--ds-text-muted)" }}>
+          <div style={{ textAlign: "right", fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>
             <i className="pi pi-spinner" style={{ animation: "spin 1s linear infinite", marginRight: 6 }} />
             {t("rubric.pendingOverall")}
           </div>
         ) : scored ? (
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ textAlign: "right" }}>
-              <div style={{ font: "700 26px var(--font-display)", color: bandColor(overall.band), lineHeight: 1.1 }}>
+              <div style={{ font: "700 var(--text-2xl)/1.3 var(--font-display)", color: bandColor(overall.band), lineHeight: 1.1 }}>
                 {formatBand(overall.band)}
               </div>
-              <div style={{ fontSize: 11, color: "var(--ds-text-muted)" }}>
+              <div style={{ fontSize: "var(--text-xs)", color: "var(--ds-text-muted)" }}>
                 {bandLabel}
               </div>
             </div>
@@ -104,7 +127,7 @@ export function RubricPanel({
               <span
                 title={t("rubric.cefrTitle")}
                 style={{
-                  fontSize: 12,
+                  fontSize: "var(--text-xs)",
                   fontWeight: 700,
                   padding: "3px 10px",
                   borderRadius: 99,
@@ -117,32 +140,32 @@ export function RubricPanel({
             )}
           </div>
         ) : (
-          <span style={{ fontSize: 13, color: "var(--ds-text-muted)", textAlign: "right", maxWidth: 220 }}>
+          <span style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)", textAlign: "right", maxWidth: 220 }}>
             {ielts && overall.band > 0 ? t("rubric.noOverall") : t("rubric.noData")}
           </span>
         )}
       </div>
 
-      {rubric.summary && <div style={{ fontSize: 14, color: "var(--ds-text)", lineHeight: 1.6 }}>{rubric.summary}</div>}
+      {rubric.summary && <div style={{ fontSize: "var(--text-base)", color: "var(--ds-text)", lineHeight: 1.7 }}>{rubric.summary}</div>}
 
       {rows.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {rows.map((r) =>
             r.band == null ? (
               <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 13, width: 160, color: "var(--ds-text-secondary)" }}>{criterion(r.id)}</span>
+                <CriterionLabel id={r.id} name={criterion(r.id)} />
                 <div style={{ flex: 1, height: 8, borderRadius: 99, background: "var(--ds-surface-muted)", overflow: "hidden" }}>
                   <div style={{ width: "35%", height: "100%", background: "var(--ds-border-strong)", animation: "recpulse 1.6s infinite" }} />
                 </div>
-                <span style={{ fontSize: 12, width: 30, textAlign: "right", color: "var(--ds-text-muted)" }}>
-                  <i className="pi pi-spinner" style={{ fontSize: 11, animation: "spin 1s linear infinite" }} />
+                <span style={{ fontSize: "var(--text-xs)", width: 30, textAlign: "right", color: "var(--ds-text-muted)" }}>
+                  <i className="pi pi-spinner" style={{ fontSize: "var(--text-xs)", animation: "spin 1s linear infinite" }} />
                 </span>
               </div>
             ) : (
               <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 13, width: 160, color: "var(--ds-text-secondary)" }}>{criterion(r.id)}</span>
-                <Bar pct={(r.band / 9) * 100} color={bandColor(r.band)} />
-                <span style={{ fontSize: 12, fontWeight: 600, width: 30, textAlign: "right", color: bandColor(r.band) }}>{r.band}/9</span>
+                <CriterionLabel id={r.id} name={criterion(r.id)} />
+                <Bar pct={(r.band / 9) * 100} color={HOUSES[r.id]?.color ?? bandColor(r.band)} />
+                <span style={{ fontSize: "var(--text-sm)", fontWeight: 800, width: 44, textAlign: "right", color: "var(--ds-text)" }}>{r.band}/9</span>
               </div>
             ),
           )}
@@ -151,7 +174,7 @@ export function RubricPanel({
 
       {pron && (
         <div style={{ borderTop: "1px solid var(--ds-border-subtle)", paddingTop: 14 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ds-text-secondary)", marginBottom: 10 }}>
+          <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ds-text-secondary)", marginBottom: 10 }}>
             {t("rubric.pronunciationCoverage", { coverage: pron.coverage })}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 8 }}>
@@ -162,7 +185,7 @@ export function RubricPanel({
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
-                  fontSize: 12.5,
+                  fontSize: "var(--text-xs)",
                   padding: "6px 10px",
                   borderRadius: "var(--ds-radius-md)",
                   background: "var(--ds-surface-subtle)",
@@ -177,12 +200,12 @@ export function RubricPanel({
             ))}
           </div>
           {mispronounced.length > 0 && (
-            <div style={{ marginTop: 10, fontSize: 13, color: "var(--ds-text-secondary)" }}>
+            <div style={{ marginTop: 10, fontSize: "var(--text-sm)", color: "var(--ds-text-secondary)" }}>
               {t("rubric.mispronounced")} <span style={{ fontWeight: 600, color: "var(--ds-danger)" }}>{mispronounced.join(", ")}</span>
             </div>
           )}
           {pron.tone_issues && pron.tone_issues.length > 0 && (
-            <ul style={{ margin: "10px 0 0", paddingLeft: 18, fontSize: 13, color: "var(--ds-text-secondary)" }}>
+            <ul style={{ margin: "10px 0 0", paddingLeft: 18, fontSize: "var(--text-sm)", color: "var(--ds-text-secondary)" }}>
               {pron.tone_issues.map((ti) => (
                 <li key={ti.segment_id}>{t(ti.expected === "rise" ? "rubric.toneRise" : "rubric.toneFall", { quote: ti.quote })}</li>
               ))}
@@ -193,10 +216,10 @@ export function RubricPanel({
 
       {rubric.criteria.some((c) => (c.issues ?? []).length > 0) && (
         <div style={{ borderTop: "1px solid var(--ds-border-subtle)", paddingTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ds-text-secondary)" }}>{t("rubric.issuesTitle")}</div>
+          <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ds-text-secondary)" }}>{t("rubric.issuesTitle")}</div>
           {rubric.criteria.flatMap((c) =>
             (c.issues ?? []).map((is, i) => (
-              <div key={`${c.id}-${i}`} style={{ fontSize: 13, lineHeight: 1.5 }}>
+              <div key={`${c.id}-${i}`} style={{ fontSize: "var(--text-sm)", lineHeight: 1.5 }}>
                 <span style={{ fontWeight: 600, color: "var(--ds-danger)" }}>{is.quote}</span>
                 {" → "}
                 <span style={{ fontWeight: 600, color: "var(--ds-success)" }}>{is.correction}</span>
@@ -209,7 +232,7 @@ export function RubricPanel({
       )}
 
       {notAssessed.length > 0 && (
-        <div style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>
+        <div style={{ fontSize: "var(--text-xs)", color: "var(--ds-text-muted)" }}>
           {t("rubric.notAssessed")}{" "}
           {notAssessed
             .map((n) => `${criterion(n.id)} (${label(t, "rubric.reason", n.reason)})`)

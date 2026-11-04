@@ -1,6 +1,7 @@
-export const SCORE_GREEN = "#16A34A";
-export const SCORE_AMBER = "#EA580C";
-export const SCORE_RED = "#DC2626";
+// Score colors are theme tokens (light / dark), always shown with the number next to them.
+export const SCORE_GREEN = "var(--ds-success)";
+export const SCORE_AMBER = "var(--ds-warning)";
+export const SCORE_RED = "var(--ds-danger)";
 
 export function scoreColor(score: number): string {
   if (score >= 85) return SCORE_GREEN;
@@ -9,7 +10,7 @@ export function scoreColor(score: number): string {
 }
 
 export function scoreColorSoft(score: number): string {
-  if (score >= 85) return "rgba(22,163,74,.14)";
-  if (score >= 70) return "rgba(234,88,12,.14)";
-  return "rgba(220,38,38,.14)";
+  if (score >= 85) return "var(--ds-success-bg)";
+  if (score >= 70) return "var(--ds-warning-bg)";
+  return "var(--ds-danger-bg)";
 }

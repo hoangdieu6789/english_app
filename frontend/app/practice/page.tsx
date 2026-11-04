@@ -149,7 +149,7 @@ export default function PracticePage() {
   const segBtnBase: React.CSSProperties = {
     border: "none",
     cursor: "pointer",
-    fontSize: 12.5,
+    fontSize: "var(--text-xs)",
     fontWeight: 600,
     padding: "6px 14px",
     borderRadius: 99,
@@ -159,8 +159,8 @@ export default function PracticePage() {
   return (
     <AppShell>
       <div className="fade" style={{ maxWidth: 940, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
-        <div style={{ display: "flex", justifyContent: "center" }}>
-          <div role="tablist" style={{ display: "inline-flex", background: "var(--ds-surface-muted)", borderRadius: "var(--ds-radius-full)", padding: 3 }}>
+        <div style={{ display: "flex", justifyContent: "safe center", minWidth: 0 }}>
+          <div role="tablist" className="ds-tabs" style={{ display: "inline-flex", background: "var(--ds-surface-muted)", borderRadius: "var(--ds-radius-full)", padding: 3 }}>
             {MODES.map((m) => (
               <button
                 key={m.id}
@@ -170,9 +170,11 @@ export default function PracticePage() {
                 onClick={() => setMode(m.id)}
                 style={{
                   ...segBtnBase,
-                  fontSize: 13.5,
+                  fontSize: "var(--text-sm)",
                   padding: "8px 18px",
-                  background: mode === m.id ? "#fff" : "transparent",
+                  minHeight: 44,
+                  whiteSpace: "nowrap",
+                  background: mode === m.id ? "var(--ds-surface)" : "transparent",
                   color: mode === m.id ? "var(--ds-primary)" : "var(--ds-text-muted)",
                   boxShadow: mode === m.id ? "var(--ds-shadow-xs)" : "none",
                 }}
@@ -195,7 +197,7 @@ export default function PracticePage() {
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
-                      fontSize: 12,
+                      fontSize: "var(--text-xs)",
                       fontWeight: 600,
                       padding: "3px 10px",
                       borderRadius: 99,
@@ -203,10 +205,10 @@ export default function PracticePage() {
                       color: "var(--ds-info)",
                     }}
                   >
-                    <i className="pi pi-sparkles" style={{ fontSize: 11 }} />
+                    <i className="pi pi-sparkles" style={{ fontSize: "var(--text-xs)" }} />
                     {t("practice.aiSentence")}
                   </span>
-                  <span style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>{t("practice.topicDaily")}</span>
+                  <span style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{t("practice.topicDaily")}</span>
                 </div>
                 <button onClick={nextSentence} disabled={sentenceLoading} className="ds-btn ds-btn-text ds-btn-sm">
                   <span>{t("practice.otherSentence")}</span>
@@ -216,21 +218,21 @@ export default function PracticePage() {
 
               <div style={{ textAlign: "center", padding: "8px 0 4px" }}>
                 {sentenceLoading && (
-                  <div style={{ fontSize: 14, color: "var(--ds-text-muted)", padding: "20px 0" }}>
+                  <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)", padding: "20px 0" }}>
                     <i className="pi pi-spinner" style={{ animation: "spin 1s linear infinite", marginRight: 8 }} />
                     {t("practice.generating")}
                   </div>
                 )}
                 {sentenceError && (
-                  <div style={{ fontSize: 14, color: "var(--ds-danger)", padding: "20px 0" }}>{sentenceError}</div>
+                  <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-danger)", padding: "20px 0" }}>{sentenceError}</div>
                 )}
                 {sentence && !sentenceLoading && !sentenceError && (
                   <>
-                    <div style={{ fontSize: 13, color: "var(--ds-text-muted)", marginBottom: 8 }}>{t("practice.listenThenRead")}</div>
-                    <div style={{ font: "600 30px/1.4 var(--font-display)", color: "var(--ds-text)" }}>{sentence.text}</div>
-                    <div style={{ fontSize: 15, color: "var(--ds-text-muted)", marginTop: 8 }}>{sentence.phonetic}</div>
+                    <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)", marginBottom: 8 }}>{t("practice.listenThenRead")}</div>
+                    <div style={{ font: "600 var(--text-3xl)/1.4 var(--font-display)", color: "var(--ds-text)" }}>{sentence.text}</div>
+                    <div style={{ fontSize: "var(--text-base)", color: "var(--ds-text-muted)", marginTop: 8 }}>{sentence.phonetic}</div>
                     {sentence.gloss && (
-                      <div style={{ fontSize: 14, color: "var(--ds-text-secondary)", marginTop: 6, fontStyle: "italic" }}>
+                      <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-secondary)", marginTop: 6, fontStyle: "italic" }}>
                         {sentence.gloss}
                       </div>
                     )}
@@ -265,13 +267,13 @@ export default function PracticePage() {
                       className="ds-btn ds-btn-lg"
                       style={{ borderRadius: "var(--ds-radius-full)", padding: "0 30px", height: 56 }}
                     >
-                      <i className="pi pi-microphone" style={{ fontSize: 18 }} />
+                      <i className="pi pi-microphone" style={{ fontSize: "var(--text-lg)" }} />
                       <span>{t("practice.tapToSpeak")}</span>
                     </button>
                     {error ? (
-                      <div style={{ fontSize: 13, color: "var(--ds-danger)" }}>{error}</div>
+                      <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-danger)" }}>{error}</div>
                     ) : (
-                      <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>
+                      <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>
                         {t("practice.relax")}
                       </div>
                     )}
@@ -284,10 +286,10 @@ export default function PracticePage() {
                       className="ds-btn ds-btn-lg"
                       style={{ borderRadius: "var(--ds-radius-full)", padding: "0 30px", height: 56, animation: "recpulse 1.6s infinite" }}
                     >
-                      <i className="pi pi-stop-circle" style={{ fontSize: 18 }} />
+                      <i className="pi pi-stop-circle" style={{ fontSize: "var(--text-lg)" }} />
                       <span>{t("practice.recordingStop", { time: `0:${String(recSecs).padStart(2, "0")}` })}</span>
                     </button>
-                    <div style={{ fontSize: 13, color: "var(--ds-primary)", fontWeight: 600 }}>{t("practice.listening")}</div>
+                    <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-primary)", fontWeight: 600 }}>{t("practice.listening")}</div>
                   </>
                 )}
                 {rec === "processing" && (
@@ -297,10 +299,10 @@ export default function PracticePage() {
                       className="ds-btn ds-btn-lg"
                       style={{ borderRadius: "var(--ds-radius-full)", padding: "0 30px", height: 56 }}
                     >
-                      <i className="pi pi-spinner" style={{ fontSize: 18, animation: "spin 1s linear infinite" }} />
+                      <i className="pi pi-spinner" style={{ fontSize: "var(--text-lg)", animation: "spin 1s linear infinite" }} />
                       <span>{t("practice.scoring")}</span>
                     </button>
-                    <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>{t("practice.sendingAzure")}</div>
+                    <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{t("practice.sendingAzure")}</div>
                   </>
                 )}
               </div>
@@ -309,15 +311,15 @@ export default function PracticePage() {
             {rec === "result" && result && (
               <div className="fade" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div style={{ font: "700 18px var(--font-display)" }}>{t("practice.resultTitle")}</div>
+                  <div style={{ font: "700 var(--text-lg)/1.3 var(--font-display)" }}>{t("practice.resultTitle")}</div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>{t("practice.layout")}</span>
+                    <span style={{ fontSize: "var(--text-xs)", color: "var(--ds-text-muted)" }}>{t("practice.layout")}</span>
                     <div style={{ display: "inline-flex", background: "var(--ds-surface-muted)", borderRadius: "var(--ds-radius-full)", padding: 3 }}>
                       <button
                         onClick={() => setLayout("A")}
                         style={{
                           ...segBtnBase,
-                          background: layout === "A" ? "#fff" : "transparent",
+                          background: layout === "A" ? "var(--ds-surface)" : "transparent",
                           color: layout === "A" ? "var(--ds-primary)" : "var(--ds-text-muted)",
                           boxShadow: layout === "A" ? "var(--ds-shadow-xs)" : "none",
                         }}
@@ -328,7 +330,7 @@ export default function PracticePage() {
                         onClick={() => setLayout("B")}
                         style={{
                           ...segBtnBase,
-                          background: layout === "B" ? "#fff" : "transparent",
+                          background: layout === "B" ? "var(--ds-surface)" : "transparent",
                           color: layout === "B" ? "var(--ds-primary)" : "var(--ds-text-muted)",
                           boxShadow: layout === "B" ? "var(--ds-shadow-xs)" : "none",
                         }}
@@ -351,8 +353,8 @@ export default function PracticePage() {
                     color: "var(--ds-success)",
                   }}
                 >
-                  <i className="pi pi-check-circle" style={{ fontSize: 18 }} />
-                  <span style={{ fontSize: 14, color: "var(--ds-text)", flex: 1 }}>
+                  <i className="pi pi-check-circle" style={{ fontSize: "var(--text-lg)" }} />
+                  <span style={{ fontSize: "var(--text-sm)", color: "var(--ds-text)", flex: 1 }}>
                     {t("practice.youSaidLabel")} <b>{result.recognizedText ?? t("common.notRecognized")}</b>
                   </span>
                   <audio controls src={resolveAudioUrl(result.audioUrl)} style={{ height: 32 }} />
@@ -366,8 +368,8 @@ export default function PracticePage() {
                           <ProgressRing pct={result.overallScore} color={scoreColor(result.overallScore)} size={118} strokeWidth={11} />
                           <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", textAlign: "center" }}>
                             <div>
-                              <div style={{ font: "700 26px var(--font-display)" }}>{Math.round(result.overallScore)}</div>
-                              <div style={{ fontSize: 11, color: "var(--ds-text-muted)" }}>{t("common.accuracy")}</div>
+                              <div style={{ font: "700 var(--text-2xl)/1.3 var(--font-display)" }}>{Math.round(result.overallScore)}</div>
+                              <div style={{ fontSize: "var(--text-xs)", color: "var(--ds-text-muted)" }}>{t("common.accuracy")}</div>
                             </div>
                           </div>
                         </div>
@@ -375,33 +377,33 @@ export default function PracticePage() {
                           <ProgressRing pct={result.fluencyScore} color={scoreColor(result.fluencyScore)} size={118} strokeWidth={11} />
                           <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", textAlign: "center" }}>
                             <div>
-                              <div style={{ font: "700 26px var(--font-display)" }}>{Math.round(result.fluencyScore)}</div>
-                              <div style={{ fontSize: 11, color: "var(--ds-text-muted)" }}>{t("common.fluency")}</div>
+                              <div style={{ font: "700 var(--text-2xl)/1.3 var(--font-display)" }}>{Math.round(result.fluencyScore)}</div>
+                              <div style={{ fontSize: "var(--text-xs)", color: "var(--ds-text-muted)" }}>{t("common.fluency")}</div>
                             </div>
                           </div>
                         </div>
                       </div>
                       <div style={{ width: "100%", borderTop: "1px solid var(--ds-border-subtle)", paddingTop: 14 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ds-text-secondary)", marginBottom: 10 }}>
+                        <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ds-text-secondary)", marginBottom: 10 }}>
                           {t("practice.soundsToPractice")}
                         </div>
                         {phonemes.length === 0 && (
-                          <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>{t("practice.noPhonemes")}</div>
+                          <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{t("practice.noPhonemes")}</div>
                         )}
                         {phonemes.map((p, i) => (
                           <div key={`${p.sym}-${i}`} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 9 }}>
-                            <span style={{ font: "700 15px var(--font-display)", width: 34, color: "var(--ds-text)" }}>{p.sym}</span>
+                            <span style={{ font: "700 var(--text-base)/1.3 var(--font-display)", width: 34, color: "var(--ds-text)" }}>{p.sym}</span>
                             <div style={{ flex: 1, height: 8, background: "var(--ds-surface-muted)", borderRadius: 99, overflow: "hidden" }}>
                               <div style={{ height: "100%", borderRadius: 99, background: p.color, width: `${p.score}%` }} />
                             </div>
-                            <span style={{ fontSize: 12, fontWeight: 600, width: 30, textAlign: "right", color: p.color }}>{p.score}</span>
+                            <span style={{ fontSize: "var(--text-xs)", fontWeight: 600, width: 30, textAlign: "right", color: p.color }}>{p.score}</span>
                           </div>
                         ))}
                       </div>
                     </div>
                     <div className="ds-card" style={{ padding: 26 }}>
-                      <div style={{ fontSize: 13, color: "var(--ds-text-muted)", marginBottom: 14 }}>{t("practice.wordByWord")}</div>
-                      <div style={{ font: "600 26px/1.9 var(--font-display)", display: "flex", flexWrap: "wrap", gap: "2px 4px" }}>
+                      <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)", marginBottom: 14 }}>{t("practice.wordByWord")}</div>
+                      <div style={{ font: "600 var(--text-2xl)/1.9 var(--font-display)", display: "flex", flexWrap: "wrap", gap: "2px 4px" }}>
                         {words.map((w, i) => (
                           <span
                             key={i}
@@ -419,20 +421,20 @@ export default function PracticePage() {
                           marginTop: 20,
                           paddingTop: 16,
                           borderTop: "1px solid var(--ds-border-subtle)",
-                          fontSize: 12,
+                          fontSize: "var(--text-xs)",
                           color: "var(--ds-text-muted)",
                         }}
                       >
                         <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <span style={{ width: 10, height: 10, borderRadius: 3, background: "#16A34A" }} />
+                          <span style={{ width: 10, height: 10, borderRadius: 3, background: "var(--ds-success)" }} />
                           {t("practice.good")}
                         </span>
                         <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <span style={{ width: 10, height: 10, borderRadius: 3, background: "#EA580C" }} />
+                          <span style={{ width: 10, height: 10, borderRadius: 3, background: "var(--ds-warning)" }} />
                           {t("practice.fair")}
                         </span>
                         <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <span style={{ width: 10, height: 10, borderRadius: 3, background: "#DC2626" }} />
+                          <span style={{ width: 10, height: 10, borderRadius: 3, background: "var(--ds-danger)" }} />
                           {t("practice.needsWork")}
                         </span>
                       </div>
@@ -441,17 +443,17 @@ export default function PracticePage() {
                 ) : (
                   <div className="fade" style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 16 }}>
                     <div className="ds-card" style={{ padding: 28 }}>
-                      <div style={{ fontSize: 13, color: "var(--ds-text-muted)", marginBottom: 18 }}>
+                      <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)", marginBottom: 18 }}>
                         {t("practice.readEachWord")}
                       </div>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "14px 12px" }}>
                         {words.map((w, i) => (
                           <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-                            <span style={{ font: "600 24px var(--font-display)", color: w.color }}>{w.text}</span>
+                            <span style={{ font: "600 var(--text-xl)/1.3 var(--font-display)", color: w.color }}>{w.text}</span>
                             <div style={{ width: 46, height: 5, borderRadius: 99, background: w.colorSoft }}>
                               <div style={{ height: "100%", borderRadius: 99, background: w.color, width: `${w.score}%` }} />
                             </div>
-                            <span style={{ fontSize: 11, fontWeight: 600, color: w.color }}>{w.score}</span>
+                            <span style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: w.color }}>{w.score}</span>
                           </div>
                         ))}
                       </div>
@@ -459,8 +461,8 @@ export default function PracticePage() {
                     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                       <div className="ds-card" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>{t("practice.accuracyScore")}</span>
-                          <span style={{ font: "700 18px var(--font-display)", color: scoreColor(result.overallScore) }}>
+                          <span style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{t("practice.accuracyScore")}</span>
+                          <span style={{ font: "700 var(--text-lg)/1.3 var(--font-display)", color: scoreColor(result.overallScore) }}>
                             {Math.round(result.overallScore)}
                           </span>
                         </div>
@@ -468,8 +470,8 @@ export default function PracticePage() {
                           <div style={{ height: "100%", background: scoreColor(result.overallScore), width: `${result.overallScore}%` }} />
                         </div>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>{t("practice.fluencyScore")}</span>
-                          <span style={{ font: "700 18px var(--font-display)", color: scoreColor(result.fluencyScore) }}>
+                          <span style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{t("practice.fluencyScore")}</span>
+                          <span style={{ font: "700 var(--text-lg)/1.3 var(--font-display)", color: scoreColor(result.fluencyScore) }}>
                             {Math.round(result.fluencyScore)}
                           </span>
                         </div>
@@ -478,7 +480,7 @@ export default function PracticePage() {
                         </div>
                       </div>
                       <div className="ds-card" style={{ padding: 20 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ds-text-secondary)", marginBottom: 12 }}>{t("practice.soundsShort")}</div>
+                        <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ds-text-secondary)", marginBottom: 12 }}>{t("practice.soundsShort")}</div>
                         {phonemes.map((p, i) => (
                           <div
                             key={`${p.sym}-${i}`}
@@ -490,8 +492,8 @@ export default function PracticePage() {
                               borderBottom: "1px solid var(--ds-border-subtle)",
                             }}
                           >
-                            <span style={{ font: "700 15px var(--font-display)" }}>{p.sym}</span>
-                            <span style={{ fontSize: 13, fontWeight: 600, color: p.color }}>{p.score}</span>
+                            <span style={{ font: "700 var(--text-base)/1.3 var(--font-display)" }}>{p.sym}</span>
+                            <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: p.color }}>{p.score}</span>
                           </div>
                         ))}
                       </div>

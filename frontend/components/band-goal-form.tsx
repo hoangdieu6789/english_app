@@ -49,15 +49,15 @@ export function BandGoalForm({ goals, onSaved, compact }: { goals?: Goals; onSav
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
-        <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--ds-text-secondary)" }}>
+        <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ds-text-secondary)" }}>
           {t("progress.form.current")} {measured > 0 ? t("progress.form.measured") : t("progress.form.estimated")}
           {measured > 0 ? (
-            <span style={{ font: "700 20px var(--font-display)", color: "var(--ds-text)", padding: "6px 0" }}>{measured.toFixed(1)}</span>
+            <span style={{ font: "700 var(--text-lg)/1.3 var(--font-display)", color: "var(--ds-text)", padding: "6px 0" }}>{measured.toFixed(1)}</span>
           ) : (
             select(self, setSelf, t("progress.form.unknown"), t("progress.form.current"))
           )}
         </label>
-        <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--ds-text-secondary)" }}>
+        <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ds-text-secondary)" }}>
           {t("progress.form.target")}
           {select(target, setTarget, "", t("progress.form.target"))}
         </label>
@@ -66,11 +66,11 @@ export function BandGoalForm({ goals, onSaved, compact }: { goals?: Goals; onSav
         </button>
       </div>
       {!compact && (
-        <div style={{ fontSize: 12.5, color: "var(--ds-text-muted)", lineHeight: 1.6 }}>
+        <div style={{ fontSize: "var(--text-xs)", color: "var(--ds-text-muted)", lineHeight: 1.6 }}>
           {t("progress.form.hint")}
         </div>
       )}
-      {error && <div style={{ fontSize: 13, color: "var(--ds-danger)" }}>{error}</div>}
+      {error && <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-danger)" }}>{error}</div>}
     </div>
   );
 }

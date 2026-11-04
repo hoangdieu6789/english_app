@@ -30,22 +30,22 @@ export default function AttemptPage() {
   return (
     <AppShell>
       <div className="fade" style={{ maxWidth: 860, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
-        <Link href="/history" style={{ fontSize: 13, color: "var(--ds-primary)", fontWeight: 600, textDecoration: "none" }}>
-          <i className="pi pi-arrow-left" style={{ fontSize: 11, marginRight: 6 }} />
+        <Link href="/history" style={{ fontSize: "var(--text-sm)", color: "var(--ds-primary)", fontWeight: 600, textDecoration: "none" }}>
+          <i className="pi pi-arrow-left" style={{ fontSize: "var(--text-xs)", marginRight: 6 }} />
           {t("history.back")}
         </Link>
-        {q.isLoading && <div style={{ fontSize: 14, color: "var(--ds-text-muted)" }}>{t("common.loading")}</div>}
-        {q.isError && <div style={{ fontSize: 14, color: "var(--ds-danger)" }}>{t("history.notFound")}</div>}
+        {q.isLoading && <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{t("common.loading")}</div>}
+        {q.isError && <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-danger)" }}>{t("history.notFound")}</div>}
         {a && (
           <>
             <div className="ds-card" style={{ padding: 22, display: "flex", flexDirection: "column", gap: 12 }}>
-              <div style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 12, color: "var(--ds-text-muted)" }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", fontSize: "var(--text-xs)", color: "var(--ds-text-muted)" }}>
                 <span style={{ padding: "1px 8px", borderRadius: 99, background: "var(--ds-primary-50)", color: "var(--ds-primary)", fontWeight: 600 }}>
                   {taskLabel(t, a.taskType)}
                 </span>
                 <span>{formatDateTime(a.createdAt, locale)}</span>
               </div>
-              <div style={{ font: "600 19px/1.45 var(--font-display)", whiteSpace: "pre-line" }}>
+              <div style={{ font: "600 var(--text-lg)/1.45 var(--font-display)", whiteSpace: "pre-line" }}>
                 {a.taskType === "shadowing" ? a.referenceText : a.taskPrompt}
               </div>
               {ielts && a.taskPrompt && (
@@ -57,11 +57,11 @@ export default function AttemptPage() {
 
             <div className="ds-card" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                <div style={{ font: "700 16px var(--font-display)" }}>{t("common.youSaid")}</div>
+                <div style={{ font: "700 var(--text-base)/1.3 var(--font-display)" }}>{t("common.youSaid")}</div>
                 <audio controls src={resolveAudioUrl(a.audioUrl)} style={{ height: 32 }} />
               </div>
-              <div style={{ fontSize: 15, lineHeight: 1.7 }}>{a.recognizedText || t("common.notRecognized")}</div>
-              <div style={{ display: "flex", gap: 18, fontSize: 13, color: "var(--ds-text-muted)", flexWrap: "wrap" }}>
+              <div style={{ fontSize: "var(--text-base)", lineHeight: 1.7 }}>{a.recognizedText || t("common.notRecognized")}</div>
+              <div style={{ display: "flex", gap: 18, fontSize: "var(--text-sm)", color: "var(--ds-text-muted)", flexWrap: "wrap" }}>
                 <span>
                   {t("common.accuracy")} <b style={{ color: scoreColor(a.overallScore) }}>{Math.round(a.overallScore)}</b>
                 </span>

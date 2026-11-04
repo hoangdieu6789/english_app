@@ -20,7 +20,7 @@ export function LanguageSwitcher({ sync = false, showHint = false }: { sync?: bo
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--ds-text-muted)" }}>
+      <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>
         <i className="pi pi-globe" aria-hidden />
         <span>{t("common.language")}</span>
         <select
@@ -28,7 +28,7 @@ export function LanguageSwitcher({ sync = false, showHint = false }: { sync?: bo
           value={lang}
           onChange={(e) => change(e.target.value as Lang)}
           aria-label={t("common.language")}
-          style={{ height: 32, padding: "0 8px", fontSize: 13, width: "auto" }}
+          style={{ height: 32, padding: "0 8px", fontSize: "var(--text-sm)", width: "auto" }}
         >
           {LANGUAGES.map((l) => (
             <option key={l.code} value={l.code}>
@@ -37,7 +37,7 @@ export function LanguageSwitcher({ sync = false, showHint = false }: { sync?: bo
           ))}
         </select>
       </label>
-      {showHint && <div style={{ fontSize: 12.5, color: "var(--ds-text-muted)", lineHeight: 1.5 }}>{t("common.languageHint")}</div>}
+      {showHint && <div style={{ fontSize: "var(--text-xs)", color: "var(--ds-text-muted)", lineHeight: 1.5 }}>{t("common.languageHint")}</div>}
     </div>
   );
 }

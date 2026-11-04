@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "check-ui": "node scripts/check-ui.mjs",
+    "test:theme": "node --experimental-strip-types --no-warnings --test scripts/theme.test.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.2",

@@ -14,16 +14,16 @@ export function AuthCard({ title, subtitle, children }: { title: string; subtitl
         display: "grid",
         placeItems: "center",
         padding: 32,
-        background: "linear-gradient(160deg,#fff7f5 0%,#fdeef0 100%)",
+        background: "var(--ds-auth-bg)",
       }}
     >
       <div className="ds-card fade" style={{ width: "100%", maxWidth: 420, padding: 36, display: "flex", flexDirection: "column", gap: 18 }}>
         <div>
-          <div style={{ font: "700 20px var(--font-display)", color: "var(--ds-text)" }}>{title}</div>
-          <div style={{ fontSize: 13.5, color: "var(--ds-text-muted)", marginTop: 4 }}>{subtitle}</div>
+          <div style={{ font: "700 var(--text-lg)/1.3 var(--font-display)", color: "var(--ds-text)" }}>{title}</div>
+          <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)", marginTop: 4 }}>{subtitle}</div>
         </div>
         {children}
-        <div style={{ textAlign: "center", fontSize: 13, color: "var(--ds-text-muted)" }}>
+        <div style={{ textAlign: "center", fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>
           <Link href="/login">{t("auth.card.backToLogin")}</Link>
         </div>
         <div style={{ display: "flex", justifyContent: "center" }}>

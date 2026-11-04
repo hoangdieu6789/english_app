@@ -14,9 +14,9 @@ export function Sparkline({ data }: { data: number[] }) {
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block" }}>
-      <path d={area} fill="rgba(22,163,74,.10)" />
-      <path d={line} fill="none" stroke="#16A34A" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={x(data.length - 1)} cy={y(last)} r={4.5} fill="#fff" stroke="#16A34A" strokeWidth={2.5} />
+      <path d={area} fill="var(--ds-success-bg)" />
+      <path d={line} fill="none" stroke="var(--ds-success)" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={x(data.length - 1)} cy={y(last)} r={4.5} fill="var(--ds-surface)" stroke="var(--ds-success)" strokeWidth={2.5} />
     </svg>
   );
 }

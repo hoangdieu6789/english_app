@@ -231,7 +231,7 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <span
               style={{
-                fontSize: 12,
+                fontSize: "var(--text-xs)",
                 fontWeight: 600,
                 padding: "3px 10px",
                 borderRadius: 99,
@@ -241,12 +241,12 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
             >
               {t(info.title)}
             </span>
-            <span style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>
+            <span style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>
               {t("ielts.topic", { topic: set.topic })}
               {part !== "part2" && t("ielts.questionOf", { n: qIndex + 1, total: set.questions.length })}
             </span>
             {badge && (
-              <span style={{ fontSize: 12, fontWeight: 600, padding: "2px 8px", borderRadius: 99, background: badge.bg, color: badge.fg }}>
+              <span style={{ fontSize: "var(--text-xs)", fontWeight: 600, padding: "2px 8px", borderRadius: 99, background: badge.bg, color: badge.fg }}>
                 {badge.text}
               </span>
             )}
@@ -264,7 +264,7 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
         </div>
 
         {next.data && !picked && (
-          <div style={{ fontSize: 12, color: "var(--ds-text-muted)", marginTop: -10, marginBottom: 14 }}>
+          <div style={{ fontSize: "var(--text-xs)", color: "var(--ds-text-muted)", marginTop: -10, marginBottom: 14 }}>
             {next.data.seen
               ? t("ielts.findingMore")
               : t("ielts.unseenLeft", { n: next.data.unseenCount, part: t(info.title).split(" · ")[0] })}
@@ -284,9 +284,9 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
             }}
           >
             {doneSets.isLoading ? (
-              <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>{t("common.loading")}</div>
+              <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{t("common.loading")}</div>
             ) : done.length === 0 ? (
-              <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>{t("ielts.noDoneSets")}</div>
+              <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{t("ielts.noDoneSets")}</div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 {done.map((s) => (
@@ -297,7 +297,7 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
                     style={{ justifyContent: "space-between", width: "100%", textAlign: "left" }}
                   >
                     <span>{s.topic}</span>
-                    <span style={{ fontSize: 12, color: "var(--ds-text-muted)", whiteSpace: "nowrap" }}>
+                    <span style={{ fontSize: "var(--text-xs)", color: "var(--ds-text-muted)", whiteSpace: "nowrap" }}>
                       {t("ielts.attempts", { n: s.attemptCount })}
                       {s.bestBand != null && t("ielts.best", { band: s.bestBand })}
                       {s.lastAttemptAt && ` · ${new Date(s.lastAttemptAt).toLocaleDateString(locale)}`}
@@ -310,10 +310,10 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
         )}
 
         <div style={{ textAlign: "center", padding: "4px 0" }}>
-          <div style={{ fontSize: 13, color: "var(--ds-text-muted)", marginBottom: 8 }}>{t(info.hint)}</div>
-          <div style={{ font: "600 26px/1.4 var(--font-display)", color: "var(--ds-text)" }}>{question}</div>
+          <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)", marginBottom: 8 }}>{t(info.hint)}</div>
+          <div style={{ font: "600 var(--text-2xl)/1.4 var(--font-display)", color: "var(--ds-text)" }}>{question}</div>
           {part === "part2" && (
-            <div style={{ display: "inline-block", textAlign: "left", marginTop: 12, fontSize: 15, color: "var(--ds-text-secondary)" }}>
+            <div style={{ display: "inline-block", textAlign: "left", marginTop: 12, fontSize: "var(--text-base)", color: "var(--ds-text-secondary)" }}>
               <div style={{ fontWeight: 600, marginBottom: 4 }}>You should say:</div>
               <ul style={{ margin: 0, paddingLeft: 20, lineHeight: 1.7, listStyle: "disc" }}>
                 {set.points.map((p) => (
@@ -323,7 +323,7 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
             </div>
           )}
           {part === "part3" && (
-            <div style={{ fontSize: 13, color: "var(--ds-text-muted)", marginTop: 8 }}>{t("ielts.relatedPart2", { prompt: set.prompt })}</div>
+            <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)", marginTop: 8 }}>{t("ielts.relatedPart2", { prompt: set.prompt })}</div>
           )}
           <div>
             <button onClick={() => speakEnglish(question)} className="ds-btn ds-btn-outline ds-btn-sm" style={{ marginTop: 14 }}>
@@ -338,7 +338,7 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
 
         {phase === "prep" && (
           <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: 8 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: prepLeft > 0 ? "var(--ds-text-secondary)" : "var(--ds-primary)" }}>
+            <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: prepLeft > 0 ? "var(--ds-text-secondary)" : "var(--ds-primary)" }}>
               {prepLeft > 0 ? t("ielts.prepTime", { time: formatSecs(prepLeft) }) : t("ielts.prepOver")}
             </div>
             <textarea
@@ -349,7 +349,7 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
               style={{
                 width: "100%",
                 padding: 12,
-                fontSize: 14,
+                fontSize: "var(--text-sm)",
                 fontFamily: "inherit",
                 borderRadius: "var(--ds-radius-md)",
                 border: "1px solid var(--ds-border-subtle)",
@@ -385,20 +385,20 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
                   </button>
                 )}
                 <button onClick={startRecording} className="ds-btn ds-btn-lg" style={{ borderRadius: "var(--ds-radius-full)", padding: "0 30px", height: 56 }}>
-                  <i className="pi pi-microphone" style={{ fontSize: 18 }} />
+                  <i className="pi pi-microphone" style={{ fontSize: "var(--text-lg)" }} />
                   <span>{t("ielts.tapToAnswer")}</span>
                 </button>
               </div>
               {error ? (
-                <div style={{ fontSize: 13, color: "var(--ds-danger)" }}>{error}</div>
+                <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-danger)" }}>{error}</div>
               ) : (
-                <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>{t("ielts.maxSeconds", { s: MAX_ANSWER_SECONDS })}</div>
+                <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{t("ielts.maxSeconds", { s: MAX_ANSWER_SECONDS })}</div>
               )}
             </>
           )}
           {phase === "prep" && (
             <button onClick={startRecording} className="ds-btn ds-btn-lg" style={{ borderRadius: "var(--ds-radius-full)", padding: "0 30px", height: 56 }}>
-              <i className="pi pi-microphone" style={{ fontSize: 18 }} />
+              <i className="pi pi-microphone" style={{ fontSize: "var(--text-lg)" }} />
               <span>{prepLeft > 0 ? t("ielts.startNow") : t("ielts.start")}</span>
             </button>
           )}
@@ -409,7 +409,7 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
                 className="ds-btn ds-btn-lg"
                 style={{ borderRadius: "var(--ds-radius-full)", padding: "0 30px", height: 56, animation: "recpulse 1.6s infinite" }}
               >
-                <i className="pi pi-stop-circle" style={{ fontSize: 18 }} />
+                <i className="pi pi-stop-circle" style={{ fontSize: "var(--text-lg)" }} />
                 <span>{t("ielts.recordingStop", { time: formatSecs(recorder.secs), max: formatSecs(MAX_ANSWER_SECONDS) })}</span>
               </button>
               <div style={{ width: 220, height: 6, borderRadius: 99, background: "var(--ds-surface-muted)", overflow: "hidden" }} title={t("ielts.micLevel")}>
@@ -423,11 +423,11 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
                 />
               </div>
               {recorder.quiet ? (
-                <div style={{ fontSize: 13, color: "var(--ds-danger)", fontWeight: 600, textAlign: "center", maxWidth: 460 }}>
+                <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-danger)", fontWeight: 600, textAlign: "center", maxWidth: 460 }}>
                   {t("ielts.quiet")}
                 </div>
               ) : (
-                <div style={{ fontSize: 13, color: "var(--ds-primary)", fontWeight: 600 }}>
+                <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-primary)", fontWeight: 600 }}>
                   {recorder.secs >= MAX_ANSWER_SECONDS - 10 ? t("ielts.almostOver") : t("practice.listening")}
                 </div>
               )}
@@ -436,10 +436,10 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
           {phase === "processing" && (
             <>
               <button disabled className="ds-btn ds-btn-lg" style={{ borderRadius: "var(--ds-radius-full)", padding: "0 30px", height: 56 }}>
-                <i className="pi pi-spinner" style={{ fontSize: 18, animation: "spin 1s linear infinite" }} />
+                <i className="pi pi-spinner" style={{ fontSize: "var(--text-lg)", animation: "spin 1s linear infinite" }} />
                 <span>{t("ielts.scoringSecs", { s: waitSecs })}</span>
               </button>
-              <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>
+              <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>
                 {t("ielts.scoringHint")}
               </div>
             </>
@@ -451,16 +451,16 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
         <div className="fade" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div className="ds-card" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-              <div style={{ font: "700 16px var(--font-display)" }}>{t("common.youSaid")}</div>
+              <div style={{ font: "700 var(--text-base)/1.3 var(--font-display)" }}>{t("common.youSaid")}</div>
               <audio controls src={resolveAudioUrl(shown.audioUrl)} style={{ height: 32 }} />
             </div>
-            <div style={{ fontSize: 15, lineHeight: 1.7, color: "var(--ds-text)" }}>{shown.recognizedText || t("common.notRecognized")}</div>
-            <div style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>
+            <div style={{ fontSize: "var(--text-base)", lineHeight: 1.7, color: "var(--ds-text)" }}>{shown.recognizedText || t("common.notRecognized")}</div>
+            <div style={{ fontSize: "var(--text-xs)", color: "var(--ds-text-muted)" }}>
               {shown.transcriptSource === "whisper"
                 ? t("ielts.byWhisper")
                 : t("ielts.byAzure")}
             </div>
-            <div style={{ display: "flex", gap: 18, fontSize: 13, color: "var(--ds-text-muted)", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 18, fontSize: "var(--text-sm)", color: "var(--ds-text-muted)", flexWrap: "wrap" }}>
               <span>
                 {t("common.accuracy")} <b style={{ color: scoreColor(shown.overallScore) }}>{Math.round(shown.overallScore)}</b>
               </span>

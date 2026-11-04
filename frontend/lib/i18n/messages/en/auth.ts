@@ -1,7 +1,7 @@
 import type { auth as source } from "../vi/auth";
 
 export const auth: Record<keyof typeof source, string> = {
-  "auth.brand.tagline": "Practise English listening & speaking every day",
+  "auth.brand.tagline": "Speak with a spark.",
   "auth.brand.intro": "Speak a lot, mistakes are fine — the app scores your pronunciation, finds your weak words and tracks your progress.",
   "auth.brand.feature1": "Pronunciation scored word by word & syllable by syllable",
   "auth.brand.feature2": "Review the words you mispronounce on a spaced schedule",
@@ -50,9 +50,10 @@ export const auth: Record<keyof typeof source, string> = {
   "auth.error.loginFailed": "Sign-in failed. Try again later.",
   "auth.error.registerFailed": "Sign-up failed. Try again later.",
   "auth.error.resetFailed": "Could not reset the password. Try again later.",
-  "auth.welcome.title": "Welcome to SpeakUp",
+  "auth.welcome.title": "Welcome to Boltspeak",
   "auth.welcome.intro": "Tell us your current IELTS Speaking band (an estimate) and the band you want to reach. The app uses these two numbers to pick new words at your level.",
   "auth.notFound.title": "Page not found",
+  "auth.notFound.joke": "This page probably left from Platform 9¾.",
   "auth.notFound.text": "The link may be wrong, or the page has moved.",
   "auth.notFound.home": "Go to home",
 };

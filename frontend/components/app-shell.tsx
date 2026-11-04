@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { APP_NAME } from "@/lib/brand";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { progressQuery } from "@/lib/progress-api";
@@ -9,12 +10,13 @@ import { reviewQuery } from "@/lib/review-api";
 import { authApi } from "@/lib/auth-api";
 import { useSessionStore } from "@/lib/session-store";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { ThemeSwitcher } from "@/components/theme-switcher";
+import { Brand, BoltMark } from "@/components/brand";
 import { isLang, useI18n } from "@/lib/i18n";
 
 type NavKey = "dashboard" | "practice" | "history" | "review" | "progress";
 
-// badge: a small count next to the label (real counts only: words due for review).
-const NAV_ITEMS: { key: NavKey; href: string; icon: string; badge?: string }[] = [
+const NAV_ITEMS: { key: NavKey; href: string; icon: string }[] = [
   { key: "dashboard", href: "/dashboard", icon: "pi pi-home" },
   { key: "practice", href: "/practice", icon: "pi pi-microphone" },
   { key: "history", href: "/history", icon: "pi pi-history" },
@@ -23,16 +25,46 @@ const NAV_ITEMS: { key: NavKey; href: string; icon: string; badge?: string }[] =
 ];
 
 function initials(email: string) {
-  const name = email.split("@")[0];
-  return name.slice(0, 2).toUpperCase();
+  return email.split("@")[0].slice(0, 2).toUpperCase();
 }
 
+function Badge({ n, small = false }: { n: number; small?: boolean }) {
+  return (
+    <span
+      style={{
+        marginLeft: small ? 0 : "auto",
+        position: small ? "absolute" : "static",
+        top: 2,
+        right: "calc(50% - 26px)",
+        background: "var(--ds-primary)",
+        color: "var(--ds-primary-contrast)",
+        fontSize: "var(--text-xs)",
+        fontWeight: 800,
+        minWidth: small ? 22 : 24,
+        height: small ? 22 : 24,
+        borderRadius: 99,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "0 6px",
+      }}
+    >
+      {n}
+    </span>
+  );
+}
+
+/**
+ * The signed-in layout. Wide screens: sidebar (logo, nav, account, theme, language).
+ * Phones (< 900px): top bar (logo, streak, account menu) and bottom tabs.
+ */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const user = useSessionStore((s) => s.user);
   const setUser = useSessionStore((s) => s.setUser);
   const { t, lang, setLang } = useI18n();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["me"],
@@ -66,195 +98,156 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   if (isLoading || isError) {
-    return <div style={{ padding: 24, fontSize: 14, color: "var(--ds-text-muted)" }}>{t("common.loading")}</div>;
+    return <div style={{ padding: 24, fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{t("common.loading")}</div>;
   }
 
   const page = NAV_ITEMS.find((i) => pathname === i.href || pathname.startsWith(i.href + "/"))?.key;
   const [pageTitle, pageSubtitle] = page ? [t(`nav.title.${page}`), t(`nav.sub.${page}`)] : ["", ""];
 
-  return (
-    <div style={{ minHeight: "100vh", display: "flex" }}>
-      <aside
-        style={{
-          width: 248,
-          flex: "none",
-          background: "var(--ds-surface)",
-          borderRight: "1px solid var(--ds-border)",
-          display: "flex",
-          flexDirection: "column",
-          position: "sticky",
-          top: 0,
-          height: "100vh",
-        }}
-      >
-        <div
+  const streakChip = (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        fontSize: "var(--text-sm)",
+        fontWeight: 700,
+        padding: "6px 12px",
+        borderRadius: 99,
+        background: streak > 0 ? "var(--ds-primary-50)" : "var(--ds-surface-muted)",
+        color: streak > 0 ? "var(--ds-text)" : "var(--ds-text-muted)",
+        whiteSpace: "nowrap",
+      }}
+    >
+      <span style={streak > 0 ? { animation: "bolt-flicker 1.2s ease-out 1" } : undefined}>
+        <BoltMark size={20} tile={false} />
+      </span>
+      {streak > 0 ? t("nav.streak", { n: streak }) : t("nav.noStreak")}
+    </span>
+  );
+
+  const account = (
+    <>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: 8 }}>
+        <span
+          aria-hidden
           style={{
-            padding: "22px 20px",
-            display: "flex",
-            alignItems: "center",
-            gap: 11,
-            borderBottom: "1px solid var(--ds-border-subtle)",
+            width: 40,
+            height: 40,
+            flex: "none",
+            borderRadius: "50%",
+            background: "var(--ds-primary-100)",
+            color: "var(--ds-primary)",
+            display: "grid",
+            placeItems: "center",
+            fontWeight: 800,
+            fontSize: "var(--text-sm)",
           }}
         >
-          <span
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: 10,
-              background: "var(--ds-primary)",
-              display: "grid",
-              placeItems: "center",
-              boxShadow: "var(--ds-shadow-sm)",
-            }}
-          >
-            <i className="pi pi-microphone" style={{ color: "#fff", fontSize: 18 }} />
-          </span>
-          <span style={{ font: "700 21px var(--font-display)", color: "var(--ds-primary)" }}>SpeakUp</span>
+          {user ? initials(user.email) : "?"}
+        </span>
+        <div style={{ lineHeight: 1.35, minWidth: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: "var(--text-sm)", color: "var(--ds-text)", overflowWrap: "anywhere" }}>{user?.email ?? ""}</div>
+          <div style={{ fontSize: "var(--text-xs)", color: "var(--ds-text-muted)" }}>
+            {band > 0 ? t("nav.band30", { band: band.toFixed(1) }) : t("nav.noBand")}
+          </div>
+        </div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "8px 8px 0" }}>
+        <ThemeSwitcher compact />
+        <LanguageSwitcher sync />
+        <button className="navitem" onClick={handleLogout} style={{ border: "none", background: "none", cursor: "pointer", fontFamily: "inherit", width: "100%" }}>
+          <i className="pi pi-sign-out" aria-hidden style={{ width: 20 }} />
+          <span>{t("nav.logout")}</span>
+        </button>
+      </div>
+    </>
+  );
+
+  return (
+    <div className="app-root">
+      <a href="#main" className="ds-skip">
+        {t("nav.skip")}
+      </a>
+
+      <aside className="app-sidebar">
+        <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid var(--ds-border-subtle)" }}>
+          <Link href="/dashboard" aria-label={APP_NAME} style={{ color: "inherit", display: "inline-flex" }}>
+            <Brand size={40} />
+          </Link>
+          <div style={{ fontSize: "var(--text-xs)", color: "var(--ds-text-muted)", marginTop: 8 }}>{t("nav.tagline")}</div>
         </div>
 
-        <nav style={{ padding: "14px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
-          {NAV_ITEMS.map((nav) => {
-            const item = nav.key === "review" && reviewDue > 0 ? { ...nav, badge: String(reviewDue) } : nav;
-            const active = pathname === item.href || pathname.startsWith(item.href + "/");
+        <nav aria-label={t("nav.menu")} style={{ padding: "14px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
+          {NAV_ITEMS.map((item) => {
+            const active = item.key === page;
             return (
-              <Link
-                key={item.key}
-                href={item.href}
-                className="navitem"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 11,
-                  padding: "10px 13px",
-                  borderRadius: "var(--ds-radius-lg)",
-                  fontSize: 14.5,
-                  fontWeight: active ? 600 : 500,
-                  width: "100%",
-                  background: active ? "var(--ds-primary-50)" : "none",
-                  color: active ? "var(--ds-primary)" : "var(--ds-text-secondary)",
-                }}
-              >
-                <i className={item.icon} style={{ fontSize: 17, width: 20 }} />
+              <Link key={item.key} href={item.href} className="navitem" aria-current={active ? "page" : undefined}>
+                <i className={item.icon} aria-hidden style={{ fontSize: 18, width: 20 }} />
                 <span>{t(`nav.${item.key}`)}</span>
-                {item.badge && (
-                  <span
-                    style={{
-                      marginLeft: "auto",
-                      background: "var(--ds-primary)",
-                      color: "#fff",
-                      fontSize: 11,
-                      fontWeight: 700,
-                      minWidth: 19,
-                      height: 19,
-                      borderRadius: 99,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      padding: "0 5px",
-                    }}
-                  >
-                    {item.badge}
-                  </span>
-                )}
+                {item.key === "review" && reviewDue > 0 && <Badge n={reviewDue} />}
               </Link>
             );
           })}
         </nav>
 
-        <div style={{ marginTop: "auto", padding: "16px 14px", borderTop: "1px solid var(--ds-border-subtle)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 11, padding: 8, borderRadius: "var(--ds-radius-lg)" }}>
-            <span
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: "50%",
-                background: "var(--ds-primary-100)",
-                color: "var(--ds-primary)",
-                display: "grid",
-                placeItems: "center",
-                fontWeight: 700,
-                fontSize: 15,
-              }}
-            >
-              {user ? initials(user.email) : "?"}
-            </span>
-            <div style={{ lineHeight: 1.3, minWidth: 0 }}>
-              <div style={{ fontWeight: 600, fontSize: 14, color: "var(--ds-text)" }}>{user?.email ?? ""}</div>
-              <div style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>
-                {band > 0 ? t("nav.band30", { band: band.toFixed(1) }) : t("nav.noBand")}
-              </div>
-            </div>
-          </div>
-          <button
-            className="navitem"
-            onClick={handleLogout}
-            style={{
-              width: "100%",
-              marginTop: 6,
-              display: "flex",
-              alignItems: "center",
-              gap: 11,
-              padding: "9px 12px",
-              border: "none",
-              background: "none",
-              borderRadius: "var(--ds-radius-lg)",
-              cursor: "pointer",
-              color: "var(--ds-text-muted)",
-              fontSize: 14,
-              fontFamily: "inherit",
-            }}
-          >
-            <i className="pi pi-sign-out" style={{ width: 20 }} />
-            <span>{t("nav.logout")}</span>
-          </button>
-          <div style={{ padding: "10px 12px 0" }}>
-            <LanguageSwitcher sync />
-          </div>
-        </div>
+        <div style={{ marginTop: "auto", padding: "14px 12px 18px", borderTop: "1px solid var(--ds-border-subtle)" }}>{account}</div>
       </aside>
 
-      <main style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-        <header
-          style={{
-            height: 66,
-            flex: "none",
-            background: "linear-gradient(90deg,#fff 0%,var(--ds-primary-50) 60%,var(--ds-primary-100) 100%)",
-            borderBottom: "1px solid var(--ds-border)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "0 28px",
-            position: "sticky",
-            top: 0,
-            zIndex: 5,
-          }}
-        >
-          <div>
-            <div style={{ font: "700 20px var(--font-display)", color: "var(--ds-text)" }}>{pageTitle}</div>
-            <div style={{ fontSize: 12.5, color: "var(--ds-text-muted)" }}>{pageSubtitle}</div>
+      <div className="app-main">
+        <header className="app-header">
+          <Link href="/dashboard" aria-label={APP_NAME} className="app-mobile-only" style={{ color: "inherit", minHeight: 44, alignItems: "center" }}>
+            <Brand size={32} />
+          </Link>
+          <div className="app-desktop-only" style={{ minWidth: 0 }}>
+            <h1 style={{ margin: 0, font: "700 var(--text-2xl)/1.2 var(--font-display)", color: "var(--ds-text)" }}>{pageTitle}</h1>
+            <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{pageSubtitle}</div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                fontSize: 13,
-                fontWeight: 600,
-                padding: "6px 12px",
-                borderRadius: 99,
-                background: "var(--ds-warning-bg)",
-                color: "var(--ds-warning)",
-              }}
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {streakChip}
+            <button
+              type="button"
+              className="app-mobile-only ds-btn ds-btn-outline ds-btn-sm"
+              aria-expanded={menuOpen}
+              aria-controls="account-menu"
+              aria-label={t("nav.account")}
+              onClick={() => setMenuOpen((v) => !v)}
+              style={{ padding: "0 12px" }}
             >
-              <i className="pi pi-bolt" />
-              {streak > 0 ? t("nav.streak", { n: streak }) : t("nav.noStreak")}
-            </span>
+              <i className={menuOpen ? "pi pi-times" : "pi pi-user"} aria-hidden />
+            </button>
           </div>
         </header>
 
-        <div style={{ flex: 1, overflow: "auto", padding: 28 }}>{children}</div>
-      </main>
+        {menuOpen && (
+          <div id="account-menu" className="app-mobile-only ds-card" style={{ flexDirection: "column", margin: "8px 14px 0", padding: 12 }}>
+            {account}
+          </div>
+        )}
+
+        <main id="main" className="app-content" tabIndex={-1}>
+          {page && (
+            <div className="app-mobile-only" style={{ flexDirection: "column", marginBottom: 14 }}>
+              <h1 style={{ margin: 0, font: "700 var(--text-xl)/1.25 var(--font-display)" }}>{pageTitle}</h1>
+              <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{pageSubtitle}</div>
+            </div>
+          )}
+          {children}
+        </main>
+      </div>
+
+      <nav className="app-bottomnav" aria-label={t("nav.menu")}>
+        {NAV_ITEMS.map((item) => {
+          const active = item.key === page;
+          return (
+            <Link key={item.key} href={item.href} aria-current={active ? "page" : undefined}>
+              <i className={item.icon} aria-hidden />
+              <span>{t(`nav.${item.key}`)}</span>
+              {item.key === "review" && reviewDue > 0 && <Badge n={reviewDue} small />}
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }

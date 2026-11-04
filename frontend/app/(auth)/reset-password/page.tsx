@@ -35,7 +35,7 @@ function ResetPasswordForm() {
 
   if (!token) {
     return (
-      <p style={{ fontSize: 14, color: "var(--ds-danger)" }}>
+      <p style={{ fontSize: "var(--text-sm)", color: "var(--ds-danger)" }}>
         {t("auth.reset.missingToken")}
       </p>
     );
@@ -43,7 +43,7 @@ function ResetPasswordForm() {
   return (
     <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <label style={{ fontSize: 13, fontWeight: 600, color: "var(--ds-text-secondary)" }}>{t("auth.reset.newPassword")}</label>
+        <label style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ds-text-secondary)" }}>{t("auth.reset.newPassword")}</label>
         <input
           className="ds-input"
           type="password"
@@ -55,10 +55,10 @@ function ResetPasswordForm() {
         />
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <label style={{ fontSize: 13, fontWeight: 600, color: "var(--ds-text-secondary)" }}>{t("auth.reset.confirmPassword")}</label>
+        <label style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ds-text-secondary)" }}>{t("auth.reset.confirmPassword")}</label>
         <input className="ds-input" type="password" required minLength={8} value={confirm} onChange={(e) => setConfirm(e.target.value)} />
       </div>
-      {error && <p style={{ fontSize: 13, color: "var(--ds-danger)" }}>{error}</p>}
+      {error && <p style={{ fontSize: "var(--text-sm)", color: "var(--ds-danger)" }}>{error}</p>}
       <button type="submit" disabled={loading} className="ds-btn ds-btn-lg" style={{ width: "100%" }}>
         <span>{loading ? t("common.saving") : t("auth.reset.submit")}</span>
       </button>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { BoltMark } from "@/components/brand";
 import { BandGoalForm } from "@/components/band-goal-form";
 import { useI18n, type MessageKey, type Params } from "@/lib/i18n";
 import { phonemeToIpa } from "@/lib/phonemes";
@@ -172,9 +173,9 @@ export default function ReviewPage() {
         <div className="ds-card" style={{ padding: 22, display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <div>
-              <div style={{ font: "700 16px var(--font-display)" }}>{t("review.newWords.title")}</div>
+              <div style={{ font: "700 var(--text-base)/1.3 var(--font-display)" }}>{t("review.newWords.title")}</div>
               {g && (
-                <div style={{ fontSize: 13, color: "var(--ds-text-muted)", marginTop: 3 }}>
+                <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)", marginTop: 3 }}>
                   {t("review.goal.status", {
                     band: g.currentBand.toFixed(1),
                     source: t(g.measuredBand > 0 ? "review.goal.measured" : g.selfBand != null ? "review.goal.estimated" : "review.goal.default"),
@@ -198,11 +199,11 @@ export default function ReviewPage() {
           {g && (editGoals || g.targetBand == null) && (
             <BandGoalForm goals={g} compact={g.targetBand != null} onSaved={() => setEditGoals(false)} />
           )}
-          {addMsg && <div style={{ fontSize: 13, color: "var(--ds-text-secondary)" }}>{addMsg}</div>}
+          {addMsg && <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-secondary)" }}>{addMsg}</div>}
         </div>
 
         {data && (
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--ds-text-muted)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>
             <span>
               {data.dueCount > 0 ? t("review.dueCount", { n: data.dueCount }) : t("review.noneDue")}
               {done > 0 && t("review.doneCount", { n: done })}
@@ -212,13 +213,15 @@ export default function ReviewPage() {
         )}
 
         <div className="ds-card" style={{ padding: 32, minHeight: 300, display: "flex", flexDirection: "column", gap: 16 }}>
-          {isLoading && <div style={{ fontSize: 14, color: "var(--ds-text-muted)" }}>{t("common.loading")}</div>}
-          {isError && <div style={{ fontSize: 14, color: "var(--ds-danger)" }}>{t("review.err.load")}</div>}
+          {isLoading && <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{t("common.loading")}</div>}
+          {isError && <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-danger)" }}>{t("review.err.load")}</div>}
 
           {data && !word && (
             <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 12, alignItems: "center", margin: "auto 0" }}>
-              <div style={{ font: "700 20px var(--font-display)" }}>{data.total === 0 ? t("review.empty.title") : t("review.allDone.title")}</div>
-              <div style={{ fontSize: 14, color: "var(--ds-text-muted)", maxWidth: 460, lineHeight: 1.6 }}>
+              <BoltMark size={44} />
+              <div style={{ font: "700 var(--text-lg)/1.3 var(--font-display)" }}>{data.total === 0 ? t("review.empty.title") : t("review.allDone.title")}</div>
+              {data.total > 0 && <div className="ds-eyebrow" style={{ color: "var(--ds-bolt)", textTransform: "none", letterSpacing: 0 }}>{t("review.allDone.joke")}</div>}
+              <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)", maxWidth: 460, lineHeight: 1.6 }}>
                 {data.total === 0
                   ? t("review.empty.body")
                   : t("review.allDone.body", { when: data.upcoming[0] ? dueText(t, locale, data.upcoming[0].dueAt) : t("review.dueLater") })}
@@ -232,7 +235,7 @@ export default function ReviewPage() {
 
           {word && current && (
             <>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--ds-text-muted)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-xs)", color: "var(--ds-text-muted)" }}>
                 <span
                   style={{
                     padding: "2px 9px",
@@ -250,8 +253,8 @@ export default function ReviewPage() {
               </div>
 
               <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
-                <div style={{ font: "700 40px var(--font-display)", color: "var(--ds-text)" }}>{current.word}</div>
-                {current.vocab?.ipa && <div style={{ fontSize: 16, color: "var(--ds-text-muted)" }}>{current.vocab.ipa}</div>}
+                <div style={{ font: "700 var(--text-4xl)/1.3 var(--font-display)", color: "var(--ds-text)" }}>{current.word}</div>
+                {current.vocab?.ipa && <div style={{ fontSize: "var(--text-base)", color: "var(--ds-text-muted)" }}>{current.vocab.ipa}</div>}
                 <button className="ds-btn ds-btn-outline ds-btn-sm" onClick={() => speakEnglish(current.word)}>
                   <i className="pi pi-volume-up" />
                   <span>{t("common.listenSample")}</span>
@@ -265,10 +268,10 @@ export default function ReviewPage() {
               )}
               {isVocab && current.vocab && revealed && (
                 <div style={{ background: "var(--ds-surface-subtle)", borderRadius: "var(--ds-radius-lg)", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 6 }}>
-                  <div style={{ fontSize: 16 }}>
+                  <div style={{ fontSize: "var(--text-base)" }}>
                     <i style={{ color: "var(--ds-text-muted)" }}>{current.vocab.pos}</i> · <b>{current.vocab.meaning}</b>
                   </div>
-                  <div style={{ fontSize: 14.5, display: "flex", gap: 8, alignItems: "flex-start" }}>
+                  <div style={{ fontSize: "var(--text-sm)", display: "flex", gap: 8, alignItems: "flex-start" }}>
                     <button
                       onClick={() => speakEnglish(current.vocab!.exampleEn)}
                       title={t("review.listenExample")}
@@ -280,7 +283,7 @@ export default function ReviewPage() {
                     <span>{current.vocab.exampleEn}</span>
                   </div>
                   {current.vocab.exampleTranslation && (
-                    <div style={{ fontSize: 13.5, color: "var(--ds-text-muted)" }}>{current.vocab.exampleTranslation}</div>
+                    <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{current.vocab.exampleTranslation}</div>
                   )}
                 </div>
               )}
@@ -307,17 +310,17 @@ export default function ReviewPage() {
                 </button>
               )}
               {phase === "recording" && recorder.quiet && (
-                <div style={{ textAlign: "center", fontSize: 13, color: "var(--ds-warning)" }}>{t("review.quiet")}</div>
+                <div style={{ textAlign: "center", fontSize: "var(--text-sm)", color: "var(--ds-warning)" }}>{t("review.quiet")}</div>
               )}
               {phase === "scoring" && (
-                <div style={{ textAlign: "center", fontSize: 14, color: "var(--ds-text-muted)" }}>
+                <div style={{ textAlign: "center", fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>
                   <i className="pi pi-spinner" style={{ animation: "spin 1s linear infinite", marginRight: 6 }} />
                   {t("review.scoring")}
                 </div>
               )}
               {phase === "error" && (
                 <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
-                  <div style={{ fontSize: 13, color: "var(--ds-danger)" }}>{error}</div>
+                  <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-danger)" }}>{error}</div>
                   <button className="ds-btn ds-btn-outline" onClick={() => setPhase("ready")}>
                     {t("common.retry")}
                   </button>
@@ -325,7 +328,7 @@ export default function ReviewPage() {
               )}
               {phase === "result" && result && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
-                  <div style={{ font: "700 26px var(--font-display)", color: scoreColor(result.score) }}>
+                  <div style={{ font: "700 var(--text-2xl)/1.3 var(--font-display)", color: scoreColor(result.score) }}>
                     {Math.round(result.score)}/100{!isVocab && ` · ${result.passed ? t("review.passed") : t("review.notPassed")}`}
                   </div>
                   {result.phonemes.length > 0 && (
@@ -334,14 +337,14 @@ export default function ReviewPage() {
                         <span
                           key={i}
                           title={`${Math.round(p.score)}/100`}
-                          style={{ padding: "3px 8px", borderRadius: 8, background: "var(--ds-surface-subtle)", color: scoreColor(p.score), fontWeight: 600, fontSize: 14 }}
+                          style={{ padding: "3px 8px", borderRadius: 8, background: "var(--ds-surface-subtle)", color: scoreColor(p.score), fontWeight: 600, fontSize: "var(--text-sm)" }}
                         >
                           {phonemeToIpa(p.phoneme)}
                         </span>
                       ))}
                     </div>
                   )}
-                  {!isVocab && <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>{nextReviewText(t, result.word)}</div>}
+                  {!isVocab && <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{nextReviewText(t, result.word)}</div>}
                   <div style={{ display: "flex", gap: 10 }}>
                     <button className="ds-btn ds-btn-outline" onClick={() => setPhase("ready")}>
                       <i className="pi pi-refresh" />
@@ -359,7 +362,7 @@ export default function ReviewPage() {
 
               {isVocab && revealed && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
-                  <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>{t("review.howWell")}</div>
+                  <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{t("review.howWell")}</div>
                   <div style={{ display: "flex", gap: 10 }}>
                     {RATINGS.map((r) => (
                       <button key={r.q} onClick={() => rate(r.q)} className="ds-btn ds-btn-outline" style={{ color: r.color, borderColor: r.color }}>
@@ -373,7 +376,7 @@ export default function ReviewPage() {
               {phase === "ready" && (
                 <button
                   onClick={remove}
-                  style={{ alignSelf: "center", border: "none", background: "none", cursor: "pointer", fontSize: 12, color: "var(--ds-text-muted)" }}
+                  style={{ alignSelf: "center", border: "none", background: "none", cursor: "pointer", fontSize: "var(--text-xs)", color: "var(--ds-text-muted)" }}
                 >
                   {isVocab ? t("review.removeVocab") : t("review.removePron")}
                 </button>
@@ -384,14 +387,14 @@ export default function ReviewPage() {
 
         {data && data.upcoming.length > 0 && (
           <div className="ds-card" style={{ padding: 22 }}>
-            <div style={{ font: "700 15px var(--font-display)", marginBottom: 8 }}>{t("review.upcoming")}</div>
+            <div style={{ font: "700 var(--text-base)/1.3 var(--font-display)", marginBottom: 8 }}>{t("review.upcoming")}</div>
             {data.upcoming.map((w) => (
-              <div key={w.id} style={{ display: "flex", gap: 12, padding: "8px 0", borderBottom: "1px solid var(--ds-border-subtle)", fontSize: 14 }}>
+              <div key={w.id} style={{ display: "flex", gap: 12, padding: "8px 0", borderBottom: "1px solid var(--ds-border-subtle)", fontSize: "var(--text-sm)" }}>
                 <span style={{ flex: 1, fontWeight: 600 }}>
                   {w.word}
                   {w.vocab && <span style={{ fontWeight: 400, color: "var(--ds-text-muted)" }}> · {w.vocab.meaning}</span>}
                 </span>
-                <span style={{ color: "var(--ds-text-muted)", fontSize: 12 }}>{w.kind === "vocab" ? t("review.kind.vocab") : t("review.kind.pron")}</span>
+                <span style={{ color: "var(--ds-text-muted)", fontSize: "var(--text-xs)" }}>{w.kind === "vocab" ? t("review.kind.vocab") : t("review.kind.pron")}</span>
                 <span style={{ color: "var(--ds-text-muted)", minWidth: 110, textAlign: "right" }}>{dueText(t, locale, w.dueAt)}</span>
               </div>
             ))}
