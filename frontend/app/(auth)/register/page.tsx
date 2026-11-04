@@ -23,7 +23,7 @@ export default function RegisterPage() {
     try {
       // The API signs the new learner in, so go straight into the app.
       setUser(await authApi.register(email, password));
-      router.replace("/dashboard");
+      router.replace("/welcome");
     } catch (err) {
       setError(authErrorMessage(err, "register"));
     } finally {

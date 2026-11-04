@@ -3,8 +3,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/app-shell";
 import { WeeklyLineChart } from "@/components/charts/line-chart";
+import { BandGoalForm } from "@/components/band-goal-form";
 import { phonemeToIpa } from "@/lib/phonemes";
 import { progressQuery, type ProgressSummary } from "@/lib/progress-api";
+import { goalsQuery } from "@/lib/review-api";
 import { scoreColor } from "@/lib/score-color";
 
 // All numbers come from the learner's own attempts (GET /api/progress/summary).
@@ -129,6 +131,7 @@ function StatCards({ p }: { p: ProgressSummary }) {
 
 export default function ProgressPage() {
   const { data: p, isError, error } = useQuery(progressQuery);
+  const goals = useQuery(goalsQuery);
 
   if (!p) {
     return (
@@ -156,6 +159,11 @@ export default function ProgressPage() {
     <AppShell>
       <div className="fade" style={{ maxWidth: 1120, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
         <StatCards p={p} />
+
+        <div className="ds-card" style={{ padding: 24 }}>
+          <div style={{ font: "700 16px var(--font-display)", marginBottom: 12 }}>Mục tiêu band</div>
+          {goals.data ? <BandGoalForm goals={goals.data} /> : <Empty>Đang tải...</Empty>}
+        </div>
 
         <div className="ds-card" style={{ padding: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
