@@ -153,7 +153,23 @@ func main() {
 	// Spaced-repetition review of the words said wrongly in attempts.
 	reviewService := service.NewReviewService(repository.NewReviewRepository(pool), pronunciationScorer)
 	pronunciationService.SetReviews(reviewService)
-	reviewHandler := handler.NewReviewHandler(reviewService)
+	if n, err := reviewService.CleanupMisrecognised(context.Background()); err != nil {
+		log.Printf("review: clean-up: %v", err)
+	} else if n > 0 {
+		log.Printf("review: removed %d misrecognised words", n)
+	}
+	// New words by band (NGSL/NAWL); the LLM writes each word's meaning and example once.
+	var vocabEnricher service.VocabEnricher
+	if graderLLM != nil {
+		vocabEnricher = service.NewLLMVocabEnricher(newLLM(cfg.OpenRouterModel, 0.3, 120*time.Second))
+	}
+	vocabService := service.NewVocabService(repository.NewVocabRepository(pool), userRepo, vocabEnricher)
+	seedVocabCtx, cancelSeedVocab := context.WithTimeout(context.Background(), 30*time.Second)
+	if err := vocabService.Seed(seedVocabCtx); err != nil {
+		log.Fatalf("seed vocab words: %v", err)
+	}
+	cancelSeedVocab()
+	reviewHandler := handler.NewReviewHandler(reviewService, vocabService)
 
 	e := echo.New()
 	e.Use(echomw.Logger())

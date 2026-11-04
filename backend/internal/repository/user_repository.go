@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"englishapp/backend/internal/domain"
@@ -27,6 +28,8 @@ type UserRepository interface {
 	GetByEmail(ctx context.Context, email string) (*domain.User, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*domain.User, error)
 	UpdatePassword(ctx context.Context, id uuid.UUID, passwordHash string) error
+	// UpdateGoals sets the self-estimated and target bands (nil clears).
+	UpdateGoals(ctx context.Context, id uuid.UUID, selfBand, targetBand *float32) error
 }
 
 type userRepository struct {
@@ -71,6 +74,17 @@ func (r *userRepository) UpdatePassword(ctx context.Context, id uuid.UUID, passw
 	return r.q.UpdateUserPassword(ctx, sqlcgen.UpdateUserPasswordParams{ID: id, PasswordHash: passwordHash})
 }
 
+func (r *userRepository) UpdateGoals(ctx context.Context, id uuid.UUID, selfBand, targetBand *float32) error {
+	return r.q.UpdateUserGoals(ctx, sqlcgen.UpdateUserGoalsParams{ID: id, SelfBand: float4(selfBand), TargetBand: float4(targetBand)})
+}
+
+func float4(v *float32) pgtype.Float4 {
+	if v == nil {
+		return pgtype.Float4{}
+	}
+	return pgtype.Float4{Float32: *v, Valid: true}
+}
+
 func toDomainUser(row sqlcgen.User) *domain.User {
 	u := &domain.User{
 		ID:           row.ID,
@@ -83,6 +97,12 @@ func toDomainUser(row sqlcgen.User) *domain.User {
 	}
 	if row.TargetGoal.Valid {
 		u.TargetGoal = &row.TargetGoal.String
+	}
+	if row.SelfBand.Valid {
+		u.SelfBand = &row.SelfBand.Float32
+	}
+	if row.TargetBand.Valid {
+		u.TargetBand = &row.TargetBand.Float32
 	}
 	return u
 }

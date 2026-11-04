@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"math"
@@ -13,6 +14,7 @@ import (
 
 	"englishapp/backend/internal/domain"
 	"englishapp/backend/internal/repository"
+	"englishapp/backend/internal/vocab"
 )
 
 // Weak-word rule, the same as the progress page (db/queries/progress.sql ProgressWeakWords).
@@ -33,13 +35,19 @@ var reviewStopwords = map[string]bool{
 var nonWordChars = regexp.MustCompile(`[^a-z']`)
 
 // reviewWordKey returns the word as stored ("Photographer," -> "photographer"), or "" when
-// it is not worth reviewing.
+// it is not worth reviewing: too short, a function word, or not an English word (Azure's
+// guesses for unclear speech: "sweatered", "jarosz").
 func reviewWordKey(w string) string {
 	k := strings.Trim(nonWordChars.ReplaceAllString(strings.ToLower(w), ""), "'")
-	if len(k) < 3 || reviewStopwords[k] {
+	if len(k) < 3 || reviewStopwords[k] || !vocab.IsWord(k) {
 		return ""
 	}
 	return k
+}
+
+// normWordKey is the stored form without the review filters (to match a recognised word).
+func normWordKey(w string) string {
+	return strings.Trim(nonWordChars.ReplaceAllString(strings.ToLower(w), ""), "'")
 }
 
 // WeakWords picks the words of an attempt said wrongly: Azure marked them mispronounced or
@@ -79,10 +87,14 @@ func ReviewQuality(score float32) int {
 	}
 }
 
-// Schedule applies one review (SM-2) to w at time now.
+// Schedule applies one pronunciation review (SM-2) to w at time now.
 func Schedule(w *domain.ReviewWord, score float32, now time.Time) {
-	q := ReviewQuality(score)
 	w.LastScore = score
+	ScheduleQuality(w, ReviewQuality(score), now)
+}
+
+// ScheduleQuality applies one review of quality q (SM-2, 0-5; below 3 = forgotten).
+func ScheduleQuality(w *domain.ReviewWord, q int, now time.Time) {
 	if q < 3 {
 		if w.Reps > 0 {
 			w.Lapses++
@@ -160,8 +172,48 @@ type ReviewResult struct {
 	Phonemes []domain.PhonemeScore
 }
 
-// Review scores the learner saying the word (Azure, the word as reference text) and moves
-// it on the schedule.
+// CleanupMisrecognised removes pronunciation words that are not English words (queued
+// before the dictionary check). It returns how many were removed.
+func (s *ReviewService) CleanupMisrecognised(ctx context.Context) (int, error) {
+	words, err := s.repo.ListPronunciationWords(ctx)
+	if err != nil {
+		return 0, err
+	}
+	var drop []uuid.UUID
+	for id, w := range words {
+		if reviewWordKey(w) == "" {
+			drop = append(drop, id)
+		}
+	}
+	if len(drop) == 0 {
+		return 0, nil
+	}
+	return len(drop), s.repo.DeleteByIDs(ctx, drop)
+}
+
+// ErrNotVocabCard: a self-rating was sent for a pronunciation card.
+var ErrNotVocabCard = errors.New("only vocab cards are rated by the learner")
+
+// Grade schedules a vocab card from the learner's own rating: 1 forgot, 3 hard, 4 good,
+// 5 easy.
+func (s *ReviewService) Grade(ctx context.Context, userID, wordID uuid.UUID, quality int) (*domain.ReviewWord, error) {
+	w, err := s.repo.Get(ctx, wordID, userID)
+	if err != nil {
+		return nil, err
+	}
+	if w.Kind != domain.ReviewVocab {
+		return nil, ErrNotVocabCard
+	}
+	ScheduleQuality(w, quality, time.Now())
+	if err := s.repo.UpdateSchedule(ctx, w); err != nil {
+		return nil, fmt.Errorf("save schedule: %w", err)
+	}
+	return w, nil
+}
+
+// Review scores the learner saying the word (Azure, the word as reference text). A
+// pronunciation card moves on the schedule; a vocab card is only scored (it is scheduled by
+// the learner's rating, Grade).
 func (s *ReviewService) Review(ctx context.Context, userID, wordID uuid.UUID, audioWAV []byte) (*ReviewResult, error) {
 	w, err := s.repo.Get(ctx, wordID, userID)
 	if err != nil {
@@ -173,7 +225,7 @@ func (s *ReviewService) Review(ctx context.Context, userID, wordID uuid.UUID, au
 	}
 	score := res.OverallScore
 	for _, ws := range res.WordScores {
-		if reviewWordKey(ws.Word) == w.Word {
+		if normWordKey(ws.Word) == w.Word {
 			if ws.ErrorType == "omission" {
 				score = 0
 			} else {
@@ -182,9 +234,11 @@ func (s *ReviewService) Review(ctx context.Context, userID, wordID uuid.UUID, au
 			break
 		}
 	}
-	Schedule(w, score, time.Now())
-	if err := s.repo.UpdateSchedule(ctx, w); err != nil {
-		return nil, fmt.Errorf("save schedule: %w", err)
+	if w.Kind != domain.ReviewVocab {
+		Schedule(w, score, time.Now())
+		if err := s.repo.UpdateSchedule(ctx, w); err != nil {
+			return nil, fmt.Errorf("save schedule: %w", err)
+		}
 	}
 	return &ReviewResult{Word: w, Score: score, Quality: ReviewQuality(score), Heard: res.RecognizedText, Phonemes: res.PhonemeScores}, nil
 }

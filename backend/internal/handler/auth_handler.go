@@ -129,8 +129,10 @@ func (h *AuthHandler) Me(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, map[string]any{
-		"id":    user.ID,
-		"email": user.Email,
+		"id":         user.ID,
+		"email":      user.Email,
+		"selfBand":   user.SelfBand,
+		"targetBand": user.TargetBand,
 	})
 }
 

@@ -52,6 +52,17 @@ func (m *memUsers) UpdatePassword(_ context.Context, id uuid.UUID, hash string) 
 	return nil
 }
 
+func (m *memUsers) UpdateGoals(_ context.Context, id uuid.UUID, self, target *float32) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, u := range m.users {
+		if u.ID == id {
+			u.SelfBand, u.TargetBand = self, target
+		}
+	}
+	return nil
+}
+
 func (m *memUsers) GetByID(_ context.Context, id uuid.UUID) (*domain.User, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()

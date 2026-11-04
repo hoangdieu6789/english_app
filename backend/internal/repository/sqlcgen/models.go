@@ -99,6 +99,10 @@ type ReviewWord struct {
 	DueAt          pgtype.Timestamptz `json:"due_at"`
 	LastReviewedAt pgtype.Timestamptz `json:"last_reviewed_at"`
 	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	Kind           string             `json:"kind"`
+	VocabWordID    pgtype.UUID        `json:"vocab_word_id"`
+	Misses         int32              `json:"misses"`
+	MinScore       float32            `json:"min_score"`
 }
 
 type Session struct {
@@ -117,6 +121,8 @@ type User struct {
 	Level        pgtype.Text        `json:"level"`
 	TargetGoal   pgtype.Text        `json:"target_goal"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	SelfBand     pgtype.Float4      `json:"self_band"`
+	TargetBand   pgtype.Float4      `json:"target_band"`
 }
 
 type VocabGap struct {
@@ -129,4 +135,18 @@ type VocabGap struct {
 	Status          string             `json:"status"`
 	NextReviewDate  pgtype.Timestamptz `json:"next_review_date"`
 	FirstSeenAt     pgtype.Timestamptz `json:"first_seen_at"`
+}
+
+type VocabWord struct {
+	ID         uuid.UUID          `json:"id"`
+	Word       string             `json:"word"`
+	Source     string             `json:"source"`
+	Rank       int32              `json:"rank"`
+	Band       float32            `json:"band"`
+	Pos        pgtype.Text        `json:"pos"`
+	Ipa        pgtype.Text        `json:"ipa"`
+	MeaningVi  pgtype.Text        `json:"meaning_vi"`
+	ExampleEn  pgtype.Text        `json:"example_en"`
+	ExampleVi  pgtype.Text        `json:"example_vi"`
+	EnrichedAt pgtype.Timestamptz `json:"enriched_at"`
 }

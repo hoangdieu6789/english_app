@@ -83,7 +83,28 @@ func (m *memReviews) Upsert(_ context.Context, uid uuid.UUID, word string, score
 		}
 	}
 	id := uuid.New()
-	m.words[id] = &domain.ReviewWord{ID: id, UserID: uid, Word: word, LastScore: score, Ease: 2.5, DueAt: time.Now()}
+	m.words[id] = &domain.ReviewWord{ID: id, UserID: uid, Word: word, LastScore: score, Ease: 2.5, DueAt: time.Now(), Kind: domain.ReviewPronunciation, Misses: 1}
+	return nil
+}
+
+func (m *memReviews) ListPronunciationWords(context.Context) (map[uuid.UUID]string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := map[uuid.UUID]string{}
+	for id, w := range m.words {
+		if w.Kind == domain.ReviewPronunciation {
+			out[id] = w.Word
+		}
+	}
+	return out, nil
+}
+
+func (m *memReviews) DeleteByIDs(_ context.Context, ids []uuid.UUID) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, id := range ids {
+		delete(m.words, id)
+	}
 	return nil
 }
 
@@ -213,5 +234,60 @@ func TestSubmitQueuesWeakWords(t *testing.T) {
 	}
 	if _, total, _ := repo.Count(context.Background(), uid); total != 0 {
 		t.Fatalf("total = %d, want 0", total)
+	}
+}
+
+func TestWeakWordsSkipNonWords(t *testing.T) {
+	got := WeakWords([]domain.WordScore{
+		{Word: "sweatered", AccuracyScore: 38, ErrorType: "none"},
+		{Word: "Jarosz", AccuracyScore: 20, ErrorType: "mispronunciation"},
+		{Word: "unposed", AccuracyScore: 53, ErrorType: "none"},
+	})
+	if len(got) != 1 || got["unposed"] != 53 {
+		t.Fatalf("got %v", got)
+	}
+}
+
+func TestCleanupMisrecognised(t *testing.T) {
+	repo := &memReviews{}
+	svc := NewReviewService(repo, &wordScorer{})
+	uid := uuid.New()
+	for _, w := range []string{"sweatered", "jarosz", "atmosphere"} {
+		_ = repo.Upsert(context.Background(), uid, w, 30)
+	}
+	n, err := svc.CleanupMisrecognised(context.Background())
+	if err != nil || n != 2 {
+		t.Fatalf("removed %d, err %v", n, err)
+	}
+	if _, total, _ := repo.Count(context.Background(), uid); total != 1 {
+		t.Fatalf("left %d words", total)
+	}
+}
+
+func TestVocabCardsAreGradedNotScheduledByAzure(t *testing.T) {
+	repo := &memReviews{words: map[uuid.UUID]*domain.ReviewWord{}}
+	uid, id := uuid.New(), uuid.New()
+	repo.words[id] = &domain.ReviewWord{ID: id, UserID: uid, Word: "atmosphere", Kind: domain.ReviewVocab, Ease: 2.5, DueAt: time.Now()}
+	scorer := &wordScorer{score: 95}
+	svc := NewReviewService(repo, scorer)
+
+	res, err := svc.Review(context.Background(), uid, id, []byte("RIFF"))
+	if err != nil || res.Score != 95 {
+		t.Fatalf("review: %+v %v", res, err)
+	}
+	if w, _ := repo.Get(context.Background(), id, uid); w.Reps != 0 || w.IntervalDays != 0 {
+		t.Fatalf("a pronunciation score must not schedule a vocab card: %+v", w)
+	}
+	w, err := svc.Grade(context.Background(), uid, id, 4)
+	if err != nil || w.Reps != 1 || w.IntervalDays != 1 {
+		t.Fatalf("grade: %+v %v", w, err)
+	}
+	if w, err := svc.Grade(context.Background(), uid, id, 1); err != nil || w.Reps != 0 || w.Lapses != 1 {
+		t.Fatalf("forgot: %+v %v", w, err)
+	}
+	pid := uuid.New()
+	repo.words[pid] = &domain.ReviewWord{ID: pid, UserID: uid, Word: "hectic", Kind: domain.ReviewPronunciation, Ease: 2.5}
+	if _, err := svc.Grade(context.Background(), uid, pid, 5); err != ErrNotVocabCard {
+		t.Fatalf("pronunciation card rated: %v", err)
 	}
 }

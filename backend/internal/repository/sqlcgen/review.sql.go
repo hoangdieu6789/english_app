@@ -12,11 +12,56 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const addVocabReviewWord = `-- name: AddVocabReviewWord :exec
+INSERT INTO review_words (user_id, word, last_score, min_score, kind, vocab_word_id, misses)
+VALUES ($1, $2, 0, 100, 'vocab', $3, 0)
+ON CONFLICT (user_id, kind, word) DO NOTHING
+`
+
+type AddVocabReviewWordParams struct {
+	UserID      uuid.UUID   `json:"user_id"`
+	Word        string      `json:"word"`
+	VocabWordID pgtype.UUID `json:"vocab_word_id"`
+}
+
+func (q *Queries) AddVocabReviewWord(ctx context.Context, arg AddVocabReviewWordParams) error {
+	_, err := q.db.Exec(ctx, addVocabReviewWord, arg.UserID, arg.Word, arg.VocabWordID)
+	return err
+}
+
+const countNewVocabWords = `-- name: CountNewVocabWords :one
+SELECT count(*)::int FROM vocab_words v
+WHERE v.band > $1::real AND v.band <= $2::real
+  AND NOT v.word = ANY($3::text[])
+  AND NOT EXISTS (
+    SELECT 1 FROM review_words r
+    WHERE r.user_id = $4 AND r.kind = 'vocab' AND r.vocab_word_id = v.id)
+`
+
+type CountNewVocabWordsParams struct {
+	BandFrom float32   `json:"band_from"`
+	BandTo   float32   `json:"band_to"`
+	Known    []string  `json:"known"`
+	UserID   uuid.UUID `json:"user_id"`
+}
+
+func (q *Queries) CountNewVocabWords(ctx context.Context, arg CountNewVocabWordsParams) (int32, error) {
+	row := q.db.QueryRow(ctx, countNewVocabWords,
+		arg.BandFrom,
+		arg.BandTo,
+		arg.Known,
+		arg.UserID,
+	)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const countReviewWords = `-- name: CountReviewWords :one
 SELECT count(*) FILTER (WHERE due_at <= now())::int AS due,
        count(*)::int AS total
 FROM review_words
-WHERE user_id = $1
+WHERE user_id = $1 AND (kind = 'vocab' OR misses >= 2 OR min_score < 40)
 `
 
 type CountReviewWordsRow struct {
@@ -48,8 +93,19 @@ func (q *Queries) DeleteReviewWord(ctx context.Context, arg DeleteReviewWordPara
 	return result.RowsAffected(), nil
 }
 
+const deleteReviewWordsByID = `-- name: DeleteReviewWordsByID :exec
+DELETE FROM review_words WHERE id = ANY($1::uuid[])
+`
+
+func (q *Queries) DeleteReviewWordsByID(ctx context.Context, ids []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteReviewWordsByID, ids)
+	return err
+}
+
 const getReviewWord = `-- name: GetReviewWord :one
-SELECT id, user_id, word, last_score, ease, interval_days, reps, lapses, due_at, last_reviewed_at, created_at FROM review_words WHERE id = $1 AND user_id = $2
+SELECT r.id, r.user_id, r.word, r.last_score, r.ease, r.interval_days, r.reps, r.lapses, r.due_at, r.last_reviewed_at, r.created_at, r.kind, r.vocab_word_id, r.misses, r.min_score, v.pos, v.ipa, v.meaning_vi, v.example_en, v.example_vi, v.band
+FROM review_words r LEFT JOIN vocab_words v ON v.id = r.vocab_word_id
+WHERE r.id = $1 AND r.user_id = $2
 `
 
 type GetReviewWordParams struct {
@@ -57,9 +113,33 @@ type GetReviewWordParams struct {
 	UserID uuid.UUID `json:"user_id"`
 }
 
-func (q *Queries) GetReviewWord(ctx context.Context, arg GetReviewWordParams) (ReviewWord, error) {
+type GetReviewWordRow struct {
+	ID             uuid.UUID          `json:"id"`
+	UserID         uuid.UUID          `json:"user_id"`
+	Word           string             `json:"word"`
+	LastScore      float32            `json:"last_score"`
+	Ease           float32            `json:"ease"`
+	IntervalDays   int32              `json:"interval_days"`
+	Reps           int32              `json:"reps"`
+	Lapses         int32              `json:"lapses"`
+	DueAt          pgtype.Timestamptz `json:"due_at"`
+	LastReviewedAt pgtype.Timestamptz `json:"last_reviewed_at"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	Kind           string             `json:"kind"`
+	VocabWordID    pgtype.UUID        `json:"vocab_word_id"`
+	Misses         int32              `json:"misses"`
+	MinScore       float32            `json:"min_score"`
+	Pos            pgtype.Text        `json:"pos"`
+	Ipa            pgtype.Text        `json:"ipa"`
+	MeaningVi      pgtype.Text        `json:"meaning_vi"`
+	ExampleEn      pgtype.Text        `json:"example_en"`
+	ExampleVi      pgtype.Text        `json:"example_vi"`
+	Band           pgtype.Float4      `json:"band"`
+}
+
+func (q *Queries) GetReviewWord(ctx context.Context, arg GetReviewWordParams) (GetReviewWordRow, error) {
 	row := q.db.QueryRow(ctx, getReviewWord, arg.ID, arg.UserID)
-	var i ReviewWord
+	var i GetReviewWordRow
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
@@ -72,14 +152,26 @@ func (q *Queries) GetReviewWord(ctx context.Context, arg GetReviewWordParams) (R
 		&i.DueAt,
 		&i.LastReviewedAt,
 		&i.CreatedAt,
+		&i.Kind,
+		&i.VocabWordID,
+		&i.Misses,
+		&i.MinScore,
+		&i.Pos,
+		&i.Ipa,
+		&i.MeaningVi,
+		&i.ExampleEn,
+		&i.ExampleVi,
+		&i.Band,
 	)
 	return i, err
 }
 
 const listDueReviewWords = `-- name: ListDueReviewWords :many
-SELECT id, user_id, word, last_score, ease, interval_days, reps, lapses, due_at, last_reviewed_at, created_at FROM review_words
-WHERE user_id = $1 AND due_at <= now()
-ORDER BY due_at, word
+SELECT r.id, r.user_id, r.word, r.last_score, r.ease, r.interval_days, r.reps, r.lapses, r.due_at, r.last_reviewed_at, r.created_at, r.kind, r.vocab_word_id, r.misses, r.min_score, v.pos, v.ipa, v.meaning_vi, v.example_en, v.example_vi, v.band
+FROM review_words r LEFT JOIN vocab_words v ON v.id = r.vocab_word_id
+WHERE r.user_id = $1 AND r.due_at <= now()
+  AND (r.kind = 'vocab' OR r.misses >= 2 OR r.min_score < 40)
+ORDER BY r.due_at, r.word
 LIMIT $2
 `
 
@@ -88,15 +180,39 @@ type ListDueReviewWordsParams struct {
 	Limit  int32     `json:"limit"`
 }
 
-func (q *Queries) ListDueReviewWords(ctx context.Context, arg ListDueReviewWordsParams) ([]ReviewWord, error) {
+type ListDueReviewWordsRow struct {
+	ID             uuid.UUID          `json:"id"`
+	UserID         uuid.UUID          `json:"user_id"`
+	Word           string             `json:"word"`
+	LastScore      float32            `json:"last_score"`
+	Ease           float32            `json:"ease"`
+	IntervalDays   int32              `json:"interval_days"`
+	Reps           int32              `json:"reps"`
+	Lapses         int32              `json:"lapses"`
+	DueAt          pgtype.Timestamptz `json:"due_at"`
+	LastReviewedAt pgtype.Timestamptz `json:"last_reviewed_at"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	Kind           string             `json:"kind"`
+	VocabWordID    pgtype.UUID        `json:"vocab_word_id"`
+	Misses         int32              `json:"misses"`
+	MinScore       float32            `json:"min_score"`
+	Pos            pgtype.Text        `json:"pos"`
+	Ipa            pgtype.Text        `json:"ipa"`
+	MeaningVi      pgtype.Text        `json:"meaning_vi"`
+	ExampleEn      pgtype.Text        `json:"example_en"`
+	ExampleVi      pgtype.Text        `json:"example_vi"`
+	Band           pgtype.Float4      `json:"band"`
+}
+
+func (q *Queries) ListDueReviewWords(ctx context.Context, arg ListDueReviewWordsParams) ([]ListDueReviewWordsRow, error) {
 	rows, err := q.db.Query(ctx, listDueReviewWords, arg.UserID, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ReviewWord
+	var items []ListDueReviewWordsRow
 	for rows.Next() {
-		var i ReviewWord
+		var i ListDueReviewWordsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
@@ -109,7 +225,47 @@ func (q *Queries) ListDueReviewWords(ctx context.Context, arg ListDueReviewWords
 			&i.DueAt,
 			&i.LastReviewedAt,
 			&i.CreatedAt,
+			&i.Kind,
+			&i.VocabWordID,
+			&i.Misses,
+			&i.MinScore,
+			&i.Pos,
+			&i.Ipa,
+			&i.MeaningVi,
+			&i.ExampleEn,
+			&i.ExampleVi,
+			&i.Band,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPronunciationReviewWords = `-- name: ListPronunciationReviewWords :many
+SELECT id, word FROM review_words WHERE kind = 'pronunciation'
+`
+
+type ListPronunciationReviewWordsRow struct {
+	ID   uuid.UUID `json:"id"`
+	Word string    `json:"word"`
+}
+
+// All learners' pronunciation words (start-up clean-up of misrecognised words).
+func (q *Queries) ListPronunciationReviewWords(ctx context.Context) ([]ListPronunciationReviewWordsRow, error) {
+	rows, err := q.db.Query(ctx, listPronunciationReviewWords)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListPronunciationReviewWordsRow
+	for rows.Next() {
+		var i ListPronunciationReviewWordsRow
+		if err := rows.Scan(&i.ID, &i.Word); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -121,9 +277,11 @@ func (q *Queries) ListDueReviewWords(ctx context.Context, arg ListDueReviewWords
 }
 
 const listUpcomingReviewWords = `-- name: ListUpcomingReviewWords :many
-SELECT id, user_id, word, last_score, ease, interval_days, reps, lapses, due_at, last_reviewed_at, created_at FROM review_words
-WHERE user_id = $1 AND due_at > now()
-ORDER BY due_at, word
+SELECT r.id, r.user_id, r.word, r.last_score, r.ease, r.interval_days, r.reps, r.lapses, r.due_at, r.last_reviewed_at, r.created_at, r.kind, r.vocab_word_id, r.misses, r.min_score, v.pos, v.ipa, v.meaning_vi, v.example_en, v.example_vi, v.band
+FROM review_words r LEFT JOIN vocab_words v ON v.id = r.vocab_word_id
+WHERE r.user_id = $1 AND r.due_at > now()
+  AND (r.kind = 'vocab' OR r.misses >= 2 OR r.min_score < 40)
+ORDER BY r.due_at, r.word
 LIMIT $2
 `
 
@@ -132,15 +290,39 @@ type ListUpcomingReviewWordsParams struct {
 	Limit  int32     `json:"limit"`
 }
 
-func (q *Queries) ListUpcomingReviewWords(ctx context.Context, arg ListUpcomingReviewWordsParams) ([]ReviewWord, error) {
+type ListUpcomingReviewWordsRow struct {
+	ID             uuid.UUID          `json:"id"`
+	UserID         uuid.UUID          `json:"user_id"`
+	Word           string             `json:"word"`
+	LastScore      float32            `json:"last_score"`
+	Ease           float32            `json:"ease"`
+	IntervalDays   int32              `json:"interval_days"`
+	Reps           int32              `json:"reps"`
+	Lapses         int32              `json:"lapses"`
+	DueAt          pgtype.Timestamptz `json:"due_at"`
+	LastReviewedAt pgtype.Timestamptz `json:"last_reviewed_at"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	Kind           string             `json:"kind"`
+	VocabWordID    pgtype.UUID        `json:"vocab_word_id"`
+	Misses         int32              `json:"misses"`
+	MinScore       float32            `json:"min_score"`
+	Pos            pgtype.Text        `json:"pos"`
+	Ipa            pgtype.Text        `json:"ipa"`
+	MeaningVi      pgtype.Text        `json:"meaning_vi"`
+	ExampleEn      pgtype.Text        `json:"example_en"`
+	ExampleVi      pgtype.Text        `json:"example_vi"`
+	Band           pgtype.Float4      `json:"band"`
+}
+
+func (q *Queries) ListUpcomingReviewWords(ctx context.Context, arg ListUpcomingReviewWordsParams) ([]ListUpcomingReviewWordsRow, error) {
 	rows, err := q.db.Query(ctx, listUpcomingReviewWords, arg.UserID, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ReviewWord
+	var items []ListUpcomingReviewWordsRow
 	for rows.Next() {
-		var i ReviewWord
+		var i ListUpcomingReviewWordsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
@@ -153,6 +335,16 @@ func (q *Queries) ListUpcomingReviewWords(ctx context.Context, arg ListUpcomingR
 			&i.DueAt,
 			&i.LastReviewedAt,
 			&i.CreatedAt,
+			&i.Kind,
+			&i.VocabWordID,
+			&i.Misses,
+			&i.MinScore,
+			&i.Pos,
+			&i.Ipa,
+			&i.MeaningVi,
+			&i.ExampleEn,
+			&i.ExampleVi,
+			&i.Band,
 		); err != nil {
 			return nil, err
 		}
@@ -162,6 +354,133 @@ func (q *Queries) ListUpcomingReviewWords(ctx context.Context, arg ListUpcomingR
 		return nil, err
 	}
 	return items, nil
+}
+
+const listUserSpokenWords = `-- name: ListUserSpokenWords :many
+SELECT DISTINCT lower(w->>'word')::text AS word
+FROM pronunciation_attempts a, jsonb_array_elements(a.word_scores) w
+WHERE a.user_id = $1 AND a.task_type <> 'shadowing'
+  AND w->>'errorType' = 'none' AND (w->>'accuracyScore')::real >= 60
+`
+
+// Words the learner said well in their own free speech (IELTS parts): known words.
+func (q *Queries) ListUserSpokenWords(ctx context.Context, userID uuid.UUID) ([]string, error) {
+	rows, err := q.db.Query(ctx, listUserSpokenWords, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var word string
+		if err := rows.Scan(&word); err != nil {
+			return nil, err
+		}
+		items = append(items, word)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const measuredBand = `-- name: MeasuredBand :one
+SELECT COALESCE(avg(rubric_score), 0)::real FROM pronunciation_attempts
+WHERE user_id = $1 AND task_type <> 'shadowing' AND rubric_score IS NOT NULL
+  AND rubric_version LIKE '2.%' AND created_at > now() - interval '90 days'
+`
+
+// Average overall IELTS band of the last 90 days (rubric v2); 0 when none.
+func (q *Queries) MeasuredBand(ctx context.Context, userID uuid.UUID) (float32, error) {
+	row := q.db.QueryRow(ctx, measuredBand, userID)
+	var column_1 float32
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const pickNewVocabWords = `-- name: PickNewVocabWords :many
+SELECT v.id, v.word, v.source, v.rank, v.band, v.pos, v.ipa, v.meaning_vi, v.example_en, v.example_vi, v.enriched_at FROM vocab_words v
+WHERE v.band > $1::real AND v.band <= $2::real
+  AND NOT v.word = ANY($3::text[])
+  AND NOT EXISTS (
+    SELECT 1 FROM review_words r
+    WHERE r.user_id = $4 AND r.kind = 'vocab' AND r.vocab_word_id = v.id)
+ORDER BY v.band, v.rank
+LIMIT $5
+`
+
+type PickNewVocabWordsParams struct {
+	BandFrom float32   `json:"band_from"`
+	BandTo   float32   `json:"band_to"`
+	Known    []string  `json:"known"`
+	UserID   uuid.UUID `json:"user_id"`
+	MaxRows  int32     `json:"max_rows"`
+}
+
+// The next words for a learner: band in (band_from, band_to], not yet in their review list
+// and not words they already use, easiest band first, most frequent first.
+func (q *Queries) PickNewVocabWords(ctx context.Context, arg PickNewVocabWordsParams) ([]VocabWord, error) {
+	rows, err := q.db.Query(ctx, pickNewVocabWords,
+		arg.BandFrom,
+		arg.BandTo,
+		arg.Known,
+		arg.UserID,
+		arg.MaxRows,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []VocabWord
+	for rows.Next() {
+		var i VocabWord
+		if err := rows.Scan(
+			&i.ID,
+			&i.Word,
+			&i.Source,
+			&i.Rank,
+			&i.Band,
+			&i.Pos,
+			&i.Ipa,
+			&i.MeaningVi,
+			&i.ExampleEn,
+			&i.ExampleVi,
+			&i.EnrichedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const seedVocabWords = `-- name: SeedVocabWords :exec
+INSERT INTO vocab_words (word, source, rank, band)
+SELECT unnest($1::text[]), unnest($2::text[]), unnest($3::int[]), unnest($4::real[])
+ON CONFLICT (word) DO UPDATE
+SET source = EXCLUDED.source, rank = EXCLUDED.rank, band = EXCLUDED.band
+WHERE (vocab_words.source, vocab_words.rank, vocab_words.band) IS DISTINCT FROM (EXCLUDED.source, EXCLUDED.rank, EXCLUDED.band)
+`
+
+type SeedVocabWordsParams struct {
+	Words   []string  `json:"words"`
+	Sources []string  `json:"sources"`
+	Ranks   []int32   `json:"ranks"`
+	Bands   []float32 `json:"bands"`
+}
+
+// Inserts or updates the NGSL/NAWL list (keeps the LLM-written fields).
+func (q *Queries) SeedVocabWords(ctx context.Context, arg SeedVocabWordsParams) error {
+	_, err := q.db.Exec(ctx, seedVocabWords,
+		arg.Words,
+		arg.Sources,
+		arg.Ranks,
+		arg.Bands,
+	)
+	return err
 }
 
 const updateReviewWordSchedule = `-- name: UpdateReviewWordSchedule :exec
@@ -194,11 +513,56 @@ func (q *Queries) UpdateReviewWordSchedule(ctx context.Context, arg UpdateReview
 	return err
 }
 
+const updateUserGoals = `-- name: UpdateUserGoals :exec
+UPDATE users SET self_band = $2, target_band = $3 WHERE id = $1
+`
+
+type UpdateUserGoalsParams struct {
+	ID         uuid.UUID     `json:"id"`
+	SelfBand   pgtype.Float4 `json:"self_band"`
+	TargetBand pgtype.Float4 `json:"target_band"`
+}
+
+func (q *Queries) UpdateUserGoals(ctx context.Context, arg UpdateUserGoalsParams) error {
+	_, err := q.db.Exec(ctx, updateUserGoals, arg.ID, arg.SelfBand, arg.TargetBand)
+	return err
+}
+
+const updateVocabEnrichment = `-- name: UpdateVocabEnrichment :exec
+UPDATE vocab_words
+SET pos = $2, ipa = $3, meaning_vi = $4, example_en = $5, example_vi = $6, enriched_at = now()
+WHERE id = $1
+`
+
+type UpdateVocabEnrichmentParams struct {
+	ID        uuid.UUID   `json:"id"`
+	Pos       pgtype.Text `json:"pos"`
+	Ipa       pgtype.Text `json:"ipa"`
+	MeaningVi pgtype.Text `json:"meaning_vi"`
+	ExampleEn pgtype.Text `json:"example_en"`
+	ExampleVi pgtype.Text `json:"example_vi"`
+}
+
+func (q *Queries) UpdateVocabEnrichment(ctx context.Context, arg UpdateVocabEnrichmentParams) error {
+	_, err := q.db.Exec(ctx, updateVocabEnrichment,
+		arg.ID,
+		arg.Pos,
+		arg.Ipa,
+		arg.MeaningVi,
+		arg.ExampleEn,
+		arg.ExampleVi,
+	)
+	return err
+}
+
 const upsertReviewWord = `-- name: UpsertReviewWord :exec
-INSERT INTO review_words (user_id, word, last_score)
-VALUES ($1, $2, $3)
-ON CONFLICT (user_id, word) DO UPDATE
+
+INSERT INTO review_words (user_id, word, last_score, min_score, kind)
+VALUES ($1, $2, $3, $3, 'pronunciation')
+ON CONFLICT (user_id, kind, word) DO UPDATE
 SET last_score = EXCLUDED.last_score,
+    min_score = LEAST(review_words.min_score, EXCLUDED.min_score),
+    misses = review_words.misses + 1,
     interval_days = 0,
     reps = 0,
     lapses = review_words.lapses + CASE WHEN review_words.reps > 0 THEN 1 ELSE 0 END,
@@ -211,7 +575,9 @@ type UpsertReviewWordParams struct {
 	LastScore float32   `json:"last_score"`
 }
 
-// A word said wrongly (again): due now, schedule restarted.
+// Shown cards: every vocab card; a pronunciation word only once it was said wrongly in at
+// least 2 attempts or scored under 40 (migration 000013).
+// A word said wrongly (again): one more miss, due now, schedule restarted.
 func (q *Queries) UpsertReviewWord(ctx context.Context, arg UpsertReviewWordParams) error {
 	_, err := q.db.Exec(ctx, upsertReviewWord, arg.UserID, arg.Word, arg.LastScore)
 	return err

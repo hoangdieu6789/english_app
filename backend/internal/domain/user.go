@@ -12,6 +12,8 @@ type User struct {
 	PasswordHash string
 	Level        *string
 	TargetGoal   *string
+	SelfBand     *float32 // learner's own estimate of their band (until measured)
+	TargetBand   *float32
 	CreatedAt    time.Time
 }
 
