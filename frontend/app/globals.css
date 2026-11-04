@@ -96,6 +96,7 @@
   --ds-hero-track: rgba(255, 255, 255, 0.25);
   --ds-hero-storm: rgba(242, 201, 76, 0.28);
   --ds-hero-flash: rgba(255, 255, 255, 0.9);
+  --ds-pw-flash: #fff3bf;
   --ds-auth-bg: linear-gradient(160deg, #fffbeb 0%, #f3efda 100%);
   --ds-auth-glow: radial-gradient(circle at 70% 70%, rgba(100, 74, 201, 0.12), transparent 60%);
 
@@ -186,6 +187,7 @@
   --ds-hero-track: rgba(248, 248, 242, 0.22);
   --ds-hero-storm: rgba(241, 250, 140, 0.16);
   --ds-hero-flash: rgba(248, 248, 242, 0.7);
+  --ds-pw-flash: #4a4a3a;
   --ds-auth-bg: linear-gradient(160deg, #282a36 0%, #21222c 100%);
   --ds-auth-glow: radial-gradient(circle at 70% 70%, rgba(189, 147, 249, 0.14), transparent 60%);
 
@@ -805,9 +807,59 @@ a:hover {
   color: var(--ds-text-muted);
   cursor: pointer;
 }
-.auth-pw-toggle:hover,
-.auth-pw-toggle[aria-pressed="true"] {
+.auth-pw-toggle:hover {
   color: var(--ds-primary);
+}
+.auth-pw-toggle[aria-pressed="true"] {
+  color: var(--ds-bolt);
+}
+
+/* Reveal: a bolt strikes the field from above, the field flashes, the text appears.
+   Hide: the text fades out, then the dots come back. (No effect with reduced motion.) */
+.auth-pw-bolt {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  bottom: 50%;
+  width: 26px;
+  height: 70px;
+  translate: -50% 0;
+  fill: var(--ds-bolt-fill);
+  stroke: var(--ds-logo-edge);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+  opacity: 0;
+  pointer-events: none;
+  transform-origin: 50% 100%;
+}
+.auth-pw[data-fx="strike"] .auth-pw-bolt {
+  animation: pw-bolt 0.55s ease-out both;
+}
+.auth-pw[data-fx="strike"] .ds-input {
+  animation: pw-flash 0.7s ease-out both;
+}
+.auth-pw[data-fx="strike"] .auth-pw-toggle {
+  animation: bolt-flicker 0.6s ease-out 1;
+}
+.auth-pw .ds-input {
+  transition: color 0.25s ease;
+}
+.auth-pw[data-fx="fade"] .ds-input {
+  color: transparent;
+}
+@keyframes pw-bolt {
+  0% { opacity: 0; transform: translateY(-34px) scaleY(0.2); }
+  25% { opacity: 1; transform: translateY(0) scaleY(1); }
+  40% { opacity: 0.4; }
+  55% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(6px) scaleY(0.9); }
+}
+@keyframes pw-flash {
+  0% { box-shadow: 0 0 0 0 var(--ds-bolt-glow); }
+  20% { background: var(--ds-pw-flash); box-shadow: 0 0 0 6px var(--ds-bolt-glow); }
+  35% { background: var(--ds-surface); }
+  50% { background: var(--ds-pw-flash); }
+  100% { background: var(--ds-surface); box-shadow: 0 0 0 0 transparent; }
 }
 
 /* Storm effects on the brand panel (all stop with prefers-reduced-motion):

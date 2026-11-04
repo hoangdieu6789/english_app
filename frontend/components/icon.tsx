@@ -9,8 +9,6 @@ import {
   ChevronUp,
   CircleCheck,
   CircleStop,
-  Eye,
-  EyeOff,
   Globe,
   History,
   House,
@@ -34,6 +32,7 @@ import {
   Volume2,
   X,
   Zap,
+  ZapOff,
   type LucideIcon,
 } from "lucide-react";
 
@@ -65,8 +64,8 @@ export const ICONS = {
   chevronDown: ChevronDown,
   chevronUp: ChevronUp,
   close: X,
-  show: Eye,
-  hide: EyeOff,
+  show: Zap,
+  hide: ZapOff,
   capsLock: ArrowBigUp,
   // actions and states
   record: Mic,

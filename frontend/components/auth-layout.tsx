@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { BoltMark } from "@/components/brand";
 import { Icon, type IconName } from "@/components/icon";
@@ -90,7 +90,34 @@ export function AuthField({
 }: { id: string; label: string; aside?: React.ReactNode } & React.InputHTMLAttributes<HTMLInputElement>) {
   const { t } = useI18n();
   const [shown, setShown] = useState(false);
+  // "strike": a bolt hits the field and the text appears; "fade": the text fades before the dots return.
+  const [fx, setFx] = useState<"" | "strike" | "fade">("");
+  const timers = useRef<number[]>([]);
   const [caps, setCaps] = useState(false);
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+
+  function toggle() {
+    timers.current.forEach(clearTimeout);
+    timers.current = [];
+    const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (still) {
+      setFx("");
+      setShown((v) => !v);
+      return;
+    }
+    const later = (ms: number, fn: () => void) => timers.current.push(window.setTimeout(fn, ms));
+    if (!shown) {
+      setFx("strike");
+      later(170, () => setShown(true)); // the text appears in the flash
+      later(700, () => setFx(""));
+    } else {
+      setFx("fade");
+      later(260, () => {
+        setShown(false);
+        setFx("");
+      });
+    }
+  }
   const isPassword = type === "password";
   const onKey = (e: React.KeyboardEvent<HTMLInputElement>) => setCaps(e.getModifierState("CapsLock"));
   return (
@@ -102,7 +129,10 @@ export function AuthField({
         {aside}
       </div>
       {isPassword ? (
-        <div className="auth-pw">
+        <div className="auth-pw" data-fx={fx || undefined}>
+          <svg className="auth-pw-bolt" viewBox="0 0 24 64" aria-hidden focusable="false">
+            <path d="M15 0 4 30h7L6 64 21 24h-8L18 0z" />
+          </svg>
           <input
             id={id}
             className="ds-input"
@@ -116,7 +146,7 @@ export function AuthField({
           <button
             type="button"
             className="auth-pw-toggle"
-            onClick={() => setShown((v) => !v)}
+            onClick={toggle}
             aria-pressed={shown}
             aria-controls={id}
             aria-label={shown ? t("auth.field.hidePassword") : t("auth.field.showPassword")}

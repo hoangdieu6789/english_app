@@ -41,6 +41,7 @@ for (const t of TEXTS) for (const s of SURFACES) PAIRS.push([t, s, 4.5]);
 PAIRS.push(
   ["--ds-primary", "--ds-primary-50", 4.5], // active nav item
   ["--ds-text", "--ds-primary-50", 4.5], // streak chip
+  ["--ds-text", "--ds-pw-flash", 4.5], // password text during the reveal flash
   ["--ds-primary-contrast", "--ds-primary", 4.5], // button text
   ["--ds-primary", "--ds-primary-100", 4.5], // avatar initials
   ["--ds-success", "--ds-success-bg", 4.5],
