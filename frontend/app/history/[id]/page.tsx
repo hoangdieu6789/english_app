@@ -28,7 +28,7 @@ export default function AttemptPage() {
   const ielts = a ? IELTS.includes(a.taskType) : false;
 
   return (
-    <AppShell>
+    <AppShell width={860}>
       <div className="fade" style={{ maxWidth: 860, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
         <Link href="/history" style={{ fontSize: "var(--text-sm)", color: "var(--ds-primary)", fontWeight: 600, textDecoration: "none" }}>
           <i className="pi pi-arrow-left" style={{ fontSize: "var(--text-xs)", marginRight: 6 }} />

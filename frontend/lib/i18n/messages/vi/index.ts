@@ -11,5 +11,6 @@ import { tips } from "./tips";
 import { coach } from "./coach";
 import { review } from "./review";
 import { history } from "./history";
+import { settings } from "./settings";
 
-export const vi = { ...common, ...nav, ...auth, ...dashboard, ...progress, ...practice, ...ielts, ...rubric, ...tips, ...coach, ...review, ...history };
+export const vi = { ...common, ...nav, ...auth, ...dashboard, ...progress, ...practice, ...ielts, ...rubric, ...tips, ...coach, ...review, ...history, ...settings };

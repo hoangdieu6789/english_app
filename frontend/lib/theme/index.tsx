@@ -109,6 +109,17 @@ export function setThemeMode(mode: ThemeMode) {
   }
 }
 
+function subscribeHtmlClass(cb: () => void) {
+  const obs = new MutationObserver(cb);
+  obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+  return () => obs.disconnect();
+}
+
+/** True when the page is dark right now (whatever the mode). */
+export function useResolvedDark(): boolean {
+  return useSyncExternalStore(subscribeHtmlClass, () => document.documentElement.classList.contains("dark"), () => false);
+}
+
 /** Forgets the saved location (the next "time" pick asks again). */
 export function clearGeo() {
   localStorage.removeItem(GEO_KEY);

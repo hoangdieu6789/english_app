@@ -45,7 +45,7 @@ export default function HistoryPage() {
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
   return (
-    <AppShell>
+    <AppShell width={860}>
       <div className="fade" style={{ maxWidth: 860, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {FILTERS.map((f) => (

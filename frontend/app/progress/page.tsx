@@ -3,13 +3,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/app-shell";
 import { WeeklyLineChart } from "@/components/charts/line-chart";
-import { BandGoalForm } from "@/components/band-goal-form";
-import { LanguageSwitcher } from "@/components/language-switcher";
-import { ThemeSwitcher } from "@/components/theme-switcher";
 import { hasMessage, useI18n, type MessageKey } from "@/lib/i18n";
 import { phonemeToIpa } from "@/lib/phonemes";
 import { progressQuery, type ProgressSummary } from "@/lib/progress-api";
-import { goalsQuery } from "@/lib/review-api";
 import { scoreColor } from "@/lib/score-color";
 
 // All numbers come from the learner's own attempts (GET /api/progress/summary).
@@ -110,7 +106,7 @@ function StatCards({ p }: { p: ProgressSummary }) {
     },
   ];
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
       {cards.map((s) => (
         <div key={s.label} className="ds-card" style={{ padding: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, color: s.color }}>
@@ -130,7 +126,6 @@ function StatCards({ p }: { p: ProgressSummary }) {
 export default function ProgressPage() {
   const { t, locale } = useI18n();
   const { data: p, isError, error } = useQuery(progressQuery);
-  const goals = useQuery(goalsQuery);
 
   if (!p) {
     return (
@@ -163,16 +158,6 @@ export default function ProgressPage() {
     <AppShell>
       <div className="fade" style={{ maxWidth: 1120, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
         <StatCards p={p} />
-
-        <div className="ds-card" style={{ padding: 24 }}>
-          <div style={{ font: "700 var(--text-base)/1.3 var(--font-display)", marginBottom: 12 }}>{t("progress.goals.title")}</div>
-          {goals.data ? <BandGoalForm goals={goals.data} /> : <Empty>{t("common.loading")}</Empty>}
-          <div style={{ marginTop: 16 }}>
-            <ThemeSwitcher />
-            <div style={{ height: 12 }} />
-            <LanguageSwitcher sync showHint />
-          </div>
-        </div>
 
         <div className="ds-card" style={{ padding: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>

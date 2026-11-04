@@ -1,13 +1,14 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { BoltMark } from "@/components/brand";
 import { GoalRing } from "@/components/charts/progress-ring";
 import { Sparkline } from "@/components/charts/sparkline";
 import { useI18n, type MessageKey } from "@/lib/i18n";
 import { progressQuery, type ProgressSummary } from "@/lib/progress-api";
+import { reviewQuery } from "@/lib/review-api";
 import { scoreColor } from "@/lib/score-color";
 import { speakEnglish } from "@/lib/text-to-speech";
 
@@ -47,17 +48,28 @@ function thisMonday(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function StatTile({ icon, bg, fg, label, value, note }: { icon: string; bg: string; fg: string; label: string; value: string; note: string }) {
-  return (
-    <div className="ds-card" style={{ padding: "18px 20px", display: "flex", alignItems: "center", gap: 16 }}>
-      <span style={{ width: 46, height: 46, borderRadius: 12, background: bg, color: fg, display: "grid", placeItems: "center", fontSize: "var(--text-lg)" }}>
-        <i className={icon} />
+function StatTile({ icon, bg, fg, label, value, note, href }: { icon: string; bg: string; fg: string; label: string; value: string; note: string; href?: string }) {
+  const body = (
+    <>
+      <span style={{ width: 44, height: 44, flex: "none", borderRadius: 12, background: bg, color: fg, display: "grid", placeItems: "center", fontSize: "var(--text-lg)" }}>
+        <i className={icon} aria-hidden />
       </span>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{label}</div>
-        <div style={{ font: "700 var(--text-xl)/1.3 var(--font-display)" }}>{value}</div>
-        <div style={{ fontSize: "var(--text-xs)", color: "var(--ds-text-muted)" }}>{note}</div>
-      </div>
+      <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+        <span style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{label}</span>
+        <span style={{ font: "700 var(--text-xl)/1.3 var(--font-display)", color: "var(--ds-text)" }}>{value}</span>
+        <span style={{ fontSize: "var(--text-xs)", color: "var(--ds-text-muted)" }}>{note}</span>
+      </span>
+      {href && <i className="pi pi-angle-right" aria-hidden style={{ color: "var(--ds-text-muted)" }} />}
+    </>
+  );
+  const style = { padding: "16px 18px", display: "flex", alignItems: "center", gap: 14, height: "100%" } as const;
+  return href ? (
+    <Link href={href} className="ds-card" style={{ ...style, color: "inherit" }}>
+      {body}
+    </Link>
+  ) : (
+    <div className="ds-card" style={style}>
+      {body}
     </div>
   );
 }
@@ -112,6 +124,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { t } = useI18n();
   const { data: p, isError, error } = useQuery(progressQuery);
+  const review = useQuery(reviewQuery);
 
   if (!p) {
     return (
@@ -130,89 +143,80 @@ export default function DashboardPage() {
   return (
     <AppShell>
       <div className="fade" style={{ maxWidth: 1120, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 20 }}>
-          <div
-            style={{
-              background: "var(--ds-hero-bg)",
-              borderRadius: "var(--ds-radius-2xl)",
-              padding: 28,
-              color: "var(--ds-hero-text)",
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 20,
-              justifyContent: "space-between",
-              alignItems: "center",
-              boxShadow: "0 var(--ds-depth) 0 var(--ds-primary-edge)",
-              position: "relative",
-              overflow: "hidden",
-            }}
-          >
-            <div aria-hidden style={{ position: "absolute", right: -30, top: -40, opacity: 0.16, pointerEvents: "none" }}>
-              <BoltMark size={220} tile={false} />
-            </div>
-            <div style={{ maxWidth: "60%" }}>
-              <div style={{ fontSize: "var(--text-sm)", opacity: 0.85, letterSpacing: ".02em" }}>{t(greeting(new Date().getHours()))}</div>
-              <div style={{ font: "700 var(--text-2xl)/1.3 var(--font-display)", margin: "6px 0 10px" }}>
-                {left === 0 ? t("dashboard.hero.goalReached") : t("dashboard.hero.ready")}
-              </div>
-              <div style={{ fontSize: "var(--text-sm)", opacity: 0.9, lineHeight: 1.5 }}>
-                {left === 0 ? (
-                  <>
-                    {t("dashboard.hero.doneBefore")}
-                    <b>{t("dashboard.hero.doneCount", { n: done })}</b>
-                    {t("dashboard.hero.doneAfter")}
-                  </>
-                ) : (
-                  <>
-                    {t("dashboard.hero.leftBefore")}
-                    <b>{t("dashboard.hero.leftCount", { n: left })}</b>
-                    {t("dashboard.hero.leftAfter", { goal: DAILY_GOAL_ATTEMPTS })}
-                  </>
-                )}
-              </div>
-              <button
-                onClick={() => router.push("/practice")}
-                className="ds-btn"
-                style={{ marginTop: 16, background: "var(--ds-surface)", color: "var(--ds-primary)", borderColor: "var(--ds-surface)", boxShadow: "0 4px 0 var(--ds-primary-edge)" }}
-              >
-                <i className="pi pi-microphone" />
-                <span>{t("dashboard.hero.start")}</span>
-              </button>
-            </div>
-            <div style={{ position: "relative", width: 136, height: 136, flex: "none" }}>
-              <GoalRing pct={goalPct} />
-              <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", textAlign: "center", lineHeight: 1.1 }}>
-                <div>
-                  <div style={{ font: "700 var(--text-2xl)/1.3 var(--font-display)" }}>
-                    {done}/{DAILY_GOAL_ATTEMPTS}
-                  </div>
-                  <div style={{ fontSize: "var(--text-xs)", opacity: 0.85 }}>{t("dashboard.hero.today")}</div>
+        <section className="dash-hero" aria-label={t("dashboard.hero.today")}>
+          <div className="dash-hero-text">
+            <div className="ds-eyebrow" style={{ color: "var(--ds-hero-text-muted)" }}>{t(greeting(new Date().getHours()))}</div>
+            <h2 className="dash-hero-title">{left === 0 ? t("dashboard.hero.goalReached") : t("dashboard.hero.ready")}</h2>
+          </div>
+          <div className="dash-hero-cta">
+            <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--ds-hero-text-muted)", lineHeight: 1.5 }}>
+              {left === 0 ? (
+                <>
+                  {t("dashboard.hero.doneBefore")}
+                  <b style={{ color: "var(--ds-hero-text)" }}>{t("dashboard.hero.doneCount", { n: done })}</b>
+                  {t("dashboard.hero.doneAfter")}
+                </>
+              ) : (
+                <>
+                  {t("dashboard.hero.leftBefore")}
+                  <b style={{ color: "var(--ds-hero-text)" }}>{t("dashboard.hero.leftCount", { n: left })}</b>
+                  {t("dashboard.hero.leftAfter", { goal: DAILY_GOAL_ATTEMPTS })}
+                </>
+              )}
+            </p>
+            <button
+              onClick={() => router.push("/practice")}
+              className="ds-btn"
+              style={{ marginTop: 16, background: "var(--ds-surface)", color: "var(--ds-primary)", borderColor: "var(--ds-surface)", boxShadow: "0 4px 0 var(--ds-primary-edge)" }}
+            >
+              <i className="pi pi-microphone" aria-hidden />
+              <span>{t("dashboard.hero.start")}</span>
+            </button>
+          </div>
+          <div className="dash-hero-ring">
+            <GoalRing pct={goalPct} />
+            <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", textAlign: "center" }}>
+              <div>
+                <div className="dash-ring-value">
+                  {done}/{DAILY_GOAL_ATTEMPTS}
+                </div>
+                <div className="dash-ring-label" style={{ fontSize: "var(--text-xs)", color: "var(--ds-hero-text-muted)" }}>
+                  {t("dashboard.hero.today")}
                 </div>
               </div>
             </div>
           </div>
+        </section>
 
-          <div style={{ display: "grid", gridTemplateRows: "1fr 1fr", gap: 20 }}>
-            <StatTile
-              icon="pi pi-comments"
-              bg="var(--ds-primary-50)"
-              fg="var(--ds-primary)"
-              label={t("dashboard.stat.speakTime")}
-              value={formatDuration(p.speakingSecondsToday, t)}
-              note={t("dashboard.stat.fromRecorded", { n: done })}
-            />
-            <StatTile
-              icon="pi pi-star"
-              bg="var(--ds-success-bg)"
-              fg="var(--ds-success)"
-              label={t("dashboard.stat.band30")}
-              value={p.last30Days.banded ? formatBand(p.last30Days.band) : "—"}
-              note={p.last30Days.banded ? t("dashboard.stat.bandedCount", { n: p.last30Days.banded }) : t("dashboard.stat.noBand")}
-            />
-          </div>
+        <div className="dash-stats">
+          <StatTile
+            icon="pi pi-comments"
+            bg="var(--ds-primary-50)"
+            fg="var(--ds-primary)"
+            label={t("dashboard.stat.speakTime")}
+            value={formatDuration(p.speakingSecondsToday, t)}
+            note={t("dashboard.stat.fromRecorded", { n: done })}
+          />
+          <StatTile
+            icon="pi pi-star"
+            bg="var(--ds-success-bg)"
+            fg="var(--ds-success)"
+            label={t("dashboard.stat.band30")}
+            value={p.last30Days.banded ? formatBand(p.last30Days.band) : "—"}
+            note={p.last30Days.banded ? t("dashboard.stat.bandedCount", { n: p.last30Days.banded }) : t("dashboard.stat.noBand")}
+          />
+          <StatTile
+            icon="pi pi-book"
+            bg="var(--ds-warning-bg)"
+            fg="var(--ds-warning)"
+            label={t("dashboard.stat.review")}
+            value={review.data ? String(review.data.dueCount) : "—"}
+            note={t("dashboard.stat.reviewNote")}
+            href="/review"
+          />
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+        <div className="dash-cards">
           <div className="ds-card" style={{ padding: 22 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
               <div style={{ font: "700 var(--text-base)/1.3 var(--font-display)" }}>{t("dashboard.weak.title")}</div>

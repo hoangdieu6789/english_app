@@ -167,7 +167,7 @@ export default function ReviewPage() {
   const g = goals.data;
 
   return (
-    <AppShell>
+    <AppShell width={720}>
       <div className="fade" style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", gap: 18 }}>
         {/* New words for the learner's band range */}
         <div className="ds-card" style={{ padding: 22, display: "flex", flexDirection: "column", gap: 12 }}>

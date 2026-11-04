@@ -157,7 +157,7 @@ export default function PracticePage() {
   };
 
   return (
-    <AppShell>
+    <AppShell width={940}>
       <div className="fade" style={{ maxWidth: 940, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
         <div style={{ display: "flex", justifyContent: "safe center", minWidth: 0 }}>
           <div role="tablist" className="ds-tabs" style={{ display: "inline-flex", background: "var(--ds-surface-muted)", borderRadius: "var(--ds-radius-full)", padding: 3 }}>

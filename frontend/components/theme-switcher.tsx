@@ -34,7 +34,7 @@ export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <div role="group" aria-label={t("common.theme.label")} style={{ display: "flex", gap: 4, padding: 4, borderRadius: "var(--ds-radius-lg)", background: "var(--ds-surface-muted)", width: "fit-content", flexWrap: "wrap" }}>
+      <div role="group" aria-label={t("common.theme.label")} className={compact ? undefined : "ds-seg"} style={{ display: "flex", gap: 4, padding: 4, borderRadius: "var(--ds-radius-lg)", background: "var(--ds-surface-muted)", width: "fit-content", flexWrap: "wrap" }}>
         {MODES.map((m) => {
           const active = mode === m.mode;
           const label = t(`common.theme.${m.mode}`);
