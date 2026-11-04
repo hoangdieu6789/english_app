@@ -5,10 +5,11 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { progressQuery } from "@/lib/progress-api";
+import { reviewQuery } from "@/lib/review-api";
 import { authApi } from "@/lib/auth-api";
 import { useSessionStore } from "@/lib/session-store";
 
-// badge: a small count next to the label (only for real counts, none at the moment).
+// badge: a small count next to the label (real counts only: words due for review).
 const NAV_ITEMS: { key: string; href: string; label: string; icon: string; badge?: string }[] = [
   { key: "dashboard", href: "/dashboard", label: "Trang chủ", icon: "pi pi-home" },
   { key: "practice", href: "/practice", label: "Luyện nói", icon: "pi pi-microphone" },
@@ -19,7 +20,7 @@ const NAV_ITEMS: { key: string; href: string; label: string; icon: string; badge
 const TITLES: Record<string, [string, string]> = {
   "/dashboard": ["Trang chủ", "Tổng quan việc học của bạn hôm nay"],
   "/practice": ["Luyện nói · Practice", "Shadowing và IELTS Speaking Part 1–3"],
-  "/review": ["Ôn từ · Review", "Những từ bạn nói chưa đúng trong các bài đã luyện"],
+  "/review": ["Ôn từ · Review", "Ôn các từ bạn nói chưa đúng, theo lịch nhắc lại"],
   "/progress": ["Tiến độ · Progress", "Streak, phát âm và band IELTS từ các bài bạn đã luyện"],
 };
 
@@ -43,6 +44,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const progress = useQuery({ ...progressQuery, enabled: !!data });
   const streak = progress.data?.streak ?? 0;
   const band = progress.data?.last30Days.band ?? 0;
+  const review = useQuery({ ...reviewQuery, enabled: !!data });
+  const reviewDue = review.data?.dueCount ?? 0;
 
   useEffect(() => {
     if (data) setUser(data);
@@ -102,7 +105,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav style={{ padding: "14px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
-          {NAV_ITEMS.map((item) => {
+          {NAV_ITEMS.map((nav) => {
+            const item = nav.key === "review" && reviewDue > 0 ? { ...nav, badge: String(reviewDue) } : nav;
             const active = pathname === item.href;
             return (
               <Link

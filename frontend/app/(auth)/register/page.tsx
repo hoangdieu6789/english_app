@@ -116,7 +116,7 @@ export default function RegisterPage() {
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <i className="pi pi-check-circle" />
-              <span>Danh sách từ cần luyện lại từ chính bài nói của bạn</span>
+              <span>Ôn từ bạn phát âm sai theo lịch nhắc lại</span>
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <i className="pi pi-check-circle" />

@@ -122,6 +122,7 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
       setPhase("result");
       queryClient.invalidateQueries({ queryKey: ["ielts-sets", part] });
       queryClient.invalidateQueries({ queryKey: ["progress-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["review"] }); // new weak words
       // The AI grades FC/LR/GRA in the background: keep the timer running until it is done.
       if (attempt.gradingStatus !== "pending") stopWaitTimer();
     } catch (err) {

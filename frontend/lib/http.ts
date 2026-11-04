@@ -17,7 +17,7 @@ function refreshSession(): Promise<boolean> {
   return refreshing;
 }
 
-const NO_REFRESH = ["/auth/login", "/auth/register", "/auth/refresh", "/auth/logout"];
+const NO_REFRESH = ["/auth/login", "/auth/register", "/auth/refresh", "/auth/logout", "/auth/forgot-password", "/auth/reset-password"];
 
 export async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const call = () => fetch(`${API_BASE_URL}${path}`, { ...init, credentials: "include" });
@@ -28,7 +28,7 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
     res = await call();
     if (res.status !== 401) return res;
   }
-  const onAuthPage = typeof window !== "undefined" && /^\/(login|register)/.test(window.location.pathname);
+  const onAuthPage = typeof window !== "undefined" && /^\/(login|register|forgot-password|reset-password)/.test(window.location.pathname);
   if (typeof window !== "undefined" && !onAuthPage) {
     window.location.assign("/login");
   }

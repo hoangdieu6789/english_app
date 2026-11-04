@@ -1,11 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { authApi, authErrorMessage } from "@/lib/auth-api";
 import { useSessionStore } from "@/lib/session-store";
 import { useRedirectIfSignedIn } from "@/lib/use-redirect-if-signed-in";
+
+// After a password reset the reset page sends the learner here with ?reset=1.
+function ResetNotice() {
+  if (!useSearchParams().has("reset")) return null;
+  return <p style={{ fontSize: 13, color: "var(--ds-success)" }}>Đã đặt mật khẩu mới. Hãy đăng nhập lại.</p>;
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -117,7 +123,7 @@ export default function LoginPage() {
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <i className="pi pi-check-circle" />
-              <span>Danh sách từ cần luyện lại từ chính bài nói của bạn</span>
+              <span>Ôn từ bạn phát âm sai theo lịch nhắc lại</span>
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <i className="pi pi-check-circle" />
@@ -159,7 +165,7 @@ export default function LoginPage() {
             />
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", fontSize: 13 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13 }}>
             <label
               style={{ display: "flex", gap: 7, alignItems: "center", color: "var(--ds-text-secondary)" }}
               title="Bỏ chọn trên máy dùng chung: phiên đăng nhập kết thúc khi đóng trình duyệt."
@@ -172,8 +178,12 @@ export default function LoginPage() {
               />
               Ghi nhớ đăng nhập (30 ngày)
             </label>
+            <Link href="/forgot-password">Quên mật khẩu?</Link>
           </div>
 
+          <Suspense fallback={null}>
+            <ResetNotice />
+          </Suspense>
           {error && <p style={{ fontSize: 13, color: "var(--ds-danger)" }}>{error}</p>}
 
           <button type="submit" disabled={loading} className="ds-btn ds-btn-lg" style={{ width: "100%", marginTop: 4 }}>

@@ -98,6 +98,7 @@ export default function PracticePage() {
       setResult(attempt);
       setRec("result");
       queryClient.invalidateQueries({ queryKey: ["progress-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["review"] }); // new weak words
     } catch (err) {
       setError(err instanceof Error ? err.message : "Chấm điểm thất bại. Thử lại.");
       setRec("error");

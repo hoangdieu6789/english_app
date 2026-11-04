@@ -23,10 +23,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     throw new ApiError(res.status, body.message ?? res.statusText);
   }
 
-  if (res.status === 204) {
+  // 202/204 and other empty bodies (e.g. forgot-password answers 202 with no body).
+  const text = await res.text();
+  if (!text) {
     return undefined as T;
   }
-  return res.json() as Promise<T>;
+  return JSON.parse(text) as T;
 }
 
 export const apiClient = {
