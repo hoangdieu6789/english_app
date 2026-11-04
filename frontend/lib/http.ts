@@ -28,7 +28,8 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
     res = await call();
     if (res.status !== 401) return res;
   }
-  if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+  const onAuthPage = typeof window !== "undefined" && /^\/(login|register)/.test(window.location.pathname);
+  if (typeof window !== "undefined" && !onAuthPage) {
     window.location.assign("/login");
   }
   return res;

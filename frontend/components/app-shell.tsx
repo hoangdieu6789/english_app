@@ -19,7 +19,7 @@ const NAV_ITEMS: { key: string; href: string; label: string; icon: string; badge
 const TITLES: Record<string, [string, string]> = {
   "/dashboard": ["Trang chủ", "Tổng quan việc học của bạn hôm nay"],
   "/practice": ["Luyện nói · Practice", "Shadowing và IELTS Speaking Part 1–3"],
-  "/review": ["Ôn từ · Review", "Ôn lại những từ còn yếu bằng spaced repetition"],
+  "/review": ["Ôn từ · Review", "Những từ bạn nói chưa đúng trong các bài đã luyện"],
   "/progress": ["Tiến độ · Progress", "Streak, phát âm và band IELTS từ các bài bạn đã luyện"],
 };
 
@@ -42,6 +42,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Real streak from the learner's attempts (same request as the Progress page).
   const progress = useQuery({ ...progressQuery, enabled: !!data });
   const streak = progress.data?.streak ?? 0;
+  const band = progress.data?.last30Days.band ?? 0;
 
   useEffect(() => {
     if (data) setUser(data);
@@ -167,7 +168,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </span>
             <div style={{ lineHeight: 1.3, minWidth: 0 }}>
               <div style={{ fontWeight: 600, fontSize: 14, color: "var(--ds-text)" }}>{user?.email ?? ""}</div>
-              <div style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>Trình độ: Intermediate</div>
+              <div style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>
+                {band > 0 ? `Band IELTS TB 30 ngày: ${band.toFixed(1)}` : "Chưa có band IELTS"}
+              </div>
             </div>
           </div>
           <button
@@ -232,34 +235,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <i className="pi pi-bolt" />
               {streak > 0 ? `${streak} ngày streak` : "Chưa có streak"}
             </span>
-            <button
-              style={{
-                width: 40,
-                height: 40,
-                border: "1px solid var(--ds-border)",
-                background: "#fff",
-                borderRadius: "50%",
-                display: "grid",
-                placeItems: "center",
-                cursor: "pointer",
-                color: "var(--ds-text-secondary)",
-                position: "relative",
-              }}
-            >
-              <i className="pi pi-bell" />
-              <span
-                style={{
-                  position: "absolute",
-                  top: 8,
-                  right: 9,
-                  width: 7,
-                  height: 7,
-                  background: "var(--ds-primary)",
-                  borderRadius: "50%",
-                  border: "1.5px solid #fff",
-                }}
-              />
-            </button>
           </div>
         </header>
 

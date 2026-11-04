@@ -3,25 +3,29 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { authApi } from "@/lib/auth-api";
-import { ApiError } from "@/lib/api-client";
+import { authApi, authErrorMessage } from "@/lib/auth-api";
+import { useSessionStore } from "@/lib/session-store";
+import { useRedirectIfSignedIn } from "@/lib/use-redirect-if-signed-in";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const setUser = useSessionStore((s) => s.setUser);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  useRedirectIfSignedIn();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
-      await authApi.register(email, password);
-      router.push("/login");
+      // The API signs the new learner in, so go straight into the app.
+      setUser(await authApi.register(email, password));
+      router.replace("/dashboard");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Đăng ký thất bại");
+      setError(authErrorMessage(err, "register"));
     } finally {
       setLoading(false);
     }
@@ -112,7 +116,7 @@ export default function RegisterPage() {
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <i className="pi pi-check-circle" />
-              <span>Ôn từ vựng bằng spaced repetition</span>
+              <span>Danh sách từ cần luyện lại từ chính bài nói của bạn</span>
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <i className="pi pi-check-circle" />

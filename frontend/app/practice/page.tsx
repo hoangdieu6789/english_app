@@ -52,8 +52,23 @@ export default function PracticePage() {
     }
   }
 
+  // First sentence: sentenceLoading starts true, so the effect only sets state when the
+  // request settles (no synchronous setState inside the effect).
   useEffect(() => {
-    loadNextSentence();
+    let cancelled = false;
+    fetchNextSentence()
+      .then((next) => {
+        if (!cancelled) setSentence(next);
+      })
+      .catch((err) => {
+        if (!cancelled) setSentenceError(err instanceof Error ? err.message : "Không tạo được câu mới. Thử lại.");
+      })
+      .finally(() => {
+        if (!cancelled) setSentenceLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function startRecording() {

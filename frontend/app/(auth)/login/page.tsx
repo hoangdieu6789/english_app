@@ -3,28 +3,30 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { authApi } from "@/lib/auth-api";
+import { authApi, authErrorMessage } from "@/lib/auth-api";
 import { useSessionStore } from "@/lib/session-store";
-import { ApiError } from "@/lib/api-client";
+import { useRedirectIfSignedIn } from "@/lib/use-redirect-if-signed-in";
 
 export default function LoginPage() {
   const router = useRouter();
   const setUser = useSessionStore((s) => s.setUser);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  useRedirectIfSignedIn();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
-      const user = await authApi.login(email, password);
+      const user = await authApi.login(email, password, remember);
       setUser(user);
-      router.push("/dashboard");
+      router.replace("/dashboard");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Đăng nhập thất bại");
+      setError(authErrorMessage(err, "login"));
     } finally {
       setLoading(false);
     }
@@ -115,7 +117,7 @@ export default function LoginPage() {
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <i className="pi pi-check-circle" />
-              <span>Ôn từ vựng bằng spaced repetition</span>
+              <span>Danh sách từ cần luyện lại từ chính bài nói của bạn</span>
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <i className="pi pi-check-circle" />
@@ -157,12 +159,19 @@ export default function LoginPage() {
             />
           </div>
 
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13 }}>
-            <label style={{ display: "flex", gap: 7, alignItems: "center", color: "var(--ds-text-secondary)" }}>
-              <input type="checkbox" defaultChecked style={{ accentColor: "var(--ds-primary)", width: 15, height: 15 }} />
-              Ghi nhớ đăng nhập
+          <div style={{ display: "flex", alignItems: "center", fontSize: 13 }}>
+            <label
+              style={{ display: "flex", gap: 7, alignItems: "center", color: "var(--ds-text-secondary)" }}
+              title="Bỏ chọn trên máy dùng chung: phiên đăng nhập kết thúc khi đóng trình duyệt."
+            >
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+                style={{ accentColor: "var(--ds-primary)", width: 15, height: 15 }}
+              />
+              Ghi nhớ đăng nhập (30 ngày)
             </label>
-            <a href="#">Quên mật khẩu?</a>
           </div>
 
           {error && <p style={{ fontSize: 13, color: "var(--ds-danger)" }}>{error}</p>}
@@ -174,9 +183,6 @@ export default function LoginPage() {
 
           <div style={{ textAlign: "center", fontSize: 13, color: "var(--ds-text-muted)" }}>
             Chưa có tài khoản? <Link href="/register">Đăng ký ngay</Link>
-          </div>
-          <div style={{ marginTop: 6, textAlign: "center", fontSize: 12, color: "var(--ds-text-disabled)" }}>
-            Cần hỗ trợ? Hotline 1900 1080
           </div>
         </form>
       </div>
