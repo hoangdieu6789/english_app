@@ -7,6 +7,7 @@ import { ProgressRing } from "@/components/charts/progress-ring";
 import { Waveform } from "@/components/charts/waveform";
 import { IeltsPractice } from "@/components/ielts-practice";
 import { RubricPanel } from "@/components/rubric-panel";
+import { WordTips } from "@/components/word-tips";
 import type { IeltsPart } from "@/lib/ielts-api";
 import { fetchNextSentence, type PracticeSentence } from "@/lib/practice-api";
 import { submitPronunciationAttempt, resolveAudioUrl, type PronunciationAttempt } from "@/lib/pronunciation-api";
@@ -495,6 +496,7 @@ export default function PracticePage() {
                 )}
 
                 {result.rubric && <RubricPanel rubric={result.rubric} grader={result.grader} />}
+                <WordTips words={result.wordScores} />
 
                 <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
                   <button onClick={retryRecord} className="ds-btn ds-btn-outline">

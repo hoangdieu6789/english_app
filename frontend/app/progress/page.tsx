@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/app-shell";
 import { WeeklyLineChart } from "@/components/charts/line-chart";
 import { BandGoalForm } from "@/components/band-goal-form";
+import { FeedbackLangSwitch } from "@/lib/feedback-lang";
 import { phonemeToIpa } from "@/lib/phonemes";
 import { progressQuery, type ProgressSummary } from "@/lib/progress-api";
 import { goalsQuery } from "@/lib/review-api";
@@ -163,6 +164,9 @@ export default function ProgressPage() {
         <div className="ds-card" style={{ padding: 24 }}>
           <div style={{ font: "700 16px var(--font-display)", marginBottom: 12 }}>Mục tiêu band</div>
           {goals.data ? <BandGoalForm goals={goals.data} /> : <Empty>Đang tải...</Empty>}
+          <div style={{ marginTop: 16 }}>
+            <FeedbackLangSwitch />
+          </div>
         </div>
 
         <div className="ds-card" style={{ padding: 24 }}>

@@ -70,6 +70,7 @@ export type Goals = {
   bandFrom: number; // new words have band in (bandFrom, bandTo]
   bandTo: number;
   remaining: number;
+  feedbackLang: "vi" | "en"; // language of the AI feedback
 };
 
 export const goalsQuery = {

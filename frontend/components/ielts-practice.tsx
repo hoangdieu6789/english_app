@@ -3,7 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Waveform } from "@/components/charts/waveform";
+import { ImprovedAnswerBox, SampleAnswerBox } from "@/components/answer-coach";
 import { RubricPanel } from "@/components/rubric-panel";
+import { WordTips } from "@/components/word-tips";
+import { FeedbackLangSwitch } from "@/lib/feedback-lang";
 import {
   PART_INFO,
   cueCardText,
@@ -325,6 +328,9 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
               <span>Nghe câu hỏi</span>
             </button>
           </div>
+          <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
+            <SampleAnswerBox key={taskPrompt} taskType={part} question={taskPrompt} />
+          </div>
         </div>
 
         {phase === "prep" && (
@@ -470,6 +476,11 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
           </div>
 
           {shown.rubric && <RubricPanel rubric={shown.rubric} grader={shown.grader} pendingSecs={pendingSecs} />}
+          <WordTips words={shown.wordScores} />
+          {(shown.recognizedText ?? "").split(/\s+/).length >= 3 && <ImprovedAnswerBox key={shown.id} attemptId={shown.id} initial={shown.improvedAnswer} />}
+          <div style={{ textAlign: "center" }}>
+            <FeedbackLangSwitch />
+          </div>
 
           <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
             <button onClick={reset} className="ds-btn ds-btn-outline">

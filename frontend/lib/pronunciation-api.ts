@@ -1,3 +1,4 @@
+import { getFeedbackLang } from "@/lib/feedback-lang";
 import { API_BASE_URL, apiFetch, errorFrom } from "./http";
 
 const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
@@ -18,6 +19,7 @@ export type WordScore = {
   unexpectedBreak?: boolean;
   missingBreak?: boolean;
   monotone?: boolean;
+  phonemes?: PhonemeScore[]; // the word's sounds as expected, with accuracy
 };
 
 export type PhonemeScore = {
@@ -93,6 +95,8 @@ export type PronunciationAttempt = {
   referenceText: string;
   recognizedText: string | null;
   taskType: string;
+  taskPrompt: string | null;
+  feedbackLang: "vi" | "en" | null;
   overallScore: number;
   fluencyScore: number;
   completenessScore: number | null;
@@ -107,6 +111,7 @@ export type PronunciationAttempt = {
   gradingStatus: "pending" | "done" | "failed";
   // whisper: written down by Whisper, then scored by Azure against it; azure: Azure's own recognition.
   transcriptSource: "azure" | "whisper" | null;
+  improvedAnswer: ImprovedAnswer | null;
   createdAt: string;
 };
 
@@ -129,6 +134,7 @@ export async function submitPronunciationAttempt(
   form.append("taskType", task.type);
   if (task.prompt) form.append("taskPrompt", task.prompt);
   if (task.questionSetId) form.append("questionSetId", task.questionSetId);
+  form.append("lang", getFeedbackLang());
 
   // The form (with the WAV) can be sent twice when the token is renewed; FormData is reusable.
   const res = await apiFetch("/pronunciation/attempts", { method: "POST", body: form });
@@ -140,5 +146,67 @@ export async function submitPronunciationAttempt(
 export async function fetchPronunciationAttempt(id: string): Promise<PronunciationAttempt> {
   const res = await apiFetch(`/pronunciation/attempts/${id}`);
   if (!res.ok) throw await errorFrom(res, "Failed to load attempt");
+  return res.json();
+}
+
+export type ImprovedAnswer = {
+  band: number;
+  lang: string;
+  improved: string;
+  changes: { original: string; improved: string; reason: string }[];
+};
+
+export type SampleAnswer = { band: number; answer: string; phrases: { phrase: string; meaning: string }[]; tips: string[] };
+
+/** Scores one recording of a single word (not saved). */
+export async function scoreWord(word: string, wav: Blob): Promise<{ word: string; score: number; heard: string; phonemes: PhonemeScore[] }> {
+  const form = new FormData();
+  form.append("audio", wav, "word.wav");
+  form.append("word", word);
+  const res = await apiFetch("/pronunciation/word", { method: "POST", body: form });
+  if (!res.ok) throw await errorFrom(res, "Chấm điểm thất bại. Thử lại.");
+  return res.json();
+}
+
+/** A model answer at the learner's target band (cached on the server). */
+export async function fetchSampleAnswer(taskType: string, question: string, lang: string): Promise<SampleAnswer> {
+  const res = await apiFetch("/coach/sample", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ taskType, question, lang }),
+  });
+  if (!res.ok) throw await errorFrom(res, "AI chưa viết được câu trả lời mẫu. Thử lại sau.");
+  return res.json();
+}
+
+/** The learner's answer of an attempt rewritten at their target band (saved with it). */
+export async function improveAnswer(attemptId: string, lang: string): Promise<ImprovedAnswer> {
+  const res = await apiFetch(`/pronunciation/attempts/${attemptId}/improve?lang=${lang}`, { method: "POST" });
+  if (!res.ok) throw await errorFrom(res, "AI chưa viết lại được câu trả lời. Thử lại sau.");
+  return res.json();
+}
+
+export type HistoryItem = {
+  id: string;
+  createdAt: string;
+  taskType: string;
+  taskPrompt: string | null;
+  referenceText: string;
+  recognizedText: string | null;
+  topic: string | null;
+  overallScore: number;
+  fluencyScore: number;
+  prosodyScore: number | null;
+  band: number | null;
+  cefr: string | null;
+  gradingStatus: string;
+};
+
+export async function fetchHistory(type: string, before?: string): Promise<{ attempts: HistoryItem[]; counts: Record<string, number>; next: string | null }> {
+  const q = new URLSearchParams();
+  if (type) q.set("type", type);
+  if (before) q.set("before", before);
+  const res = await apiFetch(`/pronunciation/attempts?${q}`);
+  if (!res.ok) throw await errorFrom(res, "Không tải được lịch sử.");
   return res.json();
 }

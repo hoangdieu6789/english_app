@@ -13,6 +13,7 @@ import { useSessionStore } from "@/lib/session-store";
 const NAV_ITEMS: { key: string; href: string; label: string; icon: string; badge?: string }[] = [
   { key: "dashboard", href: "/dashboard", label: "Trang chủ", icon: "pi pi-home" },
   { key: "practice", href: "/practice", label: "Luyện nói", icon: "pi pi-microphone" },
+  { key: "history", href: "/history", label: "Lịch sử", icon: "pi pi-history" },
   { key: "review", href: "/review", label: "Ôn từ", icon: "pi pi-book" },
   { key: "progress", href: "/progress", label: "Tiến độ", icon: "pi pi-chart-line" },
 ];
@@ -20,6 +21,7 @@ const NAV_ITEMS: { key: string; href: string; label: string; icon: string; badge
 const TITLES: Record<string, [string, string]> = {
   "/dashboard": ["Trang chủ", "Tổng quan việc học của bạn hôm nay"],
   "/practice": ["Luyện nói · Practice", "Shadowing và IELTS Speaking Part 1–3"],
+  "/history": ["Lịch sử · History", "Mọi bài bạn đã nói, nghe lại và xem lại kết quả chấm"],
   "/review": ["Ôn từ · Review", "Ôn các từ bạn nói chưa đúng, theo lịch nhắc lại"],
   "/progress": ["Tiến độ · Progress", "Streak, phát âm và band IELTS từ các bài bạn đã luyện"],
 };
@@ -62,7 +64,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return <div style={{ padding: 24, fontSize: 14, color: "var(--ds-text-muted)" }}>Đang tải...</div>;
   }
 
-  const [pageTitle, pageSubtitle] = TITLES[pathname] ?? ["", ""];
+  const [pageTitle, pageSubtitle] = TITLES[pathname] ?? (pathname.startsWith("/history/") ? TITLES["/history"] : ["", ""]);
 
   return (
     <div style={{ minHeight: "100vh", display: "flex" }}>
@@ -107,7 +109,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <nav style={{ padding: "14px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
           {NAV_ITEMS.map((nav) => {
             const item = nav.key === "review" && reviewDue > 0 ? { ...nav, badge: String(reviewDue) } : nav;
-            const active = pathname === item.href;
+            const active = pathname === item.href || pathname.startsWith(item.href + "/");
             return (
               <Link
                 key={item.key}
