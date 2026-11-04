@@ -133,6 +133,15 @@ Measured after the changes (2026-11-03):
 - [ ] Some remaining "errors" may be what the learner really said; check by listening, and consider a "read a given text" mode where the reference is known (like shadowing).
 - [ ] Try whisper `--prompt` with the question text (topic words) and measure WER again.
 
+### 6f. App-wide QA fixes (2026-11-04)
+
+- [x] E-mails are case-insensitive (`NormalizeEmail`, migration `000010` unique index on `lower(email)`); before, "Me@x.com" and "me@x.com" were two accounts.
+- [x] New learners get 12 fixed starter Shadowing sentences (`practice_sentence_starters.json`), so the first sentence shows at once (was ~17 s waiting for the LLM batch).
+- [x] "Remember me" works: unticked = session cookie and a 24 h refresh token, kept across rotation (`refresh_tokens.remember`).
+- [x] Registering signs the learner in; the login/register pages send a signed-in learner to the dashboard; auth errors in Vietnamese; Vietnamese 404 page.
+- [x] Removed fake UI: notification bell, "Forgot password" link, hotline number, fixed "Intermediate" level (now the real 30-day band), and the mock Review page (now the learner's real weak words; spaced repetition is still phase 3). Deleted unused mock data and `vocab-donut.tsx`; frontend eslint is clean.
+- [ ] Password reset needs an e-mail service; not built.
+
 ### 7. Maintenance
 
 - [ ] A command to sync the rubric, for example `make sync-rubric` (`rsync -a --delete` + `diff -rq`), instead of copying by hand.
