@@ -709,31 +709,117 @@ a:hover {
   }
 }
 
-/* Sign-in pages: two panels side by side; on phones the form comes first under a short
-   brand header (logo + tagline; intro and feature list hidden). */
-:root {
-  --ds-auth-pad: 32px;
+/* Signed-out pages (components/auth-layout.tsx). */
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 80px 32px 48px;
+  background: var(--ds-auth-glow), var(--ds-auth-bg);
+  position: relative;
+}
+.auth-lang {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+}
+.auth-card {
+  width: 100%;
+  max-width: 960px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-2xl);
+  box-shadow: var(--ds-shadow-lg);
+  overflow: hidden;
+}
+.auth-hero {
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  background: var(--ds-hero-bg);
+  color: var(--ds-hero-text);
+}
+.auth-hero-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.auth-features {
+  list-style: none;
+  margin: 28px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  font-size: var(--text-sm);
+  color: var(--ds-hero-text);
+}
+.auth-features li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.auth-feature-icon {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-hero-chip);
+}
+.auth-form {
+  padding: 48px 44px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 24px;
+}
+.auth-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: var(--text-sm);
+  color: var(--ds-text-secondary);
+  cursor: pointer;
+}
+.auth-check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--ds-primary);
+  cursor: pointer;
 }
 @media (max-width: 899px) {
-  :root {
-    --ds-auth-pad: 14px;
+  .auth-page {
+    padding: 72px 14px 24px;
+    place-items: start center;
   }
-  .ds-auth-split {
-    grid-template-columns: 1fr !important;
+  .auth-lang {
+    top: 12px;
+    right: 14px;
   }
-  .ds-auth-hero {
-    padding: 22px 20px !important;
-    gap: 12px !important;
+  .auth-card {
+    grid-template-columns: 1fr;
   }
-  .ds-auth-hero > :nth-child(n + 3),
-  .ds-auth-hero > :nth-child(2) > :nth-child(n + 2) {
-    display: none !important;
+  /* Phones: logo + headline only; the form follows right away. */
+  .auth-hero {
+    padding: 22px 20px;
+    gap: 14px;
   }
-  .ds-auth-form {
-    padding: 24px 20px !important;
+  .auth-hero-body p,
+  .auth-features {
+    display: none;
   }
-  .ds-auth-hero > :nth-child(2) > :first-child {
+  .auth-hero-body h1 {
     font-size: var(--text-xl) !important;
+  }
+  .auth-form {
+    padding: 24px 20px 28px;
   }
 }
 
