@@ -100,8 +100,8 @@ var backendMessages = map[string]map[string]string{
 		MsgScoringFailed:   "Chấm điểm thất bại. Thử lại sau ít phút.",
 		MsgNoWordsLeft:     "Đã hết từ mới trong khoảng band này. Hãy nâng band mục tiêu.",
 		MsgVocabUnenriched: "AI chưa soạn được nghĩa cho từ mới. Thử lại sau ít phút.",
-		MsgResetSubject:    "SpeakUp: đặt lại mật khẩu",
-		MsgResetBody: "Xin chào,\n\nBạn (hoặc ai đó) vừa yêu cầu đặt lại mật khẩu SpeakUp cho %[1]s.\n" +
+		MsgResetSubject:    "Boltspeak: đặt lại mật khẩu",
+		MsgResetBody: "Xin chào,\n\nBạn (hoặc ai đó) vừa yêu cầu đặt lại mật khẩu Boltspeak cho %[1]s.\n" +
 			"Mở link sau trong 30 phút để đặt mật khẩu mới:\n\n%[2]s\n\n" +
 			"Nếu bạn không yêu cầu, hãy bỏ qua email này; mật khẩu cũ vẫn dùng được.\n",
 	},
@@ -111,8 +111,8 @@ var backendMessages = map[string]map[string]string{
 		MsgScoringFailed:   "Scoring failed. Try again in a few minutes.",
 		MsgNoWordsLeft:     "There are no new words left in this band range. Raise your target band.",
 		MsgVocabUnenriched: "The AI could not write the new words yet. Try again in a few minutes.",
-		MsgResetSubject:    "SpeakUp: reset your password",
-		MsgResetBody: "Hello,\n\nYou (or someone else) asked to reset the SpeakUp password for %[1]s.\n" +
+		MsgResetSubject:    "Boltspeak: reset your password",
+		MsgResetBody: "Hello,\n\nYou (or someone else) asked to reset the Boltspeak password for %[1]s.\n" +
 			"Open this link within 30 minutes to set a new password:\n\n%[2]s\n\n" +
 			"If you did not ask for this, ignore this email; your current password still works.\n",
 	},

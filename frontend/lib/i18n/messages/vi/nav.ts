@@ -23,5 +23,5 @@ export const nav = {
   "nav.skip": "Bỏ qua, tới nội dung",
   "nav.menu": "Menu chính",
   "nav.account": "Tài khoản và cài đặt",
-  "nav.tagline": "Nói nhanh như tia chớp",
+  "nav.tagline": "Nói có lửa, chấm có tâm.",
 };

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { APP_NAME } from "@/lib/brand";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { progressQuery } from "@/lib/progress-api";
@@ -171,7 +172,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <aside className="app-sidebar">
         <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid var(--ds-border-subtle)" }}>
-          <Link href="/dashboard" aria-label="SpeakUp" style={{ color: "inherit", display: "inline-flex" }}>
+          <Link href="/dashboard" aria-label={APP_NAME} style={{ color: "inherit", display: "inline-flex" }}>
             <Brand size={40} />
           </Link>
           <div style={{ fontSize: "var(--text-xs)", color: "var(--ds-text-muted)", marginTop: 8 }}>{t("nav.tagline")}</div>
@@ -195,7 +196,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <div className="app-main">
         <header className="app-header">
-          <Link href="/dashboard" aria-label="SpeakUp" className="app-mobile-only" style={{ color: "inherit", minHeight: 44, alignItems: "center" }}>
+          <Link href="/dashboard" aria-label={APP_NAME} className="app-mobile-only" style={{ color: "inherit", minHeight: 44, alignItems: "center" }}>
             <Brand size={32} />
           </Link>
           <div className="app-desktop-only" style={{ minWidth: 0 }}>

@@ -1,6 +1,6 @@
-# SpeakUp design system
+# Boltspeak design system
 
-SpeakUp follows the David Studio look (`david_studio/docs/design-system.md`,
+Boltspeak ("Speak with a spark." / "Nói có lửa, chấm có tâm.") follows the David Studio look (`david_studio/docs/design-system.md`,
 `david_studio/docs/rules/ui-rules.md`): **easy to read first, fun second**, Dracula / Alucard colors,
 Hogwarts humor, toy-like 3D. Its own motif is the **lightning bolt**.
 
@@ -43,7 +43,7 @@ Grammar = Slytherin `--ds-house-gra`, Pronunciation = Hufflepuff `--ds-house-pro
 |-----|------|-------------|
 | Body | Nunito 450 (`--font-sans`) | reading text `--text-base` 18px, labels `--text-sm` 16px, minimum `--text-xs` 14px |
 | Headings | Baloo 2 (`--font-display`; Fredoka, used by the hub, has no Vietnamese letters) | `--text-lg` … `--text-4xl` |
-| Logo word only | Almendra Bold (`--font-logo`) | |
+| Logo word only (name in `frontend/lib/brand.ts`) | Almendra Bold (`--font-logo`) | |
 
 Fonts come from `next/font/google` (self-hosted at build). Never write a px font size in a
 component: use `var(--text-*)`.

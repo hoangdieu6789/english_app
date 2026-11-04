@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 /*
- * SpeakUp design tokens. Same palette as the David Studio hub (Alucard light, Dracula dark,
- * see docs/design-system.md); the lightning bolt is SpeakUp's own motif.
+ * Boltspeak design tokens. Same palette as the David Studio hub (Alucard light, Dracula dark,
+ * see docs/design-system.md); the lightning bolt is Boltspeak's own motif.
  * Light = :root, dark = .dark on <html> (set before paint by lib/theme/boot.ts).
  * Components use these variables only: no raw hex in app/ or components/
  * (checked by scripts/check-ui.mjs).

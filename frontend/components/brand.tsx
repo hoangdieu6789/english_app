@@ -1,4 +1,5 @@
-// SpeakUp brand: our own lightning bolt drawing (not an official logo) and the wordmark.
+// Boltspeak brand: our own lightning bolt drawing (not an official logo) and the wordmark.
+import { APP_NAME } from "@/lib/brand";
 
 /** The bolt mark. size in px; the tile is drawn in CSS colors, so it follows the theme. */
 export function BoltMark({ size = 40, tile = true }: { size?: number; tile?: boolean }) {
@@ -16,12 +17,12 @@ export function BoltMark({ size = 40, tile = true }: { size?: number; tile?: boo
   );
 }
 
-/** Logo: bolt + "SpeakUp" in the logo font. */
+/** Logo: bolt + the app name in the logo font. */
 export function Brand({ size = 40 }: { size?: number }) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
       <BoltMark size={size} />
-      <span style={{ font: `700 ${size * 0.6}px/1 var(--font-logo)`, color: "var(--ds-text)", letterSpacing: 0.2 }}>SpeakUp</span>
+      <span style={{ font: `700 ${size * 0.6}px/1 var(--font-logo)`, color: "var(--ds-text)", letterSpacing: 0.2 }}>{APP_NAME}</span>
     </span>
   );
 }

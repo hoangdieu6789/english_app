@@ -1,6 +1,7 @@
 "use client";
 
 import { BoltMark } from "@/components/brand";
+import { APP_NAME } from "@/lib/brand";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -87,7 +88,7 @@ export default function RegisterPage() {
         >
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <BoltMark size={44} />
-            <span style={{ font: "700 var(--text-2xl)/1 var(--font-logo)" }}>SpeakUp</span>
+            <span style={{ font: "700 var(--text-2xl)/1 var(--font-logo)" }}>{APP_NAME}</span>
           </div>
           <div style={{ marginTop: 6 }}>
             <div style={{ font: "700 var(--text-3xl)/1.2 var(--font-display)" }}>{t("auth.register.tagline")}</div>

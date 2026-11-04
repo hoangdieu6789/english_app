@@ -24,5 +24,5 @@ export const nav: Record<keyof typeof source, string> = {
   "nav.skip": "Skip to content",
   "nav.menu": "Main menu",
   "nav.account": "Account and settings",
-  "nav.tagline": "Speak quick as lightning",
+  "nav.tagline": "Speak with a spark.",
 };
