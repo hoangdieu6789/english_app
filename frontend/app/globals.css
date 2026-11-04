@@ -833,96 +833,56 @@ a:hover {
   transform: none;
 }
 
-/* Password reveal (components/auth-layout.tsx AuthField). No fake black dots: the real dots
-   cross-fade into gold "seeds", a bolt hits the button, sparks burst, then left to right every
-   seed pops into its letter with a gold glow. Hide runs it backwards.
-   Only opacity, transform, stroke and text-shadow animate; reduced motion skips it all. */
+/* Password reveal (components/auth-layout.tsx AuthField): one big gold bolt is drawn across the
+   field from left to right in 0.65 s, and an overlay with the text is uncovered right behind its
+   tip (hide: the overlay is wiped away and the dots come back behind the tip). The field glows
+   while the bolt crosses. Reduced motion: plain toggle (the component skips the effect). */
 .auth-pw {
-  --pw-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --pw-strike: 260ms;
+  --pw-sweep: 750ms;
+  --pw-curve: cubic-bezier(0.65, 0, 0.35, 1);
 }
 .auth-pw-toggle {
   z-index: 4;
 }
-.auth-pw .ds-input {
-  transition: color 0.18s ease;
+.auth-pw[data-fx] .ds-input {
+  animation: pw-field var(--pw-sweep) ease-out both;
 }
-.auth-pw[data-letters] .ds-input {
-  color: transparent;
-  caret-color: var(--ds-text);
+.auth-pw-sweep {
+  position: absolute;
+  inset: 1px 1px 1px 1px;
+  z-index: 2;
+  pointer-events: none;
 }
-.auth-pw[data-fx="strike"] .ds-input {
-  animation: pw-field 1.2s var(--pw-ease) both;
-}
-
-/* Letters overlay: same box, padding and font as .ds-input so letters sit on the real text. */
-.auth-pw-chars {
+/* Same padding and font as .ds-input: the overlay text sits exactly on the real text. */
+.auth-pw-text {
   position: absolute;
   inset: 0;
-  z-index: 2;
   display: flex;
   align-items: center;
-  padding: 0 52px 0 15px;
+  padding: 0 52px 0 14px;
+  border-radius: calc(var(--ds-radius-lg) - 1px);
+  background: var(--ds-surface);
   font: 450 var(--text-sm) var(--font-sans);
   color: var(--ds-text);
   white-space: pre;
   overflow: hidden;
-  pointer-events: none;
 }
-.pw-ch {
-  position: relative;
-  display: inline-block;
+.auth-pw[data-fx="show"] .auth-pw-text {
+  animation: pw-uncover var(--pw-sweep) var(--pw-curve) both;
 }
-.pw-glyph {
-  display: inline-block;
-}
-/* A seed = a small glowing gold diamond where a letter will be. */
-.pw-seed {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 6px;
-  height: 6px;
-  margin: -3px 0 0 -3px;
-  rotate: 45deg;
-  border-radius: 1px;
-  background: var(--ds-bolt-fill);
-  box-shadow: 0 0 6px 1px var(--ds-bolt-glow);
-}
-.auth-pw[data-fx="strike"] .pw-glyph {
-  animation: pw-letter-in 420ms var(--pw-ease) calc(var(--pw-strike) + var(--i) * var(--pw-step)) both;
-}
-.auth-pw[data-fx="strike"] .pw-seed {
-  animation:
-    pw-seed-in 180ms ease-out both,
-    pw-seed-pop 260ms ease-in calc(var(--pw-strike) + var(--i) * var(--pw-step)) forwards;
-}
-.auth-pw[data-fx="fade"] .pw-glyph {
-  animation: pw-letter-out 260ms ease-in calc(var(--i) * var(--pw-step)) both;
-}
-.auth-pw[data-fx="fade"] .pw-seed {
-  opacity: 0;
-  animation: pw-seed-flash 320ms ease-out calc(var(--i) * var(--pw-step)) both;
-}
-
-/* Burst at the button: bolt drawn from above the field, shock ring, ten sparks. */
-.auth-pw-burst {
-  position: absolute;
-  z-index: 3;
-  right: 22px;
-  top: 0;
-  bottom: 0;
-  width: 0;
-  pointer-events: none;
+.auth-pw[data-fx="hide"] .auth-pw-text {
+  animation: pw-cover-off var(--pw-sweep) var(--pw-curve) both;
 }
 .auth-pw-bolt {
   position: absolute;
-  left: -8px;
-  top: 1px;
-  width: 16px;
-  height: calc(50% - 10px);
+  left: -2px;
+  right: -2px;
+  top: 2px;
+  bottom: 2px;
+  width: calc(100% + 4px);
+  height: calc(100% - 4px);
   overflow: visible;
-  animation: pw-fade-late 0.8s ease-out both;
+  animation: pw-bolt-out var(--pw-sweep) ease-out both;
 }
 .auth-pw-bolt path {
   fill: none;
@@ -930,88 +890,43 @@ a:hover {
   stroke-linejoin: round;
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
-  animation: pw-draw var(--pw-strike) cubic-bezier(0.55, 0, 1, 0.45) both;
+  animation: pw-grow var(--pw-sweep) var(--pw-curve) both;
 }
 .auth-pw-bolt-glow {
   stroke: var(--ds-bolt-glow);
-  stroke-width: 9;
+  stroke-width: 10;
+  filter: blur(3px);
 }
 .auth-pw-bolt-core {
   stroke: var(--ds-bolt-fill);
   stroke-width: 3;
 }
-.pw-ring {
-  position: absolute;
-  left: -22px;
-  top: calc(50% - 22px);
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 3px solid var(--ds-bolt-fill);
-  box-shadow: 0 0 16px var(--ds-bolt-glow), inset 0 0 10px var(--ds-bolt-glow);
-  opacity: 0;
-  animation: pw-ring 0.75s var(--pw-ease) var(--pw-strike) both;
-}
-.pw-spark {
-  position: absolute;
-  left: 0;
-  top: 50%;
-  width: 14px;
-  height: 3px;
-  margin-top: -1.5px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, transparent, var(--ds-bolt-fill));
-  box-shadow: 0 0 6px var(--ds-bolt-glow);
-  opacity: 0;
-  transform-origin: 0 50%;
-  animation: pw-spark 0.7s var(--pw-ease) var(--pw-strike) both;
-}
-@keyframes pw-draw {
+
+/* The bolt grows from the left edge to the right edge, then flashes and fades. */
+@keyframes pw-grow {
+  from { stroke-dashoffset: 1; }
   to { stroke-dashoffset: 0; }
 }
-@keyframes pw-fade-late {
-  0%, 50% { opacity: 1; }
+@keyframes pw-bolt-out {
+  0%, 62% { opacity: 1; }
+  70% { opacity: 0.35; }
+  77% { opacity: 1; }
   100% { opacity: 0; }
 }
-@keyframes pw-ring {
-  0% { opacity: 0; transform: scale(0.3); }
-  4% { opacity: 1; transform: scale(0.35); }
-  100% { opacity: 0; transform: scale(2.6); }
+@keyframes pw-uncover {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
 }
-@keyframes pw-spark {
-  0% { opacity: 0; transform: rotate(var(--a)) translateX(8px) scaleX(1.6); }
-  4% { opacity: 1; transform: rotate(var(--a)) translateX(9px) scaleX(1.6); }
-  100% { opacity: 0; transform: rotate(var(--a)) translateX(var(--d)) scaleX(0.4); }
+@keyframes pw-cover-off {
+  from { clip-path: inset(0 0 0 0); }
+  to { clip-path: inset(0 0 0 100%); }
 }
 @keyframes pw-field {
   0% { box-shadow: 0 0 0 0 transparent; }
-  22% { box-shadow: 0 0 0 4px var(--ds-bolt-glow), 0 0 28px var(--ds-bolt-glow); border-color: var(--ds-bolt-fill); }
+  30% { box-shadow: 0 0 0 4px var(--ds-bolt-glow), 0 0 26px var(--ds-bolt-glow); border-color: var(--ds-bolt-fill); }
   100% { box-shadow: 0 0 0 0 transparent; }
 }
-@keyframes pw-seed-in {
-  from { opacity: 0; transform: scale(0.2); }
-  to { opacity: 1; transform: none; }
-}
-@keyframes pw-seed-pop {
-  0% { opacity: 1; transform: scale(1); }
-  35% { opacity: 1; transform: scale(2.2); }
-  100% { opacity: 0; transform: scale(0); }
-}
-@keyframes pw-seed-flash {
-  0% { opacity: 0; transform: scale(0.4); }
-  40% { opacity: 1; transform: scale(1.8); }
-  100% { opacity: 0; transform: scale(0); }
-}
-@keyframes pw-letter-in {
-  0% { opacity: 0; transform: translateY(8px) scale(0.4); color: var(--ds-bolt); text-shadow: none; }
-  45% { opacity: 1; transform: translateY(-3px) scale(1.25); color: var(--ds-bolt); text-shadow: 0 0 12px var(--ds-bolt-glow), 0 0 3px var(--ds-bolt-fill); }
-  100% { opacity: 1; transform: none; color: var(--ds-text); text-shadow: none; }
-}
-@keyframes pw-letter-out {
-  0% { opacity: 1; transform: none; color: var(--ds-text); }
-  50% { color: var(--ds-bolt); text-shadow: 0 0 10px var(--ds-bolt-glow); }
-  100% { opacity: 0; transform: translateY(-6px) scale(0.3); }
-}
+
 
 
 
