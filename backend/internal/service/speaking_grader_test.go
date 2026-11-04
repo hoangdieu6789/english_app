@@ -222,6 +222,7 @@ type fakeRepo struct {
 	updates []domain.GradingUpdate
 	status  map[uuid.UUID]string
 	pending []*domain.PronunciationAttempt
+	history []*domain.AttemptSummary // newest first
 }
 
 func (r *fakeRepo) Create(_ context.Context, a *domain.PronunciationAttempt) (*domain.PronunciationAttempt, error) {
@@ -255,6 +256,25 @@ func (r *fakeRepo) SetGradingStatus(_ context.Context, id uuid.UUID, status stri
 
 func (r *fakeRepo) ListPendingGrading(context.Context, int) ([]*domain.PronunciationAttempt, error) {
 	return r.pending, nil
+}
+
+func (r *fakeRepo) List(_ context.Context, _ uuid.UUID, _ string, before *time.Time, limit int) ([]*domain.AttemptSummary, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	var out []*domain.AttemptSummary
+	for _, s := range r.history {
+		if before == nil || s.CreatedAt.Before(*before) {
+			out = append(out, s)
+		}
+		if len(out) == limit {
+			break
+		}
+	}
+	return out, nil
+}
+
+func (r *fakeRepo) CountByType(context.Context, uuid.UUID) (map[string]int, error) {
+	return map[string]int{"part1": len(r.history)}, nil
 }
 
 func TestSubmitAttemptStoresRubric(t *testing.T) {

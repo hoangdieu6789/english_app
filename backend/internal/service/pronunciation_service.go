@@ -49,7 +49,44 @@ func (s *PronunciationService) Wait() { s.wg.Wait() }
 
 // Get returns one of the user's attempts; nil when it does not exist or is not theirs.
 func (s *PronunciationService) Get(ctx context.Context, id, userID uuid.UUID) (*domain.PronunciationAttempt, error) {
-	return s.repo.Get(ctx, id, userID)
+	a, err := s.repo.Get(ctx, id, userID)
+	if a != nil {
+		FillWordPhonemes(a)
+	}
+	return a, err
+}
+
+// ScoreWord scores the learner saying one word (Azure, the word as reference); nothing is
+// saved. Used to practise a word again from the pronunciation tips.
+func (s *PronunciationService) ScoreWord(ctx context.Context, audioWAV []byte, word string) (*ScoreResult, error) {
+	return s.scorer.Score(ctx, TrimSilenceWAV(audioWAV), word)
+}
+
+// History is one page of the learner's attempts and the number per task type.
+type History struct {
+	Attempts []*domain.AttemptSummary
+	Counts   map[string]int
+	Next     *time.Time // pass as before for the next page; nil = last page
+}
+
+const historyPageSize = 20
+
+// History returns the learner's attempts newest first, historyPageSize per page.
+func (s *PronunciationService) History(ctx context.Context, userID uuid.UUID, taskType string, before *time.Time) (*History, error) {
+	list, err := s.repo.List(ctx, userID, taskType, before, historyPageSize+1)
+	if err != nil {
+		return nil, fmt.Errorf("list attempts: %w", err)
+	}
+	h := &History{Attempts: list}
+	if len(list) > historyPageSize {
+		h.Attempts = list[:historyPageSize]
+		next := h.Attempts[historyPageSize-1].CreatedAt
+		h.Next = &next
+	}
+	if h.Counts, err = s.repo.CountByType(ctx, userID); err != nil {
+		return nil, fmt.Errorf("count attempts: %w", err)
+	}
+	return h, nil
 }
 
 // HasTask reports whether taskType is shadowing or an IELTS part from the rubric.
@@ -106,6 +143,9 @@ func (s *PronunciationService) SubmitAttempt(ctx context.Context, userID uuid.UU
 	}
 	if task.Prompt != "" {
 		attempt.TaskPrompt = &task.Prompt
+	}
+	if task.FeedbackLang == "vi" || task.FeedbackLang == "en" {
+		attempt.FeedbackLang = &task.FeedbackLang
 	}
 
 	in := GradeInput{
@@ -195,7 +235,7 @@ func (s *PronunciationService) ResumePending(ctx context.Context) (int, error) {
 		return 0, err
 	}
 	for _, a := range attempts {
-		in := GradeInput{Task: SpeakingTask{Type: a.TaskType, Prompt: deref(a.TaskPrompt)}, Transcript: deref(a.RecognizedText), AzureRaw: a.AzureResult}
+		in := GradeInput{Task: SpeakingTask{Type: a.TaskType, Prompt: deref(a.TaskPrompt), FeedbackLang: deref(a.FeedbackLang)}, Transcript: deref(a.RecognizedText), AzureRaw: a.AzureResult}
 		_, st, err := s.grader.GradePronunciation(ctx, in)
 		if err != nil || !s.grader.NeedsLLM(a.TaskType) {
 			log.Printf("speaking rubric: cannot resume grading of %s: %v", a.ID, err)

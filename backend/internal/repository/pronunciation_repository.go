@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -23,6 +24,10 @@ type PronunciationRepository interface {
 	SetGradingStatus(ctx context.Context, id uuid.UUID, status string) error
 	// ListPendingGrading returns attempts whose background LLM step did not finish.
 	ListPendingGrading(ctx context.Context, limit int) ([]*domain.PronunciationAttempt, error)
+	// List returns the learner's attempts newest first; taskType "" = all, before nil = first
+	// page.
+	List(ctx context.Context, userID uuid.UUID, taskType string, before *time.Time, limit int) ([]*domain.AttemptSummary, error)
+	CountByType(ctx context.Context, userID uuid.UUID) (map[string]int, error)
 }
 
 type pronunciationRepository struct {
@@ -76,6 +81,7 @@ func (r *pronunciationRepository) Create(ctx context.Context, attempt *domain.Pr
 		GraderModel:       toText(attempt.GraderModel),
 		GradingStatus:     gradingStatus(attempt.GradingStatus),
 		TranscriptSource:  toText(attempt.TranscriptSource),
+		FeedbackLang:      toText(attempt.FeedbackLang),
 	})
 	if err != nil {
 		return nil, err
@@ -118,6 +124,8 @@ func toDomainPronunciationAttempt(row sqlcgen.PronunciationAttempt) (*domain.Pro
 		GraderModel:       fromText(row.GraderModel),
 		GradingStatus:     row.GradingStatus,
 		TranscriptSource:  fromText(row.TranscriptSource),
+		FeedbackLang:      fromText(row.FeedbackLang),
+		ImprovedAnswer:    row.ImprovedAnswer,
 		CreatedAt:         row.CreatedAt.Time,
 	}
 	if row.RecognizedText.Valid {
@@ -211,6 +219,48 @@ func (r *pronunciationRepository) ListPendingGrading(ctx context.Context, limit 
 			return nil, err
 		}
 		out = append(out, a)
+	}
+	return out, nil
+}
+
+func (r *pronunciationRepository) List(ctx context.Context, userID uuid.UUID, taskType string, before *time.Time, limit int) ([]*domain.AttemptSummary, error) {
+	p := sqlcgen.ListAttemptsParams{UserID: userID, TaskType: taskType, MaxRows: int32(limit)}
+	if before != nil {
+		p.Before = pgtype.Timestamptz{Time: *before, Valid: true}
+	}
+	rows, err := r.q.ListAttempts(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*domain.AttemptSummary, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, &domain.AttemptSummary{
+			ID:             row.ID,
+			CreatedAt:      row.CreatedAt.Time,
+			TaskType:       row.TaskType,
+			TaskPrompt:     fromText(row.TaskPrompt),
+			ReferenceText:  row.ReferenceText,
+			RecognizedText: fromText(row.RecognizedText),
+			Topic:          fromText(row.Topic),
+			OverallScore:   row.OverallScore,
+			FluencyScore:   row.FluencyScore,
+			ProsodyScore:   fromFloat4(row.ProsodyScore),
+			RubricScore:    fromFloat4(row.RubricScore),
+			CEFRLevel:      fromText(row.CefrLevel),
+			GradingStatus:  row.GradingStatus,
+		})
+	}
+	return out, nil
+}
+
+func (r *pronunciationRepository) CountByType(ctx context.Context, userID uuid.UUID) (map[string]int, error) {
+	rows, err := r.q.CountAttemptsByType(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	out := map[string]int{}
+	for _, row := range rows {
+		out[row.TaskType] = int(row.Attempts)
 	}
 	return out, nil
 }

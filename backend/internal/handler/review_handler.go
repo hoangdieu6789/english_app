@@ -33,6 +33,7 @@ func RegisterReviewRoutes(api *echo.Group, h *ReviewHandler, jwtAuth *middleware
 	r.POST("/vocab", h.AddVocab, jwtAuth.RequireAuth)
 	api.GET("/goals", h.Goals, jwtAuth.RequireAuth)
 	api.PUT("/goals", h.SetGoals, jwtAuth.RequireAuth)
+	api.PUT("/settings/feedback-lang", h.SetFeedbackLang, jwtAuth.RequireAuth)
 }
 
 func reviewWordJSON(w *domain.ReviewWord) map[string]any {
@@ -93,6 +94,7 @@ func goalsJSON(g *service.Goals) map[string]any {
 		"measuredBand": g.MeasuredBand,
 		"selfBand":     g.SelfBand,
 		"targetBand":   g.TargetBand,
+		"feedbackLang": g.FeedbackLang,
 		"currentBand":  g.CurrentBand,
 		"bandFrom":     g.BandFrom,
 		"bandTo":       g.BandTo,
@@ -275,4 +277,25 @@ func (h *ReviewHandler) Remove(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusNotFound, "word not found")
 	}
 	return c.NoContent(http.StatusNoContent)
+}
+
+// SetFeedbackLang saves the language of the AI feedback: {"lang": "vi" | "en"}.
+func (h *ReviewHandler) SetFeedbackLang(c echo.Context) error {
+	uid, err := requireUserID(c)
+	if err != nil {
+		return err
+	}
+	var req struct {
+		Lang string `json:"lang"`
+	}
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
+	}
+	if err := h.vocab.SetFeedbackLang(c.Request().Context(), uid, req.Lang); err != nil {
+		if errors.Is(err, service.ErrInvalidLang) {
+			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to save the setting")
+	}
+	return c.JSON(http.StatusOK, map[string]string{"feedbackLang": req.Lang})
 }

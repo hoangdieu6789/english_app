@@ -75,6 +75,8 @@ type PronunciationAttempt struct {
 	GraderModel       pgtype.Text        `json:"grader_model"`
 	GradingStatus     string             `json:"grading_status"`
 	TranscriptSource  pgtype.Text        `json:"transcript_source"`
+	ImprovedAnswer    []byte             `json:"improved_answer"`
+	FeedbackLang      pgtype.Text        `json:"feedback_lang"`
 }
 
 type RefreshToken struct {
@@ -105,6 +107,17 @@ type ReviewWord struct {
 	MinScore       float32            `json:"min_score"`
 }
 
+type SampleAnswer struct {
+	ID           uuid.UUID          `json:"id"`
+	QuestionHash string             `json:"question_hash"`
+	TaskType     string             `json:"task_type"`
+	Question     string             `json:"question"`
+	Band         float32            `json:"band"`
+	Lang         string             `json:"lang"`
+	Content      []byte             `json:"content"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+}
+
 type Session struct {
 	ID                 uuid.UUID          `json:"id"`
 	UserID             uuid.UUID          `json:"user_id"`
@@ -123,6 +136,7 @@ type User struct {
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 	SelfBand     pgtype.Float4      `json:"self_band"`
 	TargetBand   pgtype.Float4      `json:"target_band"`
+	FeedbackLang string             `json:"feedback_lang"`
 }
 
 type VocabGap struct {

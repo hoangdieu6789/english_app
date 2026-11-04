@@ -170,6 +170,8 @@ func main() {
 	}
 	cancelSeedVocab()
 	reviewHandler := handler.NewReviewHandler(reviewService, vocabService)
+	// Model answers and improved answers at the learner's target band.
+	coachHandler := handler.NewCoachHandler(service.NewCoachService(graderLLM, repository.NewCoachRepository(pool), pronunciationRepo, vocabService))
 
 	e := echo.New()
 	e.Use(echomw.Logger())
@@ -188,6 +190,7 @@ func main() {
 	handler.RegisterIeltsRoutes(api, ieltsHandler, jwtAuth)
 	handler.RegisterProgressRoutes(api, progressHandler, jwtAuth)
 	handler.RegisterReviewRoutes(api, reviewHandler, jwtAuth)
+	handler.RegisterCoachRoutes(api, coachHandler, jwtAuth)
 
 	e.GET("/healthz", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})

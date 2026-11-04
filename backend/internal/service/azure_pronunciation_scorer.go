@@ -150,19 +150,19 @@ func (s *AzurePronunciationScorer) score(ctx context.Context, audioWAV []byte, r
 	wordScores := make([]domain.WordScore, 0, len(best.Words))
 	phonemeScores := make([]domain.PhonemeScore, 0)
 	for _, w := range best.Words {
-		wordScores = append(wordScores, domain.WordScore{
+		ws := domain.WordScore{
 			Word:          w.Word,
 			AccuracyScore: w.AccuracyScore,
 			ErrorType:     normalizeErrorType(w.ErrorType),
 			OffsetMs:      w.Offset / 10_000,
 			DurationMs:    w.Duration / 10_000,
-		})
-		for _, p := range w.Phonemes {
-			phonemeScores = append(phonemeScores, domain.PhonemeScore{
-				Phoneme: p.Phoneme,
-				Score:   p.AccuracyScore,
-			})
 		}
+		for _, p := range w.Phonemes {
+			ps := domain.PhonemeScore{Phoneme: p.Phoneme, Score: p.AccuracyScore}
+			phonemeScores = append(phonemeScores, ps)
+			ws.Phonemes = append(ws.Phonemes, ps)
+		}
+		wordScores = append(wordScores, ws)
 	}
 
 	return &ScoreResult{
@@ -276,4 +276,26 @@ type NoSpeechError struct {
 
 func (e *NoSpeechError) Error() string {
 	return "azure speech recognition: no speech recognised (status=" + e.Status + ")"
+}
+
+// FillWordPhonemes adds the per-word phonemes to attempts saved before WordScore had them,
+// from the stored Azure JSON (same word order).
+func FillWordPhonemes(a *domain.PronunciationAttempt) {
+	if len(a.WordScores) == 0 || len(a.AzureResult) == 0 {
+		return
+	}
+	for _, w := range a.WordScores {
+		if len(w.Phonemes) > 0 {
+			return // already there
+		}
+	}
+	var res azureRecognitionResponse
+	if err := json.Unmarshal(a.AzureResult, &res); err != nil || len(res.NBest) == 0 || len(res.NBest[0].Words) != len(a.WordScores) {
+		return
+	}
+	for i, w := range res.NBest[0].Words {
+		for _, p := range w.Phonemes {
+			a.WordScores[i].Phonemes = append(a.WordScores[i].Phonemes, domain.PhonemeScore{Phoneme: p.Phoneme, Score: p.AccuracyScore})
+		}
+	}
 }

@@ -513,6 +513,20 @@ func (q *Queries) UpdateReviewWordSchedule(ctx context.Context, arg UpdateReview
 	return err
 }
 
+const updateUserFeedbackLang = `-- name: UpdateUserFeedbackLang :exec
+UPDATE users SET feedback_lang = $2 WHERE id = $1
+`
+
+type UpdateUserFeedbackLangParams struct {
+	ID           uuid.UUID `json:"id"`
+	FeedbackLang string    `json:"feedback_lang"`
+}
+
+func (q *Queries) UpdateUserFeedbackLang(ctx context.Context, arg UpdateUserFeedbackLangParams) error {
+	_, err := q.db.Exec(ctx, updateUserFeedbackLang, arg.ID, arg.FeedbackLang)
+	return err
+}
+
 const updateUserGoals = `-- name: UpdateUserGoals :exec
 UPDATE users SET self_band = $2, target_band = $3 WHERE id = $1
 `

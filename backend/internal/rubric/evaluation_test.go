@@ -219,3 +219,21 @@ func TestAssemble(t *testing.T) {
 		t.Errorf("no LLM: not_assessed=%v summary=%q", onlyPron.NotAssessed, onlyPron.Summary)
 	}
 }
+
+func TestWithLanguage(t *testing.T) {
+	c, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	en := c.WithLanguage("en")
+	if en.Feedback.Language != "en" || c.Feedback.Language != "vi" || c.WithLanguage("xx") != c {
+		t.Fatalf("en=%q base=%q", en.Feedback.Language, c.Feedback.Language)
+	}
+	p, err := en.BuildSystemPrompt()
+	if err != nil || !strings.Contains(p, "**English**") {
+		t.Fatalf("prompt: %v", err)
+	}
+	if s := en.pronunciationSummary(nil); !strings.HasPrefix(s, "Not enough data") {
+		t.Fatalf("summary %q", s)
+	}
+}

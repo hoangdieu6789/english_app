@@ -63,6 +63,18 @@ func (m *memUsers) UpdateGoals(_ context.Context, id uuid.UUID, self, target *fl
 	return nil
 }
 
+func (m *memUsers) UpdateFeedbackLang(_ context.Context, id uuid.UUID, lang string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, u := range m.users {
+		if u.ID == id {
+			u.FeedbackLang = lang
+			return nil
+		}
+	}
+	return nil
+}
+
 func (m *memUsers) GetByID(_ context.Context, id uuid.UUID) (*domain.User, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()

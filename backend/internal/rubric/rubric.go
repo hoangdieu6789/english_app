@@ -76,6 +76,17 @@ func (c *Config) LLMCriteria() []Criterion {
 	return out
 }
 
+// WithLanguage returns a copy of the config whose learner-facing feedback is in lang (vi | en);
+// other values keep the configured language.
+func (c *Config) WithLanguage(lang string) *Config {
+	if lang != "vi" && lang != "en" || lang == c.Feedback.Language {
+		return c
+	}
+	cp := *c
+	cp.Feedback.Language = lang
+	return &cp
+}
+
 // BuildSystemPrompt assembles prompts/system.md with the shared docs and the docs of the
 // LLM-scored criteria. It does not depend on the task, so the whole system prompt is a
 // stable prefix that the LLM provider can cache. Put task type, question and transcript
@@ -117,7 +128,7 @@ func (c *Config) BuildSystemPrompt() (string, error) {
 		"{{shared_docs}}", strings.Join(shared, "\n\n---\n\n"),
 		"{{criteria_docs}}", strings.Join(docs, "\n\n---\n\n"),
 		"{{output_format}}", out,
-		"{{feedback_language}}", c.Feedback.Language,
+		"{{feedback_language}}", languageName(c.Feedback.Language),
 	)
 	return r.Replace(sys), nil
 }
@@ -188,4 +199,15 @@ func RoundHalf(v float64, mode string) float64 {
 	default:
 		return whole + 1
 	}
+}
+
+// languageName turns the feedback language code into the name used in the prompt.
+func languageName(code string) string {
+	switch code {
+	case "en":
+		return "English"
+	case "vi":
+		return "Vietnamese"
+	}
+	return code
 }

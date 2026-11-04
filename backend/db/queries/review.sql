@@ -110,3 +110,6 @@ WHERE user_id = $1 AND task_type <> 'shadowing' AND rubric_score IS NOT NULL
 
 -- name: UpdateUserGoals :exec
 UPDATE users SET self_band = $2, target_band = $3 WHERE id = $1;
+
+-- name: UpdateUserFeedbackLang :exec
+UPDATE users SET feedback_lang = $2 WHERE id = $1;

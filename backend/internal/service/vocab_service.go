@@ -40,6 +40,7 @@ type VocabEnricher interface {
 type Goals struct {
 	MeasuredBand float32  // 90-day IELTS average; 0 when none
 	SelfBand     *float32 // the learner's own estimate
+	FeedbackLang string   // vi | en: language of the AI feedback
 	TargetBand   *float32
 	CurrentBand  float32 // measured, else self estimate, else 5.0
 	BandFrom     float32 // new words: band in (BandFrom, BandTo]
@@ -85,6 +86,17 @@ func validBand(b *float32) bool {
 	return *b >= 3 && *b <= 9 && math.Mod(float64(*b)*2, 1) == 0
 }
 
+// ErrInvalidLang: the feedback language must be vi or en.
+var ErrInvalidLang = errors.New("feedback language must be vi or en")
+
+// SetFeedbackLang saves the language of the AI feedback (vi | en).
+func (s *VocabService) SetFeedbackLang(ctx context.Context, userID uuid.UUID, lang string) error {
+	if lang != "vi" && lang != "en" {
+		return ErrInvalidLang
+	}
+	return s.users.UpdateFeedbackLang(ctx, userID, lang)
+}
+
 // SetGoals saves the learner's self-estimated and target bands (nil clears one).
 func (s *VocabService) SetGoals(ctx context.Context, userID uuid.UUID, selfBand, targetBand *float32) error {
 	if !validBand(selfBand) || !validBand(targetBand) {
@@ -124,7 +136,7 @@ func (s *VocabService) Goals(ctx context.Context, userID uuid.UUID) (*Goals, err
 	if err != nil {
 		return nil, fmt.Errorf("measured band: %w", err)
 	}
-	g := &Goals{MeasuredBand: measured, SelfBand: user.SelfBand, TargetBand: user.TargetBand, CurrentBand: defaultCurrentBand}
+	g := &Goals{MeasuredBand: measured, SelfBand: user.SelfBand, TargetBand: user.TargetBand, CurrentBand: defaultCurrentBand, FeedbackLang: user.FeedbackLang}
 	switch {
 	case measured > 0:
 		g.CurrentBand = float32(math.Round(float64(measured)*10) / 10)

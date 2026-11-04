@@ -27,6 +27,8 @@ type SpeakingTask struct {
 	Prompt string `json:"questions,omitempty"` // the question(s) or cue card the learner answered
 	// QuestionSetID is the IELTS question set answered (stored with the attempt, not sent to the LLM).
 	QuestionSetID *uuid.UUID `json:"-"`
+	// FeedbackLang is the language of the learner-facing feedback (vi | en; "" = rubric default).
+	FeedbackLang string `json:"-"`
 }
 
 // LLMCompleter sends one system + user prompt and returns the model's text reply.
@@ -73,6 +75,7 @@ type GradeState struct {
 	Segs  []rubric.Segment // parsed Azure segments; their words carry the break / monotone flags
 	pron  *rubric.PronunciationResult
 	hints *rubric.SpeechHints
+	lang  string // feedback language of the task
 }
 
 // NeedsLLM reports whether a task has criteria that only the LLM can score (IELTS parts,
@@ -102,7 +105,7 @@ func (g *SpeakingGrader) GradePronunciation(ctx context.Context, in GradeInput) 
 		return nil, nil, fmt.Errorf("unknown task type %q", in.Task.Type)
 	}
 	pc := g.cfg.Pronunciation
-	st := &GradeState{}
+	st := &GradeState{lang: in.Task.FeedbackLang}
 
 	if len(in.AzureRaw) > 0 {
 		var err error
@@ -154,7 +157,7 @@ func (g *SpeakingGrader) GradeTranscriptCriteria(ctx context.Context, in GradeIn
 }
 
 func (g *SpeakingGrader) assemble(taskType string, llmEval *rubric.Evaluation, st *GradeState) *rubric.Result {
-	res := g.cfg.Assemble(taskType, llmEval, st.pron, st.hints)
+	res := g.cfg.WithLanguage(st.lang).Assemble(taskType, llmEval, st.pron, st.hints)
 	if taskType == TaskShadowing {
 		// Reading a given sentence shows nothing about fluency, vocabulary or grammar.
 		for i, na := range res.NotAssessed {
@@ -167,7 +170,7 @@ func (g *SpeakingGrader) assemble(taskType string, llmEval *rubric.Evaluation, s
 }
 
 func (g *SpeakingGrader) gradeTranscript(ctx context.Context, in GradeInput, hints *rubric.SpeechHints) (*rubric.Evaluation, error) {
-	system, err := g.cfg.BuildSystemPrompt()
+	system, err := g.cfg.WithLanguage(in.Task.FeedbackLang).BuildSystemPrompt()
 	if err != nil {
 		return nil, fmt.Errorf("build system prompt: %w", err)
 	}
