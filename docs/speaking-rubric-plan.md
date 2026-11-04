@@ -140,7 +140,9 @@ Measured after the changes (2026-11-03):
 - [x] "Remember me" works: unticked = session cookie and a 24 h refresh token, kept across rotation (`refresh_tokens.remember`).
 - [x] Registering signs the learner in; the login/register pages send a signed-in learner to the dashboard; auth errors in Vietnamese; Vietnamese 404 page.
 - [x] Removed fake UI: notification bell, "Forgot password" link, hotline number, fixed "Intermediate" level (now the real 30-day band), and the mock Review page (now the learner's real weak words; spaced repetition is still phase 3). Deleted unused mock data and `vocab-donut.tsx`; frontend eslint is clean.
-- [ ] Password reset needs an e-mail service; not built.
+- [x] Password reset (migration `000011`): `POST /api/auth/forgot-password` (always 202, at most 3 links per account per hour, link valid 30 min, only the SHA-256 stored) and `POST /api/auth/reset-password` (one use; revokes all sessions). E-mail by SMTP (`SMTP_*`); without `SMTP_HOST` the link is written to the API log. Pages `/forgot-password`, `/reset-password`.
+- [x] Spaced-repetition word review (migration `000012`, `review_words`, SM-2): every attempt queues its weak words (mispronounced or < 60, no stopwords / words under 3 letters); the Review page plays the word, records it, Azure scores it against the word (85+ easy, 60+ pass, below = back in 10 min); a word said wrongly again in practice is due again. Backfilled from the last 30 days (22 words for the existing account). Sidebar badge = words due.
+- [ ] Review: add meanings / example sentences for words (needs a dictionary or LLM call).
 
 ### 7. Maintenance
 
