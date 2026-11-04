@@ -12,20 +12,55 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createRefreshToken = `-- name: CreateRefreshToken :one
-INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
+const countRecentPasswordResets = `-- name: CountRecentPasswordResets :one
+SELECT count(*) FROM password_reset_tokens
+WHERE user_id = $1 AND created_at > now() - interval '1 hour'
+`
+
+// Reset links requested for a user in the last hour (rate limit).
+func (q *Queries) CountRecentPasswordResets(ctx context.Context, userID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countRecentPasswordResets, userID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const createPasswordResetToken = `-- name: CreatePasswordResetToken :exec
+INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
 VALUES ($1, $2, $3)
-RETURNING id, user_id, token_hash, expires_at, revoked_at, created_at
+`
+
+type CreatePasswordResetTokenParams struct {
+	UserID    uuid.UUID          `json:"user_id"`
+	TokenHash string             `json:"token_hash"`
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+}
+
+func (q *Queries) CreatePasswordResetToken(ctx context.Context, arg CreatePasswordResetTokenParams) error {
+	_, err := q.db.Exec(ctx, createPasswordResetToken, arg.UserID, arg.TokenHash, arg.ExpiresAt)
+	return err
+}
+
+const createRefreshToken = `-- name: CreateRefreshToken :one
+INSERT INTO refresh_tokens (user_id, token_hash, expires_at, remember)
+VALUES ($1, $2, $3, $4)
+RETURNING id, user_id, token_hash, expires_at, revoked_at, created_at, remember
 `
 
 type CreateRefreshTokenParams struct {
 	UserID    uuid.UUID          `json:"user_id"`
 	TokenHash string             `json:"token_hash"`
 	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+	Remember  bool               `json:"remember"`
 }
 
 func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (RefreshToken, error) {
-	row := q.db.QueryRow(ctx, createRefreshToken, arg.UserID, arg.TokenHash, arg.ExpiresAt)
+	row := q.db.QueryRow(ctx, createRefreshToken,
+		arg.UserID,
+		arg.TokenHash,
+		arg.ExpiresAt,
+		arg.Remember,
+	)
 	var i RefreshToken
 	err := row.Scan(
 		&i.ID,
@@ -34,6 +69,7 @@ func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshToken
 		&i.ExpiresAt,
 		&i.RevokedAt,
 		&i.CreatedAt,
+		&i.Remember,
 	)
 	return i, err
 }
@@ -41,7 +77,7 @@ func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshToken
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (email, password_hash)
 VALUES ($1, $2)
-RETURNING id, email, password_hash, level, target_goal, created_at
+RETURNING id, email, password_hash, level, target_goal, created_at, self_band, target_band, lang
 `
 
 type CreateUserParams struct {
@@ -59,12 +95,15 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Level,
 		&i.TargetGoal,
 		&i.CreatedAt,
+		&i.SelfBand,
+		&i.TargetBand,
+		&i.Lang,
 	)
 	return i, err
 }
 
 const getRefreshTokenByHash = `-- name: GetRefreshTokenByHash :one
-SELECT id, user_id, token_hash, expires_at, revoked_at, created_at FROM refresh_tokens
+SELECT id, user_id, token_hash, expires_at, revoked_at, created_at, remember FROM refresh_tokens
 WHERE token_hash = $1
 `
 
@@ -78,17 +117,19 @@ func (q *Queries) GetRefreshTokenByHash(ctx context.Context, tokenHash string) (
 		&i.ExpiresAt,
 		&i.RevokedAt,
 		&i.CreatedAt,
+		&i.Remember,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password_hash, level, target_goal, created_at FROM users
-WHERE email = $1
+SELECT id, email, password_hash, level, target_goal, created_at, self_band, target_band, lang FROM users
+WHERE lower(email) = lower($1)
 `
 
-func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
-	row := q.db.QueryRow(ctx, getUserByEmail, email)
+// The service passes a normalised (lower-case) e-mail; lower() also finds older rows.
+func (q *Queries) GetUserByEmail(ctx context.Context, lower string) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByEmail, lower)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -97,12 +138,15 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.Level,
 		&i.TargetGoal,
 		&i.CreatedAt,
+		&i.SelfBand,
+		&i.TargetBand,
+		&i.Lang,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, password_hash, level, target_goal, created_at FROM users
+SELECT id, email, password_hash, level, target_goal, created_at, self_band, target_band, lang FROM users
 WHERE id = $1
 `
 
@@ -116,6 +160,9 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.Level,
 		&i.TargetGoal,
 		&i.CreatedAt,
+		&i.SelfBand,
+		&i.TargetBand,
+		&i.Lang,
 	)
 	return i, err
 }
@@ -140,4 +187,33 @@ WHERE id = $1
 func (q *Queries) RevokeRefreshToken(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, revokeRefreshToken, id)
 	return err
+}
+
+const updateUserPassword = `-- name: UpdateUserPassword :exec
+UPDATE users SET password_hash = $2 WHERE id = $1
+`
+
+type UpdateUserPasswordParams struct {
+	ID           uuid.UUID `json:"id"`
+	PasswordHash string    `json:"password_hash"`
+}
+
+func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {
+	_, err := q.db.Exec(ctx, updateUserPassword, arg.ID, arg.PasswordHash)
+	return err
+}
+
+const usePasswordResetToken = `-- name: UsePasswordResetToken :one
+UPDATE password_reset_tokens
+SET used_at = now()
+WHERE token_hash = $1 AND used_at IS NULL AND expires_at > now()
+RETURNING user_id
+`
+
+// Marks a valid token used and returns its user; no row when unknown, expired or used.
+func (q *Queries) UsePasswordResetToken(ctx context.Context, tokenHash string) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, usePasswordResetToken, tokenHash)
+	var user_id uuid.UUID
+	err := row.Scan(&user_id)
+	return user_id, err
 }

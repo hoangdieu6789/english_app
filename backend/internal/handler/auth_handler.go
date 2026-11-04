@@ -7,6 +7,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 
+	"englishapp/backend/internal/i18n"
 	"englishapp/backend/internal/service"
 	"englishapp/backend/pkg/config"
 )
@@ -37,11 +38,12 @@ func (h *AuthHandler) Register(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
 	}
+	req.Email = service.NormalizeEmail(req.Email)
 	if err := validate.Struct(req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	user, err := h.svc.Register(c.Request().Context(), req.Email, req.Password)
+	user, tokens, err := h.svc.Register(c.Request().Context(), req.Email, req.Password)
 	if err != nil {
 		if errors.Is(err, service.ErrEmailTaken) {
 			return echo.NewHTTPError(http.StatusConflict, "email already registered")
@@ -49,6 +51,7 @@ func (h *AuthHandler) Register(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to register")
 	}
 
+	h.setAuthCookies(c, tokens) // signed in right away
 	return c.JSON(http.StatusCreated, map[string]any{
 		"id":    user.ID,
 		"email": user.Email,
@@ -58,6 +61,7 @@ func (h *AuthHandler) Register(c echo.Context) error {
 type loginRequest struct {
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required"`
+	Remember *bool  `json:"remember"` // "remember me"; missing = true
 }
 
 func (h *AuthHandler) Login(c echo.Context) error {
@@ -65,11 +69,13 @@ func (h *AuthHandler) Login(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
 	}
+	req.Email = service.NormalizeEmail(req.Email)
 	if err := validate.Struct(req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	user, tokens, err := h.svc.Login(c.Request().Context(), req.Email, req.Password)
+	remember := req.Remember == nil || *req.Remember
+	user, tokens, err := h.svc.Login(c.Request().Context(), req.Email, req.Password, remember)
 	if err != nil {
 		if errors.Is(err, service.ErrInvalidCredentials) {
 			return echo.NewHTTPError(http.StatusUnauthorized, "invalid email or password")
@@ -124,8 +130,11 @@ func (h *AuthHandler) Me(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, map[string]any{
-		"id":    user.ID,
-		"email": user.Email,
+		"id":         user.ID,
+		"email":      user.Email,
+		"selfBand":   user.SelfBand,
+		"targetBand": user.TargetBand,
+		"lang":       i18n.Normalize(user.Lang),
 	})
 }
 
@@ -140,12 +149,16 @@ func (h *AuthHandler) setAuthCookies(c echo.Context, tokens *service.AuthTokens)
 		Secure:   h.cfg.CookieSecure,
 		SameSite: http.SameSiteLaxMode,
 	})
+	refreshMaxAge := int(tokens.RefreshTTL.Seconds())
+	if !tokens.Remember {
+		refreshMaxAge = 0 // no Max-Age: the browser drops it when it closes
+	}
 	c.SetCookie(&http.Cookie{
 		Name:     refreshCookieName,
 		Value:    tokens.RefreshToken,
 		Path:     "/api/auth",
 		Domain:   h.cfg.CookieDomain,
-		MaxAge:   int(tokens.RefreshTTL.Seconds()),
+		MaxAge:   refreshMaxAge,
 		HttpOnly: true,
 		Secure:   h.cfg.CookieSecure,
 		SameSite: http.SameSiteLaxMode,
@@ -173,4 +186,50 @@ func (h *AuthHandler) clearAuthCookies(c echo.Context) {
 		Secure:   h.cfg.CookieSecure,
 		SameSite: http.SameSiteLaxMode,
 	})
+}
+
+type forgotPasswordRequest struct {
+	Email string `json:"email" validate:"required,email"`
+}
+
+// ForgotPassword always answers 202, so it does not tell whether an e-mail is registered.
+func (h *AuthHandler) ForgotPassword(c echo.Context) error {
+	var req forgotPasswordRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
+	}
+	req.Email = service.NormalizeEmail(req.Email)
+	if err := validate.Struct(req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid email")
+	}
+	if err := h.svc.RequestPasswordReset(c.Request().Context(), req.Email); err != nil {
+		c.Logger().Errorf("password reset request: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to request password reset")
+	}
+	return c.NoContent(http.StatusAccepted)
+}
+
+type resetPasswordRequest struct {
+	Token    string `json:"token" validate:"required"`
+	Password string `json:"password" validate:"required,min=8"`
+}
+
+func (h *AuthHandler) ResetPassword(c echo.Context) error {
+	var req resetPasswordRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
+	}
+	if err := validate.Struct(req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "token and a password of at least 8 characters are required")
+	}
+	err := h.svc.ResetPassword(c.Request().Context(), req.Token, req.Password)
+	if errors.Is(err, service.ErrInvalidResetToken) {
+		return echo.NewHTTPError(http.StatusGone, "invalid or expired reset link")
+	}
+	if err != nil {
+		c.Logger().Errorf("password reset: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to reset password")
+	}
+	h.clearAuthCookies(c)
+	return c.NoContent(http.StatusNoContent)
 }

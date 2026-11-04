@@ -42,8 +42,18 @@ type Config struct {
 	ClaudeModel    string // Claude Code model alias (sonnet, haiku, opus); empty = CLI default
 	GeminiAPIKey   string
 	GeminiModel    string // comma-separated Gemini API models, tried in order
-	PitchPython    string // e.g. "python3"; empty = no pitch analysis (Pronunciation P-04 uses the monotone signal only)
-	PitchScript    string // path to internal/rubric/pitch/pitch_direction.py on disk
+	// Transcriber for free speech (IELTS parts): whisper (whisper.cpp through the LLM bridge,
+	// default when LLM_BRIDGE_TOKEN is set) or azure (Azure's own recognition).
+	Transcriber string
+	// SMTP for password reset e-mails; empty SMTPHost = the link is written to the API log
+	// (local use only).
+	SMTPHost     string
+	SMTPPort     int
+	SMTPUsername string
+	SMTPPassword string
+	SMTPFrom     string
+	PitchPython  string // e.g. "python3"; empty = no pitch analysis (Pronunciation P-04 uses the monotone signal only)
+	PitchScript  string // path to internal/rubric/pitch/pitch_direction.py on disk
 }
 
 func Load() *Config {
@@ -77,6 +87,12 @@ func Load() *Config {
 		LLMProviders:   getEnv("LLM_PROVIDERS", "openrouter"),
 		LLMBridgeURL:   getEnv("LLM_BRIDGE_URL", "http://host.docker.internal:8765"),
 		LLMBridgeToken: getEnv("LLM_BRIDGE_TOKEN", ""),
+		Transcriber:    getEnv("TRANSCRIBER", "whisper"),
+		SMTPHost:       getEnv("SMTP_HOST", ""),
+		SMTPPort:       getEnvInt("SMTP_PORT", 587),
+		SMTPUsername:   getEnv("SMTP_USERNAME", ""),
+		SMTPPassword:   getEnv("SMTP_PASSWORD", ""),
+		SMTPFrom:       getEnv("SMTP_FROM", ""),
 		ClaudeModel:    getEnv("CLAUDE_MODEL", "sonnet"),
 		GeminiAPIKey:   getEnv("GEMINI_API_KEY", ""),
 		GeminiModel:    getEnv("GEMINI_MODEL", "gemini-flash-latest,gemini-3-flash-preview"),

@@ -95,12 +95,24 @@ type azurePhoneme struct {
 }
 
 func (s *AzurePronunciationScorer) Score(ctx context.Context, audioWAV []byte, referenceText string) (*ScoreResult, error) {
+	// Miscue (omitted / inserted words) needs a reference text.
+	return s.score(ctx, audioWAV, referenceText, referenceText != "")
+}
+
+// ScoreTranscribed scores free speech against a transcript of the same audio (from the
+// Transcriber). Miscue is off: the transcript is what was said, so Azure only has to align
+// it and score each word; with miscue on it reported false insertions.
+func (s *AzurePronunciationScorer) ScoreTranscribed(ctx context.Context, audioWAV []byte, transcript string) (*ScoreResult, error) {
+	return s.score(ctx, audioWAV, transcript, false)
+}
+
+func (s *AzurePronunciationScorer) score(ctx context.Context, audioWAV []byte, referenceText string, miscue bool) (*ScoreResult, error) {
 	cfg := azurePronAssessmentConfig{
 		ReferenceText:           referenceText,
 		GradingSystem:           "HundredMark",
 		Granularity:             "Phoneme",
 		Dimension:               "Comprehensive",
-		EnableMiscue:            referenceText != "", // miscue needs a reference text
+		EnableMiscue:            miscue,
 		EnableProsodyAssessment: "True",
 	}
 	cfgJSON, err := json.Marshal(cfg)
@@ -125,6 +137,11 @@ func (s *AzurePronunciationScorer) Score(ctx context.Context, audioWAV []byte, r
 	}
 
 	if result.RecognitionStatus != "Success" || len(result.NBest) == 0 {
+		// NoMatch / InitialSilenceTimeout / BabbleTimeout: Azure heard no usable speech
+		// (silent or very quiet microphone, only noise). Error: a problem on Azure's side.
+		if result.RecognitionStatus != "Error" {
+			return nil, &NoSpeechError{Status: result.RecognitionStatus}
+		}
 		return nil, fmt.Errorf("azure speech recognition failed: status=%s", result.RecognitionStatus)
 	}
 
@@ -133,19 +150,19 @@ func (s *AzurePronunciationScorer) Score(ctx context.Context, audioWAV []byte, r
 	wordScores := make([]domain.WordScore, 0, len(best.Words))
 	phonemeScores := make([]domain.PhonemeScore, 0)
 	for _, w := range best.Words {
-		wordScores = append(wordScores, domain.WordScore{
+		ws := domain.WordScore{
 			Word:          w.Word,
 			AccuracyScore: w.AccuracyScore,
 			ErrorType:     normalizeErrorType(w.ErrorType),
 			OffsetMs:      w.Offset / 10_000,
 			DurationMs:    w.Duration / 10_000,
-		})
-		for _, p := range w.Phonemes {
-			phonemeScores = append(phonemeScores, domain.PhonemeScore{
-				Phoneme: p.Phoneme,
-				Score:   p.AccuracyScore,
-			})
 		}
+		for _, p := range w.Phonemes {
+			ps := domain.PhonemeScore{Phoneme: p.Phoneme, Score: p.AccuracyScore}
+			phonemeScores = append(phonemeScores, ps)
+			ws.Phonemes = append(ws.Phonemes, ps)
+		}
+		wordScores = append(wordScores, ws)
 	}
 
 	return &ScoreResult{
@@ -249,5 +266,36 @@ func normalizeErrorType(azureErrorType string) string {
 		return "insertion"
 	default:
 		return "none"
+	}
+}
+
+// NoSpeechError means Azure returned a result but recognised no speech in the recording.
+type NoSpeechError struct {
+	Status string // Azure RecognitionStatus, e.g. NoMatch, InitialSilenceTimeout
+}
+
+func (e *NoSpeechError) Error() string {
+	return "azure speech recognition: no speech recognised (status=" + e.Status + ")"
+}
+
+// FillWordPhonemes adds the per-word phonemes to attempts saved before WordScore had them,
+// from the stored Azure JSON (same word order).
+func FillWordPhonemes(a *domain.PronunciationAttempt) {
+	if len(a.WordScores) == 0 || len(a.AzureResult) == 0 {
+		return
+	}
+	for _, w := range a.WordScores {
+		if len(w.Phonemes) > 0 {
+			return // already there
+		}
+	}
+	var res azureRecognitionResponse
+	if err := json.Unmarshal(a.AzureResult, &res); err != nil || len(res.NBest) == 0 || len(res.NBest[0].Words) != len(a.WordScores) {
+		return
+	}
+	for i, w := range res.NBest[0].Words {
+		for _, p := range w.Phonemes {
+			a.WordScores[i].Phonemes = append(a.WordScores[i].Phonemes, domain.PhonemeScore{Phoneme: p.Phoneme, Score: p.AccuracyScore})
+		}
 	}
 }

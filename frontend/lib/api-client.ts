@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api";
+import { apiFetch } from "./http";
 
 export class ApiError extends Error {
   status: number;
@@ -10,9 +10,8 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
+  const res = await apiFetch(path, {
     ...options,
-    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...options.headers,
@@ -24,10 +23,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     throw new ApiError(res.status, body.message ?? res.statusText);
   }
 
-  if (res.status === 204) {
+  // 202/204 and other empty bodies (e.g. forgot-password answers 202 with no body).
+  const text = await res.text();
+  if (!text) {
     return undefined as T;
   }
-  return res.json() as Promise<T>;
+  return JSON.parse(text) as T;
 }
 
 export const apiClient = {

@@ -7,24 +7,27 @@ import { ProgressRing } from "@/components/charts/progress-ring";
 import { Waveform } from "@/components/charts/waveform";
 import { IeltsPractice } from "@/components/ielts-practice";
 import { RubricPanel } from "@/components/rubric-panel";
+import { WordTips } from "@/components/word-tips";
 import type { IeltsPart } from "@/lib/ielts-api";
 import { fetchNextSentence, type PracticeSentence } from "@/lib/practice-api";
 import { submitPronunciationAttempt, resolveAudioUrl, type PronunciationAttempt } from "@/lib/pronunciation-api";
 import { WavRecorder } from "@/lib/wav-recorder";
 import { scoreColor, scoreColorSoft } from "@/lib/score-color";
 import { speakEnglish } from "@/lib/text-to-speech";
+import { getLang, translate, useI18n, type MessageKey } from "@/lib/i18n";
 
 type RecState = "idle" | "recording" | "processing" | "result" | "error";
 type Mode = "shadowing" | IeltsPart;
 
-const MODES: { id: Mode; label: string }[] = [
-  { id: "shadowing", label: "Shadowing" },
-  { id: "part1", label: "IELTS Part 1" },
-  { id: "part2", label: "IELTS Part 2" },
-  { id: "part3", label: "IELTS Part 3" },
+const MODES: { id: Mode; label: MessageKey }[] = [
+  { id: "shadowing", label: "common.task.shadowing" },
+  { id: "part1", label: "common.task.part1" },
+  { id: "part2", label: "common.task.part2" },
+  { id: "part3", label: "common.task.part3" },
 ];
 
 export default function PracticePage() {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [mode, setMode] = useState<Mode>("shadowing");
   const [sentence, setSentence] = useState<PracticeSentence | null>(null);
@@ -46,14 +49,29 @@ export default function PracticePage() {
       const next = await fetchNextSentence();
       setSentence(next);
     } catch (err) {
-      setSentenceError(err instanceof Error ? err.message : "Không tạo được câu mới. Thử lại.");
+      setSentenceError(err instanceof Error ? err.message : t("practice.sentenceFailed"));
     } finally {
       setSentenceLoading(false);
     }
   }
 
+  // First sentence: sentenceLoading starts true, so the effect only sets state when the
+  // request settles (no synchronous setState inside the effect).
   useEffect(() => {
-    loadNextSentence();
+    let cancelled = false;
+    fetchNextSentence()
+      .then((next) => {
+        if (!cancelled) setSentence(next);
+      })
+      .catch((err) => {
+        if (!cancelled) setSentenceError(err instanceof Error ? err.message : translate(getLang(), "practice.sentenceFailed"));
+      })
+      .finally(() => {
+        if (!cancelled) setSentenceLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function startRecording() {
@@ -66,7 +84,7 @@ export default function PracticePage() {
       setRecSecs(0);
       timerRef.current = setInterval(() => setRecSecs((s) => s + 1), 1000);
     } catch {
-      setError("Không truy cập được microphone. Kiểm tra quyền trình duyệt.");
+      setError(t("common.micDenied"));
       setRec("error");
     }
   }
@@ -83,8 +101,9 @@ export default function PracticePage() {
       setResult(attempt);
       setRec("result");
       queryClient.invalidateQueries({ queryKey: ["progress-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["review"] }); // new weak words
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Chấm điểm thất bại. Thử lại.");
+      setError(err instanceof Error ? err.message : t("common.scoringFailed"));
       setRec("error");
     }
   }
@@ -117,7 +136,7 @@ export default function PracticePage() {
       score: Math.round(w.accuracyScore),
       color: scoreColor(w.accuracyScore),
       colorSoft: scoreColorSoft(w.accuracyScore),
-      errLabel: w.errorType !== "none" ? `Cần luyện: ${w.word}` : `Tốt: ${w.word}`,
+      errLabel: w.errorType !== "none" ? t("practice.wordNeedsWork", { word: w.word }) : t("practice.wordGood", { word: w.word }),
     })) ?? [];
 
   const phonemes =
@@ -158,7 +177,7 @@ export default function PracticePage() {
                   boxShadow: mode === m.id ? "var(--ds-shadow-xs)" : "none",
                 }}
               >
-                {m.label}
+                {t(m.label)}
               </button>
             ))}
           </div>
@@ -185,12 +204,12 @@ export default function PracticePage() {
                     }}
                   >
                     <i className="pi pi-sparkles" style={{ fontSize: 11 }} />
-                    Câu do AI tạo
+                    {t("practice.aiSentence")}
                   </span>
-                  <span style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>Chủ đề: Giao tiếp hằng ngày</span>
+                  <span style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>{t("practice.topicDaily")}</span>
                 </div>
                 <button onClick={nextSentence} disabled={sentenceLoading} className="ds-btn ds-btn-text ds-btn-sm">
-                  <span>Câu khác</span>
+                  <span>{t("practice.otherSentence")}</span>
                   <i className="pi pi-refresh" />
                 </button>
               </div>
@@ -199,7 +218,7 @@ export default function PracticePage() {
                 {sentenceLoading && (
                   <div style={{ fontSize: 14, color: "var(--ds-text-muted)", padding: "20px 0" }}>
                     <i className="pi pi-spinner" style={{ animation: "spin 1s linear infinite", marginRight: 8 }} />
-                    Đang tạo câu mới...
+                    {t("practice.generating")}
                   </div>
                 )}
                 {sentenceError && (
@@ -207,15 +226,17 @@ export default function PracticePage() {
                 )}
                 {sentence && !sentenceLoading && !sentenceError && (
                   <>
-                    <div style={{ fontSize: 13, color: "var(--ds-text-muted)", marginBottom: 8 }}>Nghe rồi đọc to câu sau</div>
+                    <div style={{ fontSize: 13, color: "var(--ds-text-muted)", marginBottom: 8 }}>{t("practice.listenThenRead")}</div>
                     <div style={{ font: "600 30px/1.4 var(--font-display)", color: "var(--ds-text)" }}>{sentence.text}</div>
                     <div style={{ fontSize: 15, color: "var(--ds-text-muted)", marginTop: 8 }}>{sentence.phonetic}</div>
-                    <div style={{ fontSize: 14, color: "var(--ds-text-secondary)", marginTop: 6, fontStyle: "italic" }}>
-                      {sentence.gloss}
-                    </div>
+                    {sentence.gloss && (
+                      <div style={{ fontSize: 14, color: "var(--ds-text-secondary)", marginTop: 6, fontStyle: "italic" }}>
+                        {sentence.gloss}
+                      </div>
+                    )}
                     <button onClick={() => speakEnglish(sentence.text)} className="ds-btn ds-btn-outline ds-btn-sm" style={{ marginTop: 14 }}>
                       <i className="pi pi-volume-up" />
-                      <span>Nghe mẫu</span>
+                      <span>{t("common.listenSample")}</span>
                     </button>
                   </>
                 )}
@@ -245,13 +266,13 @@ export default function PracticePage() {
                       style={{ borderRadius: "var(--ds-radius-full)", padding: "0 30px", height: 56 }}
                     >
                       <i className="pi pi-microphone" style={{ fontSize: 18 }} />
-                      <span>Nhấn để nói</span>
+                      <span>{t("practice.tapToSpeak")}</span>
                     </button>
                     {error ? (
                       <div style={{ fontSize: 13, color: "var(--ds-danger)" }}>{error}</div>
                     ) : (
                       <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>
-                        Cứ thoải mái — bạn có thể thử lại bao nhiêu lần cũng được
+                        {t("practice.relax")}
                       </div>
                     )}
                   </>
@@ -264,9 +285,9 @@ export default function PracticePage() {
                       style={{ borderRadius: "var(--ds-radius-full)", padding: "0 30px", height: 56, animation: "recpulse 1.6s infinite" }}
                     >
                       <i className="pi pi-stop-circle" style={{ fontSize: 18 }} />
-                      <span>Đang ghi âm 0:{String(recSecs).padStart(2, "0")} · Dừng</span>
+                      <span>{t("practice.recordingStop", { time: `0:${String(recSecs).padStart(2, "0")}` })}</span>
                     </button>
-                    <div style={{ fontSize: 13, color: "var(--ds-primary)", fontWeight: 600 }}>🔴 Đang nghe bạn nói...</div>
+                    <div style={{ fontSize: 13, color: "var(--ds-primary)", fontWeight: 600 }}>{t("practice.listening")}</div>
                   </>
                 )}
                 {rec === "processing" && (
@@ -277,9 +298,9 @@ export default function PracticePage() {
                       style={{ borderRadius: "var(--ds-radius-full)", padding: "0 30px", height: 56 }}
                     >
                       <i className="pi pi-spinner" style={{ fontSize: 18, animation: "spin 1s linear infinite" }} />
-                      <span>Đang chấm điểm...</span>
+                      <span>{t("practice.scoring")}</span>
                     </button>
-                    <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>Đang gửi lên Azure Speech để phân tích</div>
+                    <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>{t("practice.sendingAzure")}</div>
                   </>
                 )}
               </div>
@@ -288,9 +309,9 @@ export default function PracticePage() {
             {rec === "result" && result && (
               <div className="fade" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div style={{ font: "700 18px var(--font-display)" }}>Kết quả phát âm</div>
+                  <div style={{ font: "700 18px var(--font-display)" }}>{t("practice.resultTitle")}</div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>Bố cục:</span>
+                    <span style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>{t("practice.layout")}</span>
                     <div style={{ display: "inline-flex", background: "var(--ds-surface-muted)", borderRadius: "var(--ds-radius-full)", padding: 3 }}>
                       <button
                         onClick={() => setLayout("A")}
@@ -301,7 +322,7 @@ export default function PracticePage() {
                           boxShadow: layout === "A" ? "var(--ds-shadow-xs)" : "none",
                         }}
                       >
-                        A · Tổng quan
+                        {t("practice.layoutA")}
                       </button>
                       <button
                         onClick={() => setLayout("B")}
@@ -312,7 +333,7 @@ export default function PracticePage() {
                           boxShadow: layout === "B" ? "var(--ds-shadow-xs)" : "none",
                         }}
                       >
-                        B · Theo từ
+                        {t("practice.layoutB")}
                       </button>
                     </div>
                   </div>
@@ -332,7 +353,7 @@ export default function PracticePage() {
                 >
                   <i className="pi pi-check-circle" style={{ fontSize: 18 }} />
                   <span style={{ fontSize: 14, color: "var(--ds-text)", flex: 1 }}>
-                    Bạn nói: <b>{result.recognizedText ?? "(không nhận diện được)"}</b>
+                    {t("practice.youSaidLabel")} <b>{result.recognizedText ?? t("common.notRecognized")}</b>
                   </span>
                   <audio controls src={resolveAudioUrl(result.audioUrl)} style={{ height: 32 }} />
                 </div>
@@ -346,7 +367,7 @@ export default function PracticePage() {
                           <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", textAlign: "center" }}>
                             <div>
                               <div style={{ font: "700 26px var(--font-display)" }}>{Math.round(result.overallScore)}</div>
-                              <div style={{ fontSize: 11, color: "var(--ds-text-muted)" }}>Chính xác</div>
+                              <div style={{ fontSize: 11, color: "var(--ds-text-muted)" }}>{t("common.accuracy")}</div>
                             </div>
                           </div>
                         </div>
@@ -355,17 +376,17 @@ export default function PracticePage() {
                           <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", textAlign: "center" }}>
                             <div>
                               <div style={{ font: "700 26px var(--font-display)" }}>{Math.round(result.fluencyScore)}</div>
-                              <div style={{ fontSize: 11, color: "var(--ds-text-muted)" }}>Trôi chảy</div>
+                              <div style={{ fontSize: 11, color: "var(--ds-text-muted)" }}>{t("common.fluency")}</div>
                             </div>
                           </div>
                         </div>
                       </div>
                       <div style={{ width: "100%", borderTop: "1px solid var(--ds-border-subtle)", paddingTop: 14 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ds-text-secondary)", marginBottom: 10 }}>
-                          Âm cần luyện thêm
+                          {t("practice.soundsToPractice")}
                         </div>
                         {phonemes.length === 0 && (
-                          <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>Không có dữ liệu phoneme</div>
+                          <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>{t("practice.noPhonemes")}</div>
                         )}
                         {phonemes.map((p, i) => (
                           <div key={`${p.sym}-${i}`} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 9 }}>
@@ -379,7 +400,7 @@ export default function PracticePage() {
                       </div>
                     </div>
                     <div className="ds-card" style={{ padding: 26 }}>
-                      <div style={{ fontSize: 13, color: "var(--ds-text-muted)", marginBottom: 14 }}>Từng từ (màu theo độ chính xác)</div>
+                      <div style={{ fontSize: 13, color: "var(--ds-text-muted)", marginBottom: 14 }}>{t("practice.wordByWord")}</div>
                       <div style={{ font: "600 26px/1.9 var(--font-display)", display: "flex", flexWrap: "wrap", gap: "2px 4px" }}>
                         {words.map((w, i) => (
                           <span
@@ -404,15 +425,15 @@ export default function PracticePage() {
                       >
                         <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           <span style={{ width: 10, height: 10, borderRadius: 3, background: "#16A34A" }} />
-                          Tốt
+                          {t("practice.good")}
                         </span>
                         <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           <span style={{ width: 10, height: 10, borderRadius: 3, background: "#EA580C" }} />
-                          Khá
+                          {t("practice.fair")}
                         </span>
                         <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           <span style={{ width: 10, height: 10, borderRadius: 3, background: "#DC2626" }} />
-                          Cần luyện
+                          {t("practice.needsWork")}
                         </span>
                       </div>
                     </div>
@@ -421,7 +442,7 @@ export default function PracticePage() {
                   <div className="fade" style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 16 }}>
                     <div className="ds-card" style={{ padding: 28 }}>
                       <div style={{ fontSize: 13, color: "var(--ds-text-muted)", marginBottom: 18 }}>
-                        Đọc lại từng từ — màu theo độ chính xác thực tế
+                        {t("practice.readEachWord")}
                       </div>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "14px 12px" }}>
                         {words.map((w, i) => (
@@ -438,7 +459,7 @@ export default function PracticePage() {
                     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                       <div className="ds-card" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>Độ chính xác</span>
+                          <span style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>{t("practice.accuracyScore")}</span>
                           <span style={{ font: "700 18px var(--font-display)", color: scoreColor(result.overallScore) }}>
                             {Math.round(result.overallScore)}
                           </span>
@@ -447,7 +468,7 @@ export default function PracticePage() {
                           <div style={{ height: "100%", background: scoreColor(result.overallScore), width: `${result.overallScore}%` }} />
                         </div>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>Độ trôi chảy</span>
+                          <span style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>{t("practice.fluencyScore")}</span>
                           <span style={{ font: "700 18px var(--font-display)", color: scoreColor(result.fluencyScore) }}>
                             {Math.round(result.fluencyScore)}
                           </span>
@@ -457,7 +478,7 @@ export default function PracticePage() {
                         </div>
                       </div>
                       <div className="ds-card" style={{ padding: 20 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ds-text-secondary)", marginBottom: 12 }}>Âm cần luyện</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ds-text-secondary)", marginBottom: 12 }}>{t("practice.soundsShort")}</div>
                         {phonemes.map((p, i) => (
                           <div
                             key={`${p.sym}-${i}`}
@@ -479,14 +500,15 @@ export default function PracticePage() {
                 )}
 
                 {result.rubric && <RubricPanel rubric={result.rubric} grader={result.grader} />}
+                <WordTips words={result.wordScores} />
 
                 <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
                   <button onClick={retryRecord} className="ds-btn ds-btn-outline">
                     <i className="pi pi-refresh" />
-                    <span>Thử lại</span>
+                    <span>{t("common.retry")}</span>
                   </button>
                   <button onClick={nextSentence} className="ds-btn">
-                    <span>Câu tiếp theo</span>
+                    <span>{t("practice.nextSentence")}</span>
                     <i className="pi pi-arrow-right" />
                   </button>
                 </div>

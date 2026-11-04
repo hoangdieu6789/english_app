@@ -5,23 +5,22 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { progressQuery } from "@/lib/progress-api";
+import { reviewQuery } from "@/lib/review-api";
 import { authApi } from "@/lib/auth-api";
 import { useSessionStore } from "@/lib/session-store";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { isLang, useI18n } from "@/lib/i18n";
 
-// badge: a small count next to the label (only for real counts, none at the moment).
-const NAV_ITEMS: { key: string; href: string; label: string; icon: string; badge?: string }[] = [
-  { key: "dashboard", href: "/dashboard", label: "Trang chủ", icon: "pi pi-home" },
-  { key: "practice", href: "/practice", label: "Luyện nói", icon: "pi pi-microphone" },
-  { key: "review", href: "/review", label: "Ôn từ", icon: "pi pi-book" },
-  { key: "progress", href: "/progress", label: "Tiến độ", icon: "pi pi-chart-line" },
+type NavKey = "dashboard" | "practice" | "history" | "review" | "progress";
+
+// badge: a small count next to the label (real counts only: words due for review).
+const NAV_ITEMS: { key: NavKey; href: string; icon: string; badge?: string }[] = [
+  { key: "dashboard", href: "/dashboard", icon: "pi pi-home" },
+  { key: "practice", href: "/practice", icon: "pi pi-microphone" },
+  { key: "history", href: "/history", icon: "pi pi-history" },
+  { key: "review", href: "/review", icon: "pi pi-book" },
+  { key: "progress", href: "/progress", icon: "pi pi-chart-line" },
 ];
-
-const TITLES: Record<string, [string, string]> = {
-  "/dashboard": ["Trang chủ", "Tổng quan việc học của bạn hôm nay"],
-  "/practice": ["Luyện nói · Practice", "Shadowing và IELTS Speaking Part 1–3"],
-  "/review": ["Ôn từ · Review", "Ôn lại những từ còn yếu bằng spaced repetition"],
-  "/progress": ["Tiến độ · Progress", "Streak, phát âm và band IELTS từ các bài bạn đã luyện"],
-};
 
 function initials(email: string) {
   const name = email.split("@")[0];
@@ -33,6 +32,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const user = useSessionStore((s) => s.user);
   const setUser = useSessionStore((s) => s.setUser);
+  const { t, lang, setLang } = useI18n();
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["me"],
@@ -42,11 +42,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Real streak from the learner's attempts (same request as the Progress page).
   const progress = useQuery({ ...progressQuery, enabled: !!data });
   const streak = progress.data?.streak ?? 0;
+  const band = progress.data?.last30Days.band ?? 0;
+  const review = useQuery({ ...reviewQuery, enabled: !!data });
+  const reviewDue = review.data?.dueCount ?? 0;
 
   useEffect(() => {
     if (data) setUser(data);
     if (isError) router.replace("/login");
   }, [data, isError, router, setUser]);
+
+  // The language saved on the server wins (set on another device or at sign-up).
+  const serverLang = data?.lang;
+  useEffect(() => {
+    if (isLang(serverLang) && serverLang !== lang) setLang(serverLang);
+    // Only when the server value arrives or changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serverLang]);
 
   async function handleLogout() {
     await authApi.logout().catch(() => {});
@@ -55,10 +66,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   if (isLoading || isError) {
-    return <div style={{ padding: 24, fontSize: 14, color: "var(--ds-text-muted)" }}>Đang tải...</div>;
+    return <div style={{ padding: 24, fontSize: 14, color: "var(--ds-text-muted)" }}>{t("common.loading")}</div>;
   }
 
-  const [pageTitle, pageSubtitle] = TITLES[pathname] ?? ["", ""];
+  const page = NAV_ITEMS.find((i) => pathname === i.href || pathname.startsWith(i.href + "/"))?.key;
+  const [pageTitle, pageSubtitle] = page ? [t(`nav.title.${page}`), t(`nav.sub.${page}`)] : ["", ""];
 
   return (
     <div style={{ minHeight: "100vh", display: "flex" }}>
@@ -101,8 +113,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav style={{ padding: "14px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
-          {NAV_ITEMS.map((item) => {
-            const active = pathname === item.href;
+          {NAV_ITEMS.map((nav) => {
+            const item = nav.key === "review" && reviewDue > 0 ? { ...nav, badge: String(reviewDue) } : nav;
+            const active = pathname === item.href || pathname.startsWith(item.href + "/");
             return (
               <Link
                 key={item.key}
@@ -122,7 +135,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 }}
               >
                 <i className={item.icon} style={{ fontSize: 17, width: 20 }} />
-                <span>{item.label}</span>
+                <span>{t(`nav.${item.key}`)}</span>
                 {item.badge && (
                   <span
                     style={{
@@ -167,7 +180,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </span>
             <div style={{ lineHeight: 1.3, minWidth: 0 }}>
               <div style={{ fontWeight: 600, fontSize: 14, color: "var(--ds-text)" }}>{user?.email ?? ""}</div>
-              <div style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>Trình độ: Intermediate</div>
+              <div style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>
+                {band > 0 ? t("nav.band30", { band: band.toFixed(1) }) : t("nav.noBand")}
+              </div>
             </div>
           </div>
           <button
@@ -190,8 +205,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             }}
           >
             <i className="pi pi-sign-out" style={{ width: 20 }} />
-            <span>Đăng xuất</span>
+            <span>{t("nav.logout")}</span>
           </button>
+          <div style={{ padding: "10px 12px 0" }}>
+            <LanguageSwitcher sync />
+          </div>
         </div>
       </aside>
 
@@ -230,36 +248,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               }}
             >
               <i className="pi pi-bolt" />
-              {streak > 0 ? `${streak} ngày streak` : "Chưa có streak"}
+              {streak > 0 ? t("nav.streak", { n: streak }) : t("nav.noStreak")}
             </span>
-            <button
-              style={{
-                width: 40,
-                height: 40,
-                border: "1px solid var(--ds-border)",
-                background: "#fff",
-                borderRadius: "50%",
-                display: "grid",
-                placeItems: "center",
-                cursor: "pointer",
-                color: "var(--ds-text-secondary)",
-                position: "relative",
-              }}
-            >
-              <i className="pi pi-bell" />
-              <span
-                style={{
-                  position: "absolute",
-                  top: 8,
-                  right: 9,
-                  width: 7,
-                  height: 7,
-                  background: "var(--ds-primary)",
-                  borderRadius: "50%",
-                  border: "1.5px solid #fff",
-                }}
-              />
-            </button>
           </div>
         </header>
 

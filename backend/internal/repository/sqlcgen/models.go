@@ -20,6 +20,15 @@ type IeltsQuestionSet struct {
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
 
+type PasswordResetToken struct {
+	ID        uuid.UUID          `json:"id"`
+	UserID    uuid.UUID          `json:"user_id"`
+	TokenHash string             `json:"token_hash"`
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+	UsedAt    pgtype.Timestamptz `json:"used_at"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
 type PracticeSentence struct {
 	ID        uuid.UUID          `json:"id"`
 	UserID    uuid.UUID          `json:"user_id"`
@@ -28,6 +37,7 @@ type PracticeSentence struct {
 	Gloss     string             `json:"gloss"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	ServedAt  pgtype.Timestamptz `json:"served_at"`
+	GlossLang string             `json:"gloss_lang"`
 }
 
 type ProgressSnapshot struct {
@@ -64,6 +74,10 @@ type PronunciationAttempt struct {
 	TaskPrompt        pgtype.Text        `json:"task_prompt"`
 	GraderProvider    pgtype.Text        `json:"grader_provider"`
 	GraderModel       pgtype.Text        `json:"grader_model"`
+	GradingStatus     string             `json:"grading_status"`
+	TranscriptSource  pgtype.Text        `json:"transcript_source"`
+	ImprovedAnswer    []byte             `json:"improved_answer"`
+	FeedbackLang      pgtype.Text        `json:"feedback_lang"`
 }
 
 type RefreshToken struct {
@@ -73,6 +87,36 @@ type RefreshToken struct {
 	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
 	RevokedAt pgtype.Timestamptz `json:"revoked_at"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	Remember  bool               `json:"remember"`
+}
+
+type ReviewWord struct {
+	ID             uuid.UUID          `json:"id"`
+	UserID         uuid.UUID          `json:"user_id"`
+	Word           string             `json:"word"`
+	LastScore      float32            `json:"last_score"`
+	Ease           float32            `json:"ease"`
+	IntervalDays   int32              `json:"interval_days"`
+	Reps           int32              `json:"reps"`
+	Lapses         int32              `json:"lapses"`
+	DueAt          pgtype.Timestamptz `json:"due_at"`
+	LastReviewedAt pgtype.Timestamptz `json:"last_reviewed_at"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	Kind           string             `json:"kind"`
+	VocabWordID    pgtype.UUID        `json:"vocab_word_id"`
+	Misses         int32              `json:"misses"`
+	MinScore       float32            `json:"min_score"`
+}
+
+type SampleAnswer struct {
+	ID           uuid.UUID          `json:"id"`
+	QuestionHash string             `json:"question_hash"`
+	TaskType     string             `json:"task_type"`
+	Question     string             `json:"question"`
+	Band         float32            `json:"band"`
+	Lang         string             `json:"lang"`
+	Content      []byte             `json:"content"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 }
 
 type Session struct {
@@ -91,6 +135,9 @@ type User struct {
 	Level        pgtype.Text        `json:"level"`
 	TargetGoal   pgtype.Text        `json:"target_goal"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	SelfBand     pgtype.Float4      `json:"self_band"`
+	TargetBand   pgtype.Float4      `json:"target_band"`
+	Lang         string             `json:"lang"`
 }
 
 type VocabGap struct {
@@ -103,4 +150,24 @@ type VocabGap struct {
 	Status          string             `json:"status"`
 	NextReviewDate  pgtype.Timestamptz `json:"next_review_date"`
 	FirstSeenAt     pgtype.Timestamptz `json:"first_seen_at"`
+}
+
+type VocabTranslation struct {
+	VocabWordID        uuid.UUID          `json:"vocab_word_id"`
+	Lang               string             `json:"lang"`
+	Meaning            string             `json:"meaning"`
+	ExampleTranslation string             `json:"example_translation"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+}
+
+type VocabWord struct {
+	ID         uuid.UUID          `json:"id"`
+	Word       string             `json:"word"`
+	Source     string             `json:"source"`
+	Rank       int32              `json:"rank"`
+	Band       float32            `json:"band"`
+	Pos        pgtype.Text        `json:"pos"`
+	Ipa        pgtype.Text        `json:"ipa"`
+	ExampleEn  pgtype.Text        `json:"example_en"`
+	EnrichedAt pgtype.Timestamptz `json:"enriched_at"`
 }

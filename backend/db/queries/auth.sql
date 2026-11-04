@@ -4,16 +4,17 @@ VALUES ($1, $2)
 RETURNING *;
 
 -- name: GetUserByEmail :one
+-- The service passes a normalised (lower-case) e-mail; lower() also finds older rows.
 SELECT * FROM users
-WHERE email = $1;
+WHERE lower(email) = lower($1);
 
 -- name: GetUserByID :one
 SELECT * FROM users
 WHERE id = $1;
 
 -- name: CreateRefreshToken :one
-INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
-VALUES ($1, $2, $3)
+INSERT INTO refresh_tokens (user_id, token_hash, expires_at, remember)
+VALUES ($1, $2, $3, $4)
 RETURNING *;
 
 -- name: GetRefreshTokenByHash :one
@@ -29,3 +30,22 @@ WHERE id = $1;
 UPDATE refresh_tokens
 SET revoked_at = now()
 WHERE user_id = $1 AND revoked_at IS NULL;
+
+-- name: UpdateUserPassword :exec
+UPDATE users SET password_hash = $2 WHERE id = $1;
+
+-- name: CreatePasswordResetToken :exec
+INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+VALUES ($1, $2, $3);
+
+-- name: CountRecentPasswordResets :one
+-- Reset links requested for a user in the last hour (rate limit).
+SELECT count(*) FROM password_reset_tokens
+WHERE user_id = $1 AND created_at > now() - interval '1 hour';
+
+-- name: UsePasswordResetToken :one
+-- Marks a valid token used and returns its user; no row when unknown, expired or used.
+UPDATE password_reset_tokens
+SET used_at = now()
+WHERE token_hash = $1 AND used_at IS NULL AND expires_at > now()
+RETURNING user_id;

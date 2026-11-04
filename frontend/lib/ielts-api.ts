@@ -3,7 +3,8 @@
 // a free LLM when a learner is close to the end. Each learner gets sets they have not done
 // first, and can redo done sets.
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api";
+import { apiFetch, errorFrom } from "./http";
+import type { MessageKey } from "@/lib/i18n";
 
 export type IeltsPart = "part1" | "part2" | "part3";
 
@@ -30,11 +31,8 @@ export type QuestionSetProgress = QuestionSet & {
 };
 
 async function getJSON<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`, { credentials: "include" });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error(body.message ?? "Request failed");
-  }
+  const res = await apiFetch(path);
+  if (!res.ok) throw await errorFrom(res, "Request failed");
   return res.json();
 }
 
@@ -49,11 +47,11 @@ export async function listQuestionSets(part: IeltsPart): Promise<QuestionSetProg
   return body.sets;
 }
 
-// Learner-facing text stays in Vietnamese (the app's learners are Vietnamese speakers).
-export const PART_INFO: Record<IeltsPart, { title: string; hint: string }> = {
-  part1: { title: "Part 1 · Phỏng vấn", hint: "Trả lời ngắn (2–4 câu) về chủ đề quen thuộc. Nói thêm lý do hoặc ví dụ." },
-  part2: { title: "Part 2 · Nói dài", hint: "1 phút chuẩn bị, rồi nói liền mạch về cue card và trả lời đủ các ý." },
-  part3: { title: "Part 3 · Thảo luận", hint: "Câu hỏi mở: nêu quan điểm, giải thích lý do, đưa ví dụ, so sánh hai mặt." },
+// Message keys of the learner-facing part title and hint (translate with t()).
+export const PART_INFO: Record<IeltsPart, { title: MessageKey; hint: MessageKey }> = {
+  part1: { title: "ielts.part1.title", hint: "ielts.part1.hint" },
+  part2: { title: "ielts.part2.title", hint: "ielts.part2.hint" },
+  part3: { title: "ielts.part3.title", hint: "ielts.part3.hint" },
 };
 
 // The cue card text sent to the grader as the task prompt.

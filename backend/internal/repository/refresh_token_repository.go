@@ -15,7 +15,7 @@ import (
 )
 
 type RefreshTokenRepository interface {
-	Create(ctx context.Context, userID uuid.UUID, tokenHash string, expiresAt time.Time) (*domain.RefreshToken, error)
+	Create(ctx context.Context, userID uuid.UUID, tokenHash string, expiresAt time.Time, remember bool) (*domain.RefreshToken, error)
 	GetByHash(ctx context.Context, tokenHash string) (*domain.RefreshToken, error)
 	Revoke(ctx context.Context, id uuid.UUID) error
 	RevokeAllForUser(ctx context.Context, userID uuid.UUID) error
@@ -29,11 +29,12 @@ func NewRefreshTokenRepository(pool *pgxpool.Pool) RefreshTokenRepository {
 	return &refreshTokenRepository{q: sqlcgen.New(pool)}
 }
 
-func (r *refreshTokenRepository) Create(ctx context.Context, userID uuid.UUID, tokenHash string, expiresAt time.Time) (*domain.RefreshToken, error) {
+func (r *refreshTokenRepository) Create(ctx context.Context, userID uuid.UUID, tokenHash string, expiresAt time.Time, remember bool) (*domain.RefreshToken, error) {
 	row, err := r.q.CreateRefreshToken(ctx, sqlcgen.CreateRefreshTokenParams{
 		UserID:    userID,
 		TokenHash: tokenHash,
 		ExpiresAt: pgtype.Timestamptz{Time: expiresAt, Valid: true},
+		Remember:  remember,
 	})
 	if err != nil {
 		return nil, err
@@ -67,6 +68,7 @@ func toDomainRefreshToken(row sqlcgen.RefreshToken) *domain.RefreshToken {
 		TokenHash: row.TokenHash,
 		ExpiresAt: row.ExpiresAt.Time,
 		CreatedAt: row.CreatedAt.Time,
+		Remember:  row.Remember,
 	}
 	if row.RevokedAt.Valid {
 		rt.RevokedAt = &row.RevokedAt.Time

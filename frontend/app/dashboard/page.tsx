@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { GoalRing } from "@/components/charts/progress-ring";
 import { Sparkline } from "@/components/charts/sparkline";
+import { useI18n, type MessageKey } from "@/lib/i18n";
 import { progressQuery, type ProgressSummary } from "@/lib/progress-api";
 import { scoreColor } from "@/lib/score-color";
 import { speakEnglish } from "@/lib/text-to-speech";
@@ -13,26 +14,29 @@ import { speakEnglish } from "@/lib/text-to-speech";
 
 const DAILY_GOAL_ATTEMPTS = 10; // daily goal: answers recorded (shadowing or IELTS)
 
-function greeting(hour: number): string {
-  if (hour < 11) return "CHÀO BUỔI SÁNG";
-  if (hour < 14) return "CHÀO BUỔI TRƯA";
-  if (hour < 18) return "CHÀO BUỔI CHIỀU";
-  return "CHÀO BUỔI TỐI";
+type T = (key: MessageKey, params?: Record<string, string | number>) => string;
+
+function greeting(hour: number): MessageKey {
+  if (hour < 11) return "dashboard.greeting.morning";
+  if (hour < 14) return "dashboard.greeting.noon";
+  if (hour < 18) return "dashboard.greeting.afternoon";
+  return "dashboard.greeting.evening";
 }
 
-function formatDuration(secs: number): string {
+function formatDuration(secs: number, t: T): string {
   const m = Math.floor(secs / 60);
   const s = secs % 60;
-  return m ? `${m} phút ${s} giây` : `${s} giây`;
+  return m ? t("dashboard.duration.minSec", { m, s }) : t("dashboard.duration.sec", { s });
 }
 
 function formatBand(b: number): string {
   return (Math.round(b * 2) / 2).toFixed(1);
 }
 
-function shortDate(iso: string): string {
-  const [, m, d] = iso.split("-");
-  return `${d}/${m}`;
+// Day and month of a YYYY-MM-DD date in the UI locale (e.g. 03/11 in Vietnamese, 11/03 in US English).
+function shortDate(iso: string, locale: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(locale, { day: "2-digit", month: "2-digit" });
 }
 
 // Monday of the current week as YYYY-MM-DD (local), to find "this week" in the summary.
@@ -58,25 +62,26 @@ function StatTile({ icon, bg, fg, label, value, note }: { icon: string; bg: stri
 }
 
 function AccuracyTrend({ p, onDetails }: { p: ProgressSummary; onDetails: () => void }) {
+  const { t, locale } = useI18n();
   const weeks = p.weeks; // only weeks with practice, oldest first
   const current = weeks.find((w) => w.start === thisMonday());
   const prev = [...weeks].reverse().find((w) => w.start !== thisMonday());
   const delta = current && prev ? current.accuracy - prev.accuracy : null;
 
-  let note = "Chưa có bài luyện trong 6 tuần gần đây.";
-  if (weeks.length === 1) note = "Cần ít nhất 2 tuần có bài để thấy xu hướng.";
+  let note = t("dashboard.trend.none");
+  if (weeks.length === 1) note = t("dashboard.trend.needTwo");
   if (weeks.length >= 2) {
     const first = weeks[0].accuracy;
     const last = weeks[weeks.length - 1].accuracy;
-    note = last > first + 2 ? "Độ chính xác đang tăng 👍" : last < first - 2 ? "Độ chính xác đang giảm, thử nói chậm và rõ hơn" : "Độ chính xác khá ổn định";
+    note = last > first + 2 ? t("dashboard.trend.up") : last < first - 2 ? t("dashboard.trend.down") : t("dashboard.trend.stable");
   }
 
   return (
     <div className="ds-card" style={{ padding: 22 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-        <div style={{ font: "700 16px var(--font-display)" }}>Độ chính xác 6 tuần</div>
+        <div style={{ font: "700 16px var(--font-display)" }}>{t("dashboard.trend.title")}</div>
         <a href="#" onClick={(e) => { e.preventDefault(); onDetails(); }} style={{ fontSize: 13, fontWeight: 600 }}>
-          Chi tiết <i className="pi pi-angle-right" style={{ fontSize: 11 }} />
+          {t("dashboard.details")} <i className="pi pi-angle-right" style={{ fontSize: 11 }} />
         </a>
       </div>
       <div style={{ fontSize: 13, color: "var(--ds-text-muted)", marginBottom: 10 }}>{note}</div>
@@ -86,7 +91,7 @@ function AccuracyTrend({ p, onDetails }: { p: ProgressSummary; onDetails: () => 
           <div style={{ font: "700 22px var(--font-display)", color: current ? scoreColor(current.accuracy) : undefined }}>
             {current ? Math.round(current.accuracy) : "—"}
           </div>
-          <div style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>tuần này (0–100)</div>
+          <div style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>{t("dashboard.trend.thisWeek")}</div>
         </div>
         {delta != null && prev && (
           <div>
@@ -94,7 +99,7 @@ function AccuracyTrend({ p, onDetails }: { p: ProgressSummary; onDetails: () => 
               {delta >= 0 ? "+" : ""}
               {Math.round(delta)}
             </div>
-            <div style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>điểm so với tuần {shortDate(prev.start)}</div>
+            <div style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>{t("dashboard.trend.vsWeek", { date: shortDate(prev.start, locale) })}</div>
           </div>
         )}
       </div>
@@ -104,13 +109,14 @@ function AccuracyTrend({ p, onDetails }: { p: ProgressSummary; onDetails: () => 
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const { data: p, isError, error } = useQuery(progressQuery);
 
   if (!p) {
     return (
       <AppShell>
         <div style={{ maxWidth: 1120, margin: "0 auto", fontSize: 14, color: isError ? "var(--ds-danger)" : "var(--ds-text-muted)" }}>
-          {isError ? `Không tải được dữ liệu. ${error.message}` : "Đang tải..."}
+          {isError ? t("dashboard.loadFailed", { error: error.message }) : t("common.loading")}
         </div>
       </AppShell>
     );
@@ -137,16 +143,22 @@ export default function DashboardPage() {
             }}
           >
             <div style={{ maxWidth: "60%" }}>
-              <div style={{ fontSize: 13, opacity: 0.85, letterSpacing: ".02em" }}>{greeting(new Date().getHours())}</div>
+              <div style={{ fontSize: 13, opacity: 0.85, letterSpacing: ".02em" }}>{t(greeting(new Date().getHours()))}</div>
               <div style={{ font: "700 26px var(--font-display)", margin: "6px 0 10px" }}>
-                {left === 0 ? "Bạn đã đạt mục tiêu hôm nay!" : "Sẵn sàng luyện nói chưa?"}
+                {left === 0 ? t("dashboard.hero.goalReached") : t("dashboard.hero.ready")}
               </div>
               <div style={{ fontSize: 14, opacity: 0.9, lineHeight: 1.5 }}>
                 {left === 0 ? (
-                  <>Đã nói <b>{done} bài</b> hôm nay. Luyện thêm vẫn được tính vào tiến độ.</>
+                  <>
+                    {t("dashboard.hero.doneBefore")}
+                    <b>{t("dashboard.hero.doneCount", { n: done })}</b>
+                    {t("dashboard.hero.doneAfter")}
+                  </>
                 ) : (
                   <>
-                    Hôm nay còn <b>{left} bài</b> để đạt mục tiêu {DAILY_GOAL_ATTEMPTS} bài — nói to, sai cũng không sao cả.
+                    {t("dashboard.hero.leftBefore")}
+                    <b>{t("dashboard.hero.leftCount", { n: left })}</b>
+                    {t("dashboard.hero.leftAfter", { goal: DAILY_GOAL_ATTEMPTS })}
                   </>
                 )}
               </div>
@@ -156,7 +168,7 @@ export default function DashboardPage() {
                 style={{ marginTop: 16, background: "#fff", color: "var(--ds-primary)", borderColor: "#fff" }}
               >
                 <i className="pi pi-microphone" />
-                <span>Bắt đầu luyện nói</span>
+                <span>{t("dashboard.hero.start")}</span>
               </button>
             </div>
             <div style={{ position: "relative", width: 136, height: 136, flex: "none" }}>
@@ -166,7 +178,7 @@ export default function DashboardPage() {
                   <div style={{ font: "700 28px var(--font-display)" }}>
                     {done}/{DAILY_GOAL_ATTEMPTS}
                   </div>
-                  <div style={{ fontSize: 11, opacity: 0.85 }}>bài hôm nay</div>
+                  <div style={{ fontSize: 11, opacity: 0.85 }}>{t("dashboard.hero.today")}</div>
                 </div>
               </div>
             </div>
@@ -177,17 +189,17 @@ export default function DashboardPage() {
               icon="pi pi-comments"
               bg="var(--ds-primary-50)"
               fg="var(--ds-primary)"
-              label="Thời gian nói hôm nay"
-              value={formatDuration(p.speakingSecondsToday)}
-              note={`từ ${done} bài đã ghi âm`}
+              label={t("dashboard.stat.speakTime")}
+              value={formatDuration(p.speakingSecondsToday, t)}
+              note={t("dashboard.stat.fromRecorded", { n: done })}
             />
             <StatTile
               icon="pi pi-star"
               bg="var(--ds-success-bg)"
               fg="var(--ds-success)"
-              label="Band IELTS TB (30 ngày)"
+              label={t("dashboard.stat.band30")}
               value={p.last30Days.banded ? formatBand(p.last30Days.band) : "—"}
-              note={p.last30Days.banded ? `${p.last30Days.banded} bài IELTS có band` : "Làm một bài IELTS Part 1–3 để có band"}
+              note={p.last30Days.banded ? t("dashboard.stat.bandedCount", { n: p.last30Days.banded }) : t("dashboard.stat.noBand")}
             />
           </div>
         </div>
@@ -195,18 +207,18 @@ export default function DashboardPage() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
           <div className="ds-card" style={{ padding: 22 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-              <div style={{ font: "700 16px var(--font-display)" }}>Từ cần luyện lại</div>
+              <div style={{ font: "700 16px var(--font-display)" }}>{t("dashboard.weak.title")}</div>
               <a href="#" onClick={(e) => { e.preventDefault(); router.push("/practice"); }} style={{ fontSize: 13, fontWeight: 600 }}>
-                Luyện nói <i className="pi pi-angle-right" style={{ fontSize: 11 }} />
+                {t("dashboard.weak.practice")} <i className="pi pi-angle-right" style={{ fontSize: 11 }} />
               </a>
             </div>
-            <div style={{ fontSize: 13, color: "var(--ds-text-muted)", marginBottom: 8 }}>Từ Azure chấm sai hoặc dưới 60 điểm, 30 ngày gần đây</div>
+            <div style={{ fontSize: 13, color: "var(--ds-text-muted)", marginBottom: 8 }}>{t("dashboard.weak.subtitle")}</div>
             {p.weakWords.length ? (
               p.weakWords.map((w) => (
                 <div key={w.word} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: "1px solid var(--ds-border-subtle)" }}>
                   <button
                     onClick={() => speakEnglish(w.word)}
-                    title="Nghe từ này"
+                    title={t("dashboard.weak.listen")}
                     style={{
                       width: 34,
                       height: 34,
@@ -222,7 +234,7 @@ export default function DashboardPage() {
                     <i className="pi pi-volume-up" style={{ fontSize: 14 }} />
                   </button>
                   <div style={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: 14 }}>{w.word}</div>
-                  <span style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>{w.times} lần</span>
+                  <span style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>{t("dashboard.weak.times", { n: w.times })}</span>
                   <span
                     style={{
                       fontSize: 12,
@@ -241,7 +253,7 @@ export default function DashboardPage() {
               ))
             ) : (
               <div style={{ fontSize: 13, color: "var(--ds-text-muted)", padding: "8px 0" }}>
-                {p.attempts ? "Chưa có từ nào bị chấm sai trong 30 ngày qua. Tốt lắm!" : "Chưa có bài luyện nào."}
+                {p.attempts ? t("dashboard.weak.allGood") : t("dashboard.noAttempts")}
               </div>
             )}
           </div>

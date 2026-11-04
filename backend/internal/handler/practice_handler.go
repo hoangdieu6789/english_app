@@ -5,6 +5,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 
+	"englishapp/backend/internal/i18n"
 	"englishapp/backend/internal/service"
 )
 
@@ -22,7 +23,7 @@ func (h *PracticeHandler) NextSentence(c echo.Context) error {
 		return err
 	}
 
-	sentence, err := h.svc.NextSentence(c.Request().Context(), userID)
+	sentence, err := h.svc.NextSentence(c.Request().Context(), userID, i18n.FromRequest(c))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to generate sentence")
 	}

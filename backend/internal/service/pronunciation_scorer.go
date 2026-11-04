@@ -28,4 +28,6 @@ type ScoreResult struct {
 // An empty referenceText means unscripted speech (free answer, no sentence to read).
 type PronunciationScorer interface {
 	Score(ctx context.Context, audioWAV []byte, referenceText string) (*ScoreResult, error)
+	// ScoreTranscribed scores free speech against a transcript of the same audio.
+	ScoreTranscribed(ctx context.Context, audioWAV []byte, transcript string) (*ScoreResult, error)
 }

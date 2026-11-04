@@ -1,277 +1,400 @@
 "use client";
 
 import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { REVIEW, REVIEW_TAGS } from "@/lib/mock/practice-data";
+import { BandGoalForm } from "@/components/band-goal-form";
+import { useI18n, type MessageKey, type Params } from "@/lib/i18n";
+import { phonemeToIpa } from "@/lib/phonemes";
+import {
+  addNewWords,
+  goalsQuery,
+  gradeReviewWord,
+  removeReviewWord,
+  reviewQuery,
+  submitReviewAttempt,
+  type ReviewAttempt,
+  type ReviewWord,
+} from "@/lib/review-api";
+import { scoreColor } from "@/lib/score-color";
+import { speakEnglish } from "@/lib/text-to-speech";
+import { useRecorder } from "@/lib/use-recorder";
 
-type Step = "front" | "meaning" | "speak";
-type SpeakState = "idle" | "rec" | "scored";
+// A word is a short recording; stop by itself after a few seconds.
+const MAX_WORD_SECONDS = 5;
+const NEW_WORDS_PER_BATCH = 10;
 
+type Phase = "ready" | "recording" | "scoring" | "result" | "error";
+
+type T = (key: MessageKey, params?: Params) => string;
+
+const RATINGS: { q: 1 | 3 | 4 | 5; label: MessageKey; color: string }[] = [
+  { q: 1, label: "review.rating.forgot", color: "var(--ds-danger)" },
+  { q: 3, label: "review.rating.hard", color: "var(--ds-warning)" },
+  { q: 4, label: "review.rating.good", color: "var(--ds-primary)" },
+  { q: 5, label: "review.rating.easy", color: "var(--ds-success)" },
+];
+
+function nextReviewText(t: T, w: ReviewWord): string {
+  if (w.intervalDays <= 0) return t("review.next.minutes");
+  if (w.intervalDays === 1) return t("review.next.tomorrow");
+  return t("review.next.days", { n: w.intervalDays });
+}
+
+function dueText(t: T, locale: string, iso: string): string {
+  const d = new Date(iso);
+  const mins = Math.round((d.getTime() - Date.now()) / 60000);
+  if (mins < 60) return t("review.due.minutes", { n: Math.max(mins, 1) });
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return t("review.due.hours", { n: hours });
+  return d.toLocaleDateString(locale, { weekday: "short", day: "numeric", month: "numeric" });
+}
+
+// Two kinds of spaced-repetition cards (SM-2 on the backend):
+// - pronunciation: a word the learner said wrongly; Azure scores each try and schedules it.
+// - vocab: a new word for the learner's band range; the learner reveals the meaning and
+//   rates how well they remembered it (saying it aloud is scored but does not schedule it).
 export default function ReviewPage() {
+  const { t, locale } = useI18n();
   const router = useRouter();
-  const [idx, setIdx] = useState(0);
-  const [step, setStep] = useState<Step>("front");
-  const [choice, setChoice] = useState<number | null>(null);
-  const [speak, setSpeak] = useState<SpeakState>("idle");
-  const [done, setDone] = useState(false);
+  const queryClient = useQueryClient();
+  const { data, isLoading, isError } = useQuery(reviewQuery);
+  const goals = useQuery(goalsQuery);
+  const [phase, setPhase] = useState<Phase>("ready");
+  const [result, setResult] = useState<ReviewAttempt | null>(null);
+  const [revealed, setRevealed] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(0);
+  const [adding, setAdding] = useState(false);
+  const [addMsg, setAddMsg] = useState<string | null>(null);
+  const [editGoals, setEditGoals] = useState(false);
 
-  const word = REVIEW[idx];
-  const tag = REVIEW_TAGS[word.tag];
+  const current = data?.due[0];
+  const recorder = useRecorder(
+    MAX_WORD_SECONDS,
+    (wav) => score(wav),
+    (err) => fail(err.message),
+  );
 
-  function advance() {
-    if (idx + 1 >= REVIEW.length) {
-      setDone(true);
-    } else {
-      setIdx((i) => i + 1);
-      setStep("front");
-      setChoice(null);
-      setSpeak("idle");
+  function fail(message: string) {
+    setError(message);
+    setPhase("error");
+  }
+
+  function resetCard() {
+    setResult(null);
+    setRevealed(false);
+    setPhase("ready");
+  }
+
+  async function startRecording() {
+    setError(null);
+    try {
+      await recorder.start();
+      setPhase("recording");
+    } catch {
+      fail(t("common.micDenied"));
     }
   }
 
-  function restart() {
-    setIdx(0);
-    setStep("front");
-    setChoice(null);
-    setSpeak("idle");
-    setDone(false);
+  function stopRecording() {
+    try {
+      const wav = recorder.stop();
+      if (wav) score(wav);
+    } catch (err) {
+      fail(err instanceof Error ? err.message : t("common.noAudio"));
+    }
   }
 
-  function chooseMeaning(i: number) {
-    if (choice == null) setChoice(i);
+  async function score(wav: Blob) {
+    if (!current) return;
+    setPhase("scoring");
+    try {
+      setResult(await submitReviewAttempt(current.id, wav));
+      setPhase("result");
+    } catch (err) {
+      fail(err instanceof Error ? err.message : t("common.scoringFailed"));
+    }
   }
 
-  function startSpeak() {
-    setSpeak("rec");
-    setTimeout(() => setSpeak("scored"), 1500);
+  function next() {
+    resetCard();
+    setDone((n) => n + 1);
+    queryClient.invalidateQueries({ queryKey: ["review"] });
   }
 
-  const progress = Math.round((idx / REVIEW.length) * 100);
+  async function rate(q: 1 | 3 | 4 | 5) {
+    if (!current) return;
+    try {
+      await gradeReviewWord(current.id, q);
+      next();
+    } catch (err) {
+      fail(err instanceof Error ? err.message : t("review.err.saveShort"));
+    }
+  }
+
+  async function remove() {
+    if (!current) return;
+    try {
+      await removeReviewWord(current.id);
+      resetCard();
+      queryClient.invalidateQueries({ queryKey: ["review"] });
+      queryClient.invalidateQueries({ queryKey: ["goals"] });
+    } catch (err) {
+      fail(err instanceof Error ? err.message : t("review.err.removeShort"));
+    }
+  }
+
+  async function addWords() {
+    setAdding(true);
+    setAddMsg(null);
+    try {
+      const added = await addNewWords(NEW_WORDS_PER_BATCH);
+      setAddMsg(t("review.added", { n: added.length, words: added.map((w) => w.word).join(", ") }));
+      queryClient.invalidateQueries({ queryKey: ["review"] });
+      queryClient.invalidateQueries({ queryKey: ["goals"] });
+    } catch (err) {
+      setAddMsg(err instanceof Error ? err.message : t("review.err.addWordsShort"));
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  const word = result?.word ?? current;
+  const isVocab = current?.kind === "vocab";
+  const g = goals.data;
 
   return (
     <AppShell>
-      <div className="fade" style={{ maxWidth: 680, margin: "0 auto", display: "flex", flexDirection: "column", gap: 18 }}>
-        {!done ? (
-          <>
+      <div className="fade" style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", gap: 18 }}>
+        {/* New words for the learner's band range */}
+        <div className="ds-card" style={{ padding: 22, display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: 8,
-                  fontSize: 13,
-                  color: "var(--ds-text-muted)",
-                }}
-              >
-                <span>Từ {idx + 1} / {REVIEW.length}</span>
-                <span>{REVIEW.length - idx - 1} từ còn lại hôm nay</span>
-              </div>
-              <div style={{ height: 8, background: "var(--ds-surface-muted)", borderRadius: 99, overflow: "hidden" }}>
-                <div
-                  style={{
-                    height: "100%",
-                    background: "var(--ds-primary)",
-                    borderRadius: 99,
-                    transition: "width .3s var(--ds-ease)",
-                    width: `${progress}%`,
-                  }}
-                />
-              </div>
+              <div style={{ font: "700 16px var(--font-display)" }}>{t("review.newWords.title")}</div>
+              {g && (
+                <div style={{ fontSize: 13, color: "var(--ds-text-muted)", marginTop: 3 }}>
+                  {t("review.goal.status", {
+                    band: g.currentBand.toFixed(1),
+                    source: t(g.measuredBand > 0 ? "review.goal.measured" : g.selfBand != null ? "review.goal.estimated" : "review.goal.default"),
+                    target: g.targetBand != null ? g.targetBand.toFixed(1) : t("review.goal.notSet"),
+                    from: (g.bandFrom + 0.5).toFixed(1),
+                    to: g.bandTo.toFixed(1),
+                    n: g.remaining,
+                  })}
+                </div>
+              )}
             </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="ds-btn ds-btn-outline ds-btn-sm" onClick={() => setEditGoals((v) => !v)}>
+                {editGoals ? t("common.close") : t("review.goal.change")}
+              </button>
+              <button className="ds-btn ds-btn-sm" onClick={addWords} disabled={adding || !g || g.remaining === 0}>
+                {adding ? t("review.addingWords") : t("review.addWords", { n: NEW_WORDS_PER_BATCH })}
+              </button>
+            </div>
+          </div>
+          {g && (editGoals || g.targetBand == null) && (
+            <BandGoalForm goals={g} compact={g.targetBand != null} onSaved={() => setEditGoals(false)} />
+          )}
+          {addMsg && <div style={{ fontSize: 13, color: "var(--ds-text-secondary)" }}>{addMsg}</div>}
+        </div>
 
-            <div className="ds-card" style={{ padding: 32, minHeight: 340, display: "flex", flexDirection: "column" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        {data && (
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--ds-text-muted)" }}>
+            <span>
+              {data.dueCount > 0 ? t("review.dueCount", { n: data.dueCount }) : t("review.noneDue")}
+              {done > 0 && t("review.doneCount", { n: done })}
+            </span>
+            <span>{t("review.total", { n: data.total })}</span>
+          </div>
+        )}
+
+        <div className="ds-card" style={{ padding: 32, minHeight: 300, display: "flex", flexDirection: "column", gap: 16 }}>
+          {isLoading && <div style={{ fontSize: 14, color: "var(--ds-text-muted)" }}>{t("common.loading")}</div>}
+          {isError && <div style={{ fontSize: 14, color: "var(--ds-danger)" }}>{t("review.err.load")}</div>}
+
+          {data && !word && (
+            <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 12, alignItems: "center", margin: "auto 0" }}>
+              <div style={{ font: "700 20px var(--font-display)" }}>{data.total === 0 ? t("review.empty.title") : t("review.allDone.title")}</div>
+              <div style={{ fontSize: 14, color: "var(--ds-text-muted)", maxWidth: 460, lineHeight: 1.6 }}>
+                {data.total === 0
+                  ? t("review.empty.body")
+                  : t("review.allDone.body", { when: data.upcoming[0] ? dueText(t, locale, data.upcoming[0].dueAt) : t("review.dueLater") })}
+              </div>
+              <button className="ds-btn" onClick={() => router.push("/practice")}>
+                <i className="pi pi-microphone" />
+                <span>{t("review.practice")}</span>
+              </button>
+            </div>
+          )}
+
+          {word && current && (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--ds-text-muted)" }}>
                 <span
                   style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    fontSize: 12,
-                    fontWeight: 600,
-                    padding: "3px 10px",
+                    padding: "2px 9px",
                     borderRadius: 99,
-                    background: tag.bg,
-                    color: tag.fg,
+                    fontWeight: 600,
+                    background: isVocab ? "var(--ds-primary-50)" : "var(--ds-warning-bg)",
+                    color: isVocab ? "var(--ds-primary)" : "var(--ds-warning)",
                   }}
                 >
-                  {tag.label}
+                  {isVocab ? t("review.badge.vocab", { band: current.vocab?.band.toFixed(1) ?? "" }) : t("review.badge.pron", { n: current.misses })}
                 </span>
-                <span style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>Đã gặp {word.seen} lần</span>
+                <span>
+                  {word.reps > 0 ? t("review.streak", { n: word.reps }) : word.lapses > 0 ? t("review.lapses", { n: word.lapses }) : t("review.newCard")}
+                </span>
               </div>
 
-              <div style={{ textAlign: "center", flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 10 }}>
-                <div style={{ font: "700 40px var(--font-display)", color: "var(--ds-text)" }}>{word.word}</div>
-                <div style={{ fontSize: 16, color: "var(--ds-text-muted)" }}>{word.phonetic}</div>
-                <button className="ds-btn ds-btn-outline ds-btn-sm" style={{ alignSelf: "center", marginTop: 6 }}>
+              <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
+                <div style={{ font: "700 40px var(--font-display)", color: "var(--ds-text)" }}>{current.word}</div>
+                {current.vocab?.ipa && <div style={{ fontSize: 16, color: "var(--ds-text-muted)" }}>{current.vocab.ipa}</div>}
+                <button className="ds-btn ds-btn-outline ds-btn-sm" onClick={() => speakEnglish(current.word)}>
                   <i className="pi pi-volume-up" />
-                  <span>Nghe</span>
+                  <span>{t("common.listenSample")}</span>
                 </button>
               </div>
 
-              {step === "front" && (
-                <button onClick={() => setStep("meaning")} className="ds-btn ds-btn-lg" style={{ marginTop: 20 }}>
-                  <span>Bạn nhớ nghĩa từ này chứ?</span>
+              {isVocab && current.vocab && !revealed && (
+                <button className="ds-btn ds-btn-lg" onClick={() => setRevealed(true)}>
+                  <span>{t("review.reveal")}</span>
                 </button>
               )}
-
-              {step === "meaning" && (
-                <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
-                  <div style={{ fontSize: 13, color: "var(--ds-text-muted)", textAlign: "center", marginBottom: 2 }}>
-                    Chọn nghĩa đúng
+              {isVocab && current.vocab && revealed && (
+                <div style={{ background: "var(--ds-surface-subtle)", borderRadius: "var(--ds-radius-lg)", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{ fontSize: 16 }}>
+                    <i style={{ color: "var(--ds-text-muted)" }}>{current.vocab.pos}</i> · <b>{current.vocab.meaning}</b>
                   </div>
-                  {word.options.map((text, i) => {
-                    const answered = choice != null;
-                    const isCorrect = i === word.correct;
-                    const isChosen = choice === i;
-                    let borderColor = "var(--ds-border)";
-                    let bg = "#fff";
-                    let opacity = 1;
-                    let icon = "";
-                    let iconColor = "";
-                    if (answered) {
-                      if (isCorrect) {
-                        borderColor = "var(--ds-success)";
-                        bg = "var(--ds-success-bg)";
-                        icon = "pi pi-check-circle";
-                        iconColor = "var(--ds-success)";
-                      } else if (isChosen) {
-                        borderColor = "var(--ds-danger)";
-                        bg = "var(--ds-danger-bg)";
-                        icon = "pi pi-times-circle";
-                        iconColor = "var(--ds-danger)";
-                      } else {
-                        opacity = 0.6;
-                      }
-                    }
-                    return (
-                      <button
-                        key={i}
-                        onClick={() => chooseMeaning(i)}
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          padding: "13px 16px",
-                          borderRadius: "var(--ds-radius-lg)",
-                          border: `1.5px solid ${borderColor}`,
-                          background: bg,
-                          cursor: answered ? "default" : "pointer",
-                          fontSize: 15,
-                          fontFamily: "inherit",
-                          textAlign: "left",
-                          color: "var(--ds-text)",
-                          opacity,
-                        }}
-                      >
-                        <span>{text}</span>
-                        {icon && <i className={icon} style={{ color: iconColor }} />}
-                      </button>
-                    );
-                  })}
-                  {choice != null && (
-                    <>
-                      <div
-                        style={{
-                          marginTop: 8,
-                          padding: "12px 14px",
-                          background: "var(--ds-surface-subtle)",
-                          borderRadius: "var(--ds-radius-lg)",
-                          fontSize: 14,
-                          color: "var(--ds-text-secondary)",
-                        }}
-                      >
-                        <b>Ví dụ:</b> {word.example}
-                      </div>
-                      <button
-                        onClick={() => { setStep("speak"); setSpeak("idle"); }}
-                        className="ds-btn"
-                        style={{ marginTop: 4 }}
-                      >
-                        <i className="pi pi-microphone" />
-                        <span>Luyện nói lại từ này</span>
-                      </button>
-                    </>
+                  <div style={{ fontSize: 14.5, display: "flex", gap: 8, alignItems: "flex-start" }}>
+                    <button
+                      onClick={() => speakEnglish(current.vocab!.exampleEn)}
+                      title={t("review.listenExample")}
+                      aria-label={t("review.listenExample")}
+                      style={{ border: "none", background: "none", cursor: "pointer", color: "var(--ds-primary)", padding: 0 }}
+                    >
+                      <i className="pi pi-volume-up" />
+                    </button>
+                    <span>{current.vocab.exampleEn}</span>
+                  </div>
+                  {current.vocab.exampleTranslation && (
+                    <div style={{ fontSize: 13.5, color: "var(--ds-text-muted)" }}>{current.vocab.exampleTranslation}</div>
                   )}
                 </div>
               )}
 
-              {step === "speak" && (
-                <div style={{ marginTop: 20, display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
-                  {speak === "idle" && (
-                    <button onClick={startSpeak} className="ds-btn ds-btn-lg" style={{ borderRadius: "var(--ds-radius-full)", padding: "0 28px" }}>
-                      <i className="pi pi-microphone" />
-                      <span>Nhấn để đọc &quot;{word.word}&quot;</span>
-                    </button>
-                  )}
-                  {speak === "rec" && (
-                    <button
-                      className="ds-btn ds-btn-lg"
-                      style={{ borderRadius: "var(--ds-radius-full)", padding: "0 28px", animation: "recpulse 1.6s infinite" }}
-                    >
-                      <i className="pi pi-spinner" style={{ animation: "spin 1s linear infinite" }} />
-                      <span>Đang nghe...</span>
-                    </button>
-                  )}
-                  {speak === "scored" && (
-                    <>
-                      <div style={{ textAlign: "center" }}>
-                        <span style={{ font: "700 32px var(--font-display)", color: "var(--ds-success)" }}>Tốt lắm! 👏</span>
-                        <div style={{ fontSize: 13, color: "var(--ds-text-muted)", marginTop: 4 }}>
-                          Bạn đọc từ này rõ hơn lần trước rồi
-                        </div>
-                      </div>
-                      <div style={{ fontSize: 13, color: "var(--ds-text-muted)", marginTop: 4 }}>Mức độ nhớ của bạn?</div>
-                      <div style={{ display: "flex", gap: 10 }}>
-                        <button onClick={advance} className="ds-btn ds-btn-outline" style={{ color: "var(--ds-danger)", borderColor: "var(--ds-danger)" }}>
-                          <span>Khó</span>
-                        </button>
-                        <button onClick={advance} className="ds-btn ds-btn-outline" style={{ color: "var(--ds-warning)", borderColor: "var(--ds-warning)" }}>
-                          <span>Tạm ổn</span>
-                        </button>
-                        <button onClick={advance} className="ds-btn ds-btn-outline" style={{ color: "var(--ds-success)", borderColor: "var(--ds-success)" }}>
-                          <span>Dễ</span>
-                        </button>
-                      </div>
-                    </>
-                  )}
+              {/* Saying the word: scheduled by Azure for pronunciation cards, practice only for vocab cards. */}
+              {(!isVocab || revealed) && phase === "ready" && (
+                <button
+                  onClick={startRecording}
+                  className={isVocab ? "ds-btn ds-btn-outline" : "ds-btn ds-btn-lg"}
+                  style={{ alignSelf: "center", borderRadius: "var(--ds-radius-full)", padding: "0 24px" }}
+                >
+                  <i className="pi pi-microphone" />
+                  <span>{isVocab ? t("review.sayToScore") : t("review.pressAndSay", { word: current.word })}</span>
+                </button>
+              )}
+              {phase === "recording" && (
+                <button
+                  onClick={stopRecording}
+                  className="ds-btn ds-btn-lg"
+                  style={{ alignSelf: "center", borderRadius: "var(--ds-radius-full)", padding: "0 28px", animation: "recpulse 1.6s infinite" }}
+                >
+                  <i className="pi pi-stop-circle" />
+                  <span>{t("review.stop", { n: MAX_WORD_SECONDS - recorder.secs })}</span>
+                </button>
+              )}
+              {phase === "recording" && recorder.quiet && (
+                <div style={{ textAlign: "center", fontSize: 13, color: "var(--ds-warning)" }}>{t("review.quiet")}</div>
+              )}
+              {phase === "scoring" && (
+                <div style={{ textAlign: "center", fontSize: 14, color: "var(--ds-text-muted)" }}>
+                  <i className="pi pi-spinner" style={{ animation: "spin 1s linear infinite", marginRight: 6 }} />
+                  {t("review.scoring")}
                 </div>
               )}
-            </div>
-          </>
-        ) : (
-          <div
-            className="ds-card fade"
-            style={{ padding: "48px 32px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}
-          >
-            <span
-              style={{
-                width: 76,
-                height: 76,
-                borderRadius: "50%",
-                background: "var(--ds-success-bg)",
-                color: "var(--ds-success)",
-                display: "grid",
-                placeItems: "center",
-                fontSize: 36,
-              }}
-            >
-              <i className="pi pi-check" />
-            </span>
-            <div style={{ font: "700 26px var(--font-display)" }}>Xong buổi ôn hôm nay!</div>
-            <div style={{ fontSize: 15, color: "var(--ds-text-muted)", maxWidth: 420, lineHeight: 1.6 }}>
-              Bạn đã ôn <b>{REVIEW.length} từ</b> và luyện phát âm lại từng từ. Cứ đều đặn thế này, vốn từ sẽ chắc dần.
-            </div>
-            <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
-              <button onClick={restart} className="ds-btn ds-btn-outline">
-                <i className="pi pi-refresh" />
-                <span>Ôn lại</span>
-              </button>
-              <button onClick={() => router.push("/progress")} className="ds-btn">
-                <span>Xem tiến độ</span>
-                <i className="pi pi-arrow-right" />
-              </button>
-            </div>
+              {phase === "error" && (
+                <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
+                  <div style={{ fontSize: 13, color: "var(--ds-danger)" }}>{error}</div>
+                  <button className="ds-btn ds-btn-outline" onClick={() => setPhase("ready")}>
+                    {t("common.retry")}
+                  </button>
+                </div>
+              )}
+              {phase === "result" && result && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
+                  <div style={{ font: "700 26px var(--font-display)", color: scoreColor(result.score) }}>
+                    {Math.round(result.score)}/100{!isVocab && ` · ${result.passed ? t("review.passed") : t("review.notPassed")}`}
+                  </div>
+                  {result.phonemes.length > 0 && (
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
+                      {result.phonemes.map((p, i) => (
+                        <span
+                          key={i}
+                          title={`${Math.round(p.score)}/100`}
+                          style={{ padding: "3px 8px", borderRadius: 8, background: "var(--ds-surface-subtle)", color: scoreColor(p.score), fontWeight: 600, fontSize: 14 }}
+                        >
+                          {phonemeToIpa(p.phoneme)}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {!isVocab && <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>{nextReviewText(t, result.word)}</div>}
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <button className="ds-btn ds-btn-outline" onClick={() => setPhase("ready")}>
+                      <i className="pi pi-refresh" />
+                      <span>{t("review.again")}</span>
+                    </button>
+                    {!isVocab && (
+                      <button className="ds-btn" onClick={next}>
+                        <span>{t("review.nextCard")}</span>
+                        <i className="pi pi-arrow-right" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {isVocab && revealed && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
+                  <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>{t("review.howWell")}</div>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    {RATINGS.map((r) => (
+                      <button key={r.q} onClick={() => rate(r.q)} className="ds-btn ds-btn-outline" style={{ color: r.color, borderColor: r.color }}>
+                        {t(r.label)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {phase === "ready" && (
+                <button
+                  onClick={remove}
+                  style={{ alignSelf: "center", border: "none", background: "none", cursor: "pointer", fontSize: 12, color: "var(--ds-text-muted)" }}
+                >
+                  {isVocab ? t("review.removeVocab") : t("review.removePron")}
+                </button>
+              )}
+            </>
+          )}
+        </div>
+
+        {data && data.upcoming.length > 0 && (
+          <div className="ds-card" style={{ padding: 22 }}>
+            <div style={{ font: "700 15px var(--font-display)", marginBottom: 8 }}>{t("review.upcoming")}</div>
+            {data.upcoming.map((w) => (
+              <div key={w.id} style={{ display: "flex", gap: 12, padding: "8px 0", borderBottom: "1px solid var(--ds-border-subtle)", fontSize: 14 }}>
+                <span style={{ flex: 1, fontWeight: 600 }}>
+                  {w.word}
+                  {w.vocab && <span style={{ fontWeight: 400, color: "var(--ds-text-muted)" }}> · {w.vocab.meaning}</span>}
+                </span>
+                <span style={{ color: "var(--ds-text-muted)", fontSize: 12 }}>{w.kind === "vocab" ? t("review.kind.vocab") : t("review.kind.pron")}</span>
+                <span style={{ color: "var(--ds-text-muted)", minWidth: 110, textAlign: "right" }}>{dueText(t, locale, w.dueAt)}</span>
+              </div>
+            ))}
           </div>
         )}
       </div>

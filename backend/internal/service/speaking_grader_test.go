@@ -9,7 +9,9 @@ import (
 	"net/http/httptest"
 	"os"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -206,15 +208,73 @@ func (f fakeScorer) Score(context.Context, []byte, string) (*ScoreResult, error)
 	}, nil
 }
 
+func (f fakeScorer) ScoreTranscribed(ctx context.Context, wav []byte, transcript string) (*ScoreResult, error) {
+	return f.Score(ctx, wav, transcript)
+}
+
 type fakeStorage struct{}
 
 func (fakeStorage) Save(context.Context, []byte) (string, error) { return "/uploads/x.wav", nil }
 
-type fakeRepo struct{ saved *domain.PronunciationAttempt }
+type fakeRepo struct {
+	mu      sync.Mutex
+	saved   *domain.PronunciationAttempt
+	updates []domain.GradingUpdate
+	status  map[uuid.UUID]string
+	pending []*domain.PronunciationAttempt
+	history []*domain.AttemptSummary // newest first
+}
 
 func (r *fakeRepo) Create(_ context.Context, a *domain.PronunciationAttempt) (*domain.PronunciationAttempt, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	a.ID = uuid.New()
 	r.saved = a
 	return a, nil
+}
+
+func (r *fakeRepo) Get(context.Context, uuid.UUID, uuid.UUID) (*domain.PronunciationAttempt, error) {
+	return r.saved, nil
+}
+
+func (r *fakeRepo) UpdateGrading(_ context.Context, _ uuid.UUID, u domain.GradingUpdate) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.updates = append(r.updates, u)
+	return nil
+}
+
+func (r *fakeRepo) SetGradingStatus(_ context.Context, id uuid.UUID, status string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.status == nil {
+		r.status = map[uuid.UUID]string{}
+	}
+	r.status[id] = status
+	return nil
+}
+
+func (r *fakeRepo) ListPendingGrading(context.Context, int) ([]*domain.PronunciationAttempt, error) {
+	return r.pending, nil
+}
+
+func (r *fakeRepo) List(_ context.Context, _ uuid.UUID, _ string, before *time.Time, limit int) ([]*domain.AttemptSummary, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	var out []*domain.AttemptSummary
+	for _, s := range r.history {
+		if before == nil || s.CreatedAt.Before(*before) {
+			out = append(out, s)
+		}
+		if len(out) == limit {
+			break
+		}
+	}
+	return out, nil
+}
+
+func (r *fakeRepo) CountByType(context.Context, uuid.UUID) (map[string]int, error) {
+	return map[string]int{"part1": len(r.history)}, nil
 }
 
 func TestSubmitAttemptStoresRubric(t *testing.T) {
@@ -243,5 +303,117 @@ func TestSubmitAttemptStoresRubric(t *testing.T) {
 	}
 	if a.Rubric != nil || a.RubricScore != nil {
 		t.Error("rubric should be empty when grading fails")
+	}
+}
+
+// sourceLLM answers like a real completer: it reports which provider/model answered.
+type sourceLLM struct {
+	reply string
+	delay time.Duration
+}
+
+func (f *sourceLLM) Complete(ctx context.Context, _, _ string) (string, error) {
+	time.Sleep(f.delay)
+	reportLLMSource(ctx, "claude", "claude-sonnet-5-5")
+	return f.reply, nil
+}
+
+func TestSubmitIELTSReturnsBeforeLLMAndUpdatesInBackground(t *testing.T) {
+	sample, err := os.ReadFile("../rubric/examples/sample-evaluation.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	repo := &fakeRepo{}
+	llm := &sourceLLM{reply: string(sample), delay: 300 * time.Millisecond}
+	svc := NewPronunciationService(fakeScorer{raw: firstSampleSegment(t)}, NewSpeakingGrader(loadRubric(t), llm, nil), fakeStorage{}, repo)
+
+	start := time.Now()
+	a, err := svc.SubmitAttempt(context.Background(), uuid.New(), []byte("RIFF"), "", SpeakingTask{Type: "part3", Prompt: "Is the internet good for students?"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if took := time.Since(start); took > 200*time.Millisecond {
+		t.Fatalf("SubmitAttempt waited for the LLM (%s)", took)
+	}
+	var quick rubric.Result
+	if err := json.Unmarshal(a.Rubric, &quick); err != nil {
+		t.Fatal(err)
+	}
+	if a.GradingStatus != domain.GradingPending || a.RubricScore != nil || quick.Pronunciation == nil || !quick.Pronunciation.Assessed || len(quick.Criteria) != 0 {
+		t.Fatalf("quick result: status=%s score=%v pron=%+v criteria=%d", a.GradingStatus, a.RubricScore, quick.Pronunciation, len(quick.Criteria))
+	}
+
+	svc.Wait()
+	if len(repo.updates) != 1 {
+		t.Fatalf("updates = %d, want 1", len(repo.updates))
+	}
+	u := repo.updates[0]
+	var final rubric.Result
+	if err := json.Unmarshal(u.Rubric, &final); err != nil {
+		t.Fatal(err)
+	}
+	if u.Status != domain.GradingDone || u.RubricScore == nil || float64(*u.RubricScore) != final.Overall.Band || len(final.Criteria) != 3 ||
+		u.GraderProvider == nil || *u.GraderProvider != "claude" || *u.GraderModel != "claude-sonnet-5-5" {
+		t.Fatalf("final update = %+v (criteria %d)", u, len(final.Criteria))
+	}
+
+	// Shadowing never waits for an LLM and is done at once.
+	a, err = svc.SubmitAttempt(context.Background(), uuid.New(), []byte("RIFF"), "Good morning.", SpeakingTask{Type: TaskShadowing})
+	if err != nil || a.GradingStatus != domain.GradingDone || a.RubricScore == nil {
+		t.Fatalf("shadowing: status=%s err=%v", a.GradingStatus, err)
+	}
+	svc.Wait()
+	if len(repo.updates) != 1 {
+		t.Fatal("shadowing must not start a background step")
+	}
+}
+
+func TestResumePendingFinishesLeftoverAttempts(t *testing.T) {
+	sample, err := os.ReadFile("../rubric/examples/sample-evaluation.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := "Well, I think so."
+	prompt := "Is the internet good for students?"
+	good := &domain.PronunciationAttempt{ID: uuid.New(), TaskType: "part3", TaskPrompt: &prompt, RecognizedText: &text, AzureResult: firstSampleSegment(t)}
+	broken := &domain.PronunciationAttempt{ID: uuid.New(), TaskType: "part3", AzureResult: []byte("not json")}
+	repo := &fakeRepo{pending: []*domain.PronunciationAttempt{good, broken}}
+	svc := NewPronunciationService(fakeScorer{}, NewSpeakingGrader(loadRubric(t), &sourceLLM{reply: string(sample)}, nil), fakeStorage{}, repo)
+
+	n, err := svc.ResumePending(context.Background())
+	if err != nil || n != 2 {
+		t.Fatalf("n=%d err=%v", n, err)
+	}
+	svc.Wait()
+	if len(repo.updates) != 1 || repo.updates[0].Status != domain.GradingDone {
+		t.Fatalf("updates = %+v", repo.updates)
+	}
+	if repo.status[broken.ID] != domain.GradingFailed {
+		t.Fatalf("broken attempt status = %q, want failed", repo.status[broken.ID])
+	}
+}
+
+func TestPartialIELTSResultHasNoOverallBand(t *testing.T) {
+	cfg := loadRubric(t)
+	g := NewSpeakingGrader(cfg, nil, nil)
+	in := GradeInput{Task: SpeakingTask{Type: "part1"}, AzureRaw: firstSampleSegment(t)}
+	res, _, err := g.GradePronunciation(context.Background(), in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Only Pronunciation was assessed: the rubric gives a provisional band from it alone.
+	if res.Overall.Band <= 0 || !res.Overall.Provisional {
+		t.Fatalf("overall = %+v", res.Overall)
+	}
+	if hasOverallBand(res) {
+		t.Fatal("a Pronunciation-only IELTS result must not be stored as the attempt's band")
+	}
+	u := gradingUpdate(res, &LLMSource{})
+	if u.RubricScore != nil || u.CEFRLevel != nil {
+		t.Fatalf("update = %+v", u)
+	}
+	res.TaskType = TaskShadowing
+	if !hasOverallBand(res) {
+		t.Fatal("shadowing keeps its Pronunciation band")
 	}
 }

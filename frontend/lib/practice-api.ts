@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api";
+import { apiFetch, errorFrom } from "./http";
 
 export type PracticeSentence = {
   id: string;
@@ -8,14 +8,8 @@ export type PracticeSentence = {
 };
 
 export async function fetchNextSentence(): Promise<PracticeSentence> {
-  const res = await fetch(`${API_BASE_URL}/practice/sentence`, {
-    credentials: "include",
-  });
-
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error(body.message ?? "Failed to fetch next sentence");
-  }
+  const res = await apiFetch("/practice/sentence");
+  if (!res.ok) throw await errorFrom(res, "Failed to fetch next sentence");
 
   return res.json();
 }

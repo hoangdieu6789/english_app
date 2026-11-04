@@ -12,16 +12,49 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countAttemptsByType = `-- name: CountAttemptsByType :many
+SELECT task_type, count(*)::int AS attempts
+FROM pronunciation_attempts
+WHERE user_id = $1
+GROUP BY task_type
+`
+
+type CountAttemptsByTypeRow struct {
+	TaskType string `json:"task_type"`
+	Attempts int32  `json:"attempts"`
+}
+
+func (q *Queries) CountAttemptsByType(ctx context.Context, userID uuid.UUID) ([]CountAttemptsByTypeRow, error) {
+	rows, err := q.db.Query(ctx, countAttemptsByType, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CountAttemptsByTypeRow
+	for rows.Next() {
+		var i CountAttemptsByTypeRow
+		if err := rows.Scan(&i.TaskType, &i.Attempts); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const createPronunciationAttempt = `-- name: CreatePronunciationAttempt :one
 INSERT INTO pronunciation_attempts (
   user_id, audio_url, reference_text, recognized_text,
   overall_score, fluency_score, word_scores, phoneme_scores,
   task_type, completeness_score, prosody_score, pron_score,
   azure_result, rubric, rubric_score, cefr_level, rubric_version,
-  question_set_id, task_prompt, grader_provider, grader_model
+  question_set_id, task_prompt, grader_provider, grader_model, grading_status, transcript_source,
+  feedback_lang
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
-RETURNING id, user_id, audio_url, reference_text, recognized_text, overall_score, fluency_score, word_scores, phoneme_scores, created_at, task_type, completeness_score, prosody_score, pron_score, azure_result, rubric, rubric_score, cefr_level, rubric_version, question_set_id, task_prompt, grader_provider, grader_model
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
+RETURNING id, user_id, audio_url, reference_text, recognized_text, overall_score, fluency_score, word_scores, phoneme_scores, created_at, task_type, completeness_score, prosody_score, pron_score, azure_result, rubric, rubric_score, cefr_level, rubric_version, question_set_id, task_prompt, grader_provider, grader_model, grading_status, transcript_source, improved_answer, feedback_lang
 `
 
 type CreatePronunciationAttemptParams struct {
@@ -46,6 +79,9 @@ type CreatePronunciationAttemptParams struct {
 	TaskPrompt        pgtype.Text   `json:"task_prompt"`
 	GraderProvider    pgtype.Text   `json:"grader_provider"`
 	GraderModel       pgtype.Text   `json:"grader_model"`
+	GradingStatus     string        `json:"grading_status"`
+	TranscriptSource  pgtype.Text   `json:"transcript_source"`
+	FeedbackLang      pgtype.Text   `json:"feedback_lang"`
 }
 
 func (q *Queries) CreatePronunciationAttempt(ctx context.Context, arg CreatePronunciationAttemptParams) (PronunciationAttempt, error) {
@@ -71,6 +107,9 @@ func (q *Queries) CreatePronunciationAttempt(ctx context.Context, arg CreatePron
 		arg.TaskPrompt,
 		arg.GraderProvider,
 		arg.GraderModel,
+		arg.GradingStatus,
+		arg.TranscriptSource,
+		arg.FeedbackLang,
 	)
 	var i PronunciationAttempt
 	err := row.Scan(
@@ -97,6 +136,233 @@ func (q *Queries) CreatePronunciationAttempt(ctx context.Context, arg CreatePron
 		&i.TaskPrompt,
 		&i.GraderProvider,
 		&i.GraderModel,
+		&i.GradingStatus,
+		&i.TranscriptSource,
+		&i.ImprovedAnswer,
+		&i.FeedbackLang,
 	)
 	return i, err
+}
+
+const getPronunciationAttempt = `-- name: GetPronunciationAttempt :one
+SELECT id, user_id, audio_url, reference_text, recognized_text, overall_score, fluency_score, word_scores, phoneme_scores, created_at, task_type, completeness_score, prosody_score, pron_score, azure_result, rubric, rubric_score, cefr_level, rubric_version, question_set_id, task_prompt, grader_provider, grader_model, grading_status, transcript_source, improved_answer, feedback_lang FROM pronunciation_attempts WHERE id = $1 AND user_id = $2
+`
+
+type GetPronunciationAttemptParams struct {
+	ID     uuid.UUID `json:"id"`
+	UserID uuid.UUID `json:"user_id"`
+}
+
+func (q *Queries) GetPronunciationAttempt(ctx context.Context, arg GetPronunciationAttemptParams) (PronunciationAttempt, error) {
+	row := q.db.QueryRow(ctx, getPronunciationAttempt, arg.ID, arg.UserID)
+	var i PronunciationAttempt
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.AudioUrl,
+		&i.ReferenceText,
+		&i.RecognizedText,
+		&i.OverallScore,
+		&i.FluencyScore,
+		&i.WordScores,
+		&i.PhonemeScores,
+		&i.CreatedAt,
+		&i.TaskType,
+		&i.CompletenessScore,
+		&i.ProsodyScore,
+		&i.PronScore,
+		&i.AzureResult,
+		&i.Rubric,
+		&i.RubricScore,
+		&i.CefrLevel,
+		&i.RubricVersion,
+		&i.QuestionSetID,
+		&i.TaskPrompt,
+		&i.GraderProvider,
+		&i.GraderModel,
+		&i.GradingStatus,
+		&i.TranscriptSource,
+		&i.ImprovedAnswer,
+		&i.FeedbackLang,
+	)
+	return i, err
+}
+
+const listAttempts = `-- name: ListAttempts :many
+SELECT a.id, a.created_at, a.task_type, a.task_prompt, a.reference_text, a.recognized_text,
+       a.overall_score, a.fluency_score, a.prosody_score, a.rubric_score, a.cefr_level,
+       a.grading_status, q.topic
+FROM pronunciation_attempts a
+LEFT JOIN ielts_question_sets q ON q.id = a.question_set_id
+WHERE a.user_id = $1
+  AND ($2::text = '' OR a.task_type = $2::text)
+  AND ($3::timestamptz IS NULL OR a.created_at < $3::timestamptz)
+ORDER BY a.created_at DESC
+LIMIT $4
+`
+
+type ListAttemptsParams struct {
+	UserID   uuid.UUID          `json:"user_id"`
+	TaskType string             `json:"task_type"`
+	Before   pgtype.Timestamptz `json:"before"`
+	MaxRows  int32              `json:"max_rows"`
+}
+
+type ListAttemptsRow struct {
+	ID             uuid.UUID          `json:"id"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	TaskType       string             `json:"task_type"`
+	TaskPrompt     pgtype.Text        `json:"task_prompt"`
+	ReferenceText  string             `json:"reference_text"`
+	RecognizedText pgtype.Text        `json:"recognized_text"`
+	OverallScore   float32            `json:"overall_score"`
+	FluencyScore   float32            `json:"fluency_score"`
+	ProsodyScore   pgtype.Float4      `json:"prosody_score"`
+	RubricScore    pgtype.Float4      `json:"rubric_score"`
+	CefrLevel      pgtype.Text        `json:"cefr_level"`
+	GradingStatus  string             `json:"grading_status"`
+	Topic          pgtype.Text        `json:"topic"`
+}
+
+// The learner's speaking history, newest first. Empty task_type = all types; NULL before = first page.
+func (q *Queries) ListAttempts(ctx context.Context, arg ListAttemptsParams) ([]ListAttemptsRow, error) {
+	rows, err := q.db.Query(ctx, listAttempts,
+		arg.UserID,
+		arg.TaskType,
+		arg.Before,
+		arg.MaxRows,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListAttemptsRow
+	for rows.Next() {
+		var i ListAttemptsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.TaskType,
+			&i.TaskPrompt,
+			&i.ReferenceText,
+			&i.RecognizedText,
+			&i.OverallScore,
+			&i.FluencyScore,
+			&i.ProsodyScore,
+			&i.RubricScore,
+			&i.CefrLevel,
+			&i.GradingStatus,
+			&i.Topic,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPendingGrading = `-- name: ListPendingGrading :many
+SELECT id, user_id, audio_url, reference_text, recognized_text, overall_score, fluency_score, word_scores, phoneme_scores, created_at, task_type, completeness_score, prosody_score, pron_score, azure_result, rubric, rubric_score, cefr_level, rubric_version, question_set_id, task_prompt, grader_provider, grader_model, grading_status, transcript_source, improved_answer, feedback_lang FROM pronunciation_attempts
+WHERE grading_status = 'pending'
+ORDER BY created_at
+LIMIT $1
+`
+
+// Attempts whose LLM step did not finish (e.g. the API restarted), oldest first.
+func (q *Queries) ListPendingGrading(ctx context.Context, limit int32) ([]PronunciationAttempt, error) {
+	rows, err := q.db.Query(ctx, listPendingGrading, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PronunciationAttempt
+	for rows.Next() {
+		var i PronunciationAttempt
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.AudioUrl,
+			&i.ReferenceText,
+			&i.RecognizedText,
+			&i.OverallScore,
+			&i.FluencyScore,
+			&i.WordScores,
+			&i.PhonemeScores,
+			&i.CreatedAt,
+			&i.TaskType,
+			&i.CompletenessScore,
+			&i.ProsodyScore,
+			&i.PronScore,
+			&i.AzureResult,
+			&i.Rubric,
+			&i.RubricScore,
+			&i.CefrLevel,
+			&i.RubricVersion,
+			&i.QuestionSetID,
+			&i.TaskPrompt,
+			&i.GraderProvider,
+			&i.GraderModel,
+			&i.GradingStatus,
+			&i.TranscriptSource,
+			&i.ImprovedAnswer,
+			&i.FeedbackLang,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const setGradingStatus = `-- name: SetGradingStatus :exec
+UPDATE pronunciation_attempts SET grading_status = $2 WHERE id = $1
+`
+
+type SetGradingStatusParams struct {
+	ID            uuid.UUID `json:"id"`
+	GradingStatus string    `json:"grading_status"`
+}
+
+func (q *Queries) SetGradingStatus(ctx context.Context, arg SetGradingStatusParams) error {
+	_, err := q.db.Exec(ctx, setGradingStatus, arg.ID, arg.GradingStatus)
+	return err
+}
+
+const updateAttemptGrading = `-- name: UpdateAttemptGrading :exec
+UPDATE pronunciation_attempts
+SET rubric = $2, rubric_score = $3, cefr_level = $4, rubric_version = $5,
+    grader_provider = $6, grader_model = $7, grading_status = $8
+WHERE id = $1
+`
+
+type UpdateAttemptGradingParams struct {
+	ID             uuid.UUID     `json:"id"`
+	Rubric         []byte        `json:"rubric"`
+	RubricScore    pgtype.Float4 `json:"rubric_score"`
+	CefrLevel      pgtype.Text   `json:"cefr_level"`
+	RubricVersion  pgtype.Text   `json:"rubric_version"`
+	GraderProvider pgtype.Text   `json:"grader_provider"`
+	GraderModel    pgtype.Text   `json:"grader_model"`
+	GradingStatus  string        `json:"grading_status"`
+}
+
+// Final result of the background LLM step.
+func (q *Queries) UpdateAttemptGrading(ctx context.Context, arg UpdateAttemptGradingParams) error {
+	_, err := q.db.Exec(ctx, updateAttemptGrading,
+		arg.ID,
+		arg.Rubric,
+		arg.RubricScore,
+		arg.CefrLevel,
+		arg.RubricVersion,
+		arg.GraderProvider,
+		arg.GraderModel,
+		arg.GradingStatus,
+	)
+	return err
 }

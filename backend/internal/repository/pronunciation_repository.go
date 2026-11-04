@@ -3,8 +3,12 @@ package repository
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"time"
 
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -14,6 +18,16 @@ import (
 
 type PronunciationRepository interface {
 	Create(ctx context.Context, attempt *domain.PronunciationAttempt) (*domain.PronunciationAttempt, error)
+	// Get returns nil when the attempt does not exist or belongs to another user.
+	Get(ctx context.Context, id, userID uuid.UUID) (*domain.PronunciationAttempt, error)
+	UpdateGrading(ctx context.Context, id uuid.UUID, u domain.GradingUpdate) error
+	SetGradingStatus(ctx context.Context, id uuid.UUID, status string) error
+	// ListPendingGrading returns attempts whose background LLM step did not finish.
+	ListPendingGrading(ctx context.Context, limit int) ([]*domain.PronunciationAttempt, error)
+	// List returns the learner's attempts newest first; taskType "" = all, before nil = first
+	// page.
+	List(ctx context.Context, userID uuid.UUID, taskType string, before *time.Time, limit int) ([]*domain.AttemptSummary, error)
+	CountByType(ctx context.Context, userID uuid.UUID) (map[string]int, error)
 }
 
 type pronunciationRepository struct {
@@ -65,6 +79,9 @@ func (r *pronunciationRepository) Create(ctx context.Context, attempt *domain.Pr
 		TaskPrompt:        toText(attempt.TaskPrompt),
 		GraderProvider:    toText(attempt.GraderProvider),
 		GraderModel:       toText(attempt.GraderModel),
+		GradingStatus:     gradingStatus(attempt.GradingStatus),
+		TranscriptSource:  toText(attempt.TranscriptSource),
+		FeedbackLang:      toText(attempt.FeedbackLang),
 	})
 	if err != nil {
 		return nil, err
@@ -105,6 +122,10 @@ func toDomainPronunciationAttempt(row sqlcgen.PronunciationAttempt) (*domain.Pro
 		TaskPrompt:        fromText(row.TaskPrompt),
 		GraderProvider:    fromText(row.GraderProvider),
 		GraderModel:       fromText(row.GraderModel),
+		GradingStatus:     row.GradingStatus,
+		TranscriptSource:  fromText(row.TranscriptSource),
+		FeedbackLang:      fromText(row.FeedbackLang),
+		ImprovedAnswer:    row.ImprovedAnswer,
 		CreatedAt:         row.CreatedAt.Time,
 	}
 	if row.RecognizedText.Valid {
@@ -149,4 +170,97 @@ func nilIfEmpty(b []byte) []byte {
 		return nil
 	}
 	return b
+}
+
+func gradingStatus(s string) string {
+	if s == "" {
+		return domain.GradingDone
+	}
+	return s
+}
+
+func (r *pronunciationRepository) Get(ctx context.Context, id, userID uuid.UUID) (*domain.PronunciationAttempt, error) {
+	row, err := r.q.GetPronunciationAttempt(ctx, sqlcgen.GetPronunciationAttemptParams{ID: id, UserID: userID})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return toDomainPronunciationAttempt(row)
+}
+
+func (r *pronunciationRepository) UpdateGrading(ctx context.Context, id uuid.UUID, u domain.GradingUpdate) error {
+	return r.q.UpdateAttemptGrading(ctx, sqlcgen.UpdateAttemptGradingParams{
+		ID:             id,
+		Rubric:         nilIfEmpty(u.Rubric),
+		RubricScore:    toFloat4(u.RubricScore),
+		CefrLevel:      toText(u.CEFRLevel),
+		RubricVersion:  toText(u.RubricVersion),
+		GraderProvider: toText(u.GraderProvider),
+		GraderModel:    toText(u.GraderModel),
+		GradingStatus:  gradingStatus(u.Status),
+	})
+}
+
+func (r *pronunciationRepository) SetGradingStatus(ctx context.Context, id uuid.UUID, status string) error {
+	return r.q.SetGradingStatus(ctx, sqlcgen.SetGradingStatusParams{ID: id, GradingStatus: status})
+}
+
+func (r *pronunciationRepository) ListPendingGrading(ctx context.Context, limit int) ([]*domain.PronunciationAttempt, error) {
+	rows, err := r.q.ListPendingGrading(ctx, int32(limit))
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*domain.PronunciationAttempt, 0, len(rows))
+	for _, row := range rows {
+		a, err := toDomainPronunciationAttempt(row)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, a)
+	}
+	return out, nil
+}
+
+func (r *pronunciationRepository) List(ctx context.Context, userID uuid.UUID, taskType string, before *time.Time, limit int) ([]*domain.AttemptSummary, error) {
+	p := sqlcgen.ListAttemptsParams{UserID: userID, TaskType: taskType, MaxRows: int32(limit)}
+	if before != nil {
+		p.Before = pgtype.Timestamptz{Time: *before, Valid: true}
+	}
+	rows, err := r.q.ListAttempts(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*domain.AttemptSummary, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, &domain.AttemptSummary{
+			ID:             row.ID,
+			CreatedAt:      row.CreatedAt.Time,
+			TaskType:       row.TaskType,
+			TaskPrompt:     fromText(row.TaskPrompt),
+			ReferenceText:  row.ReferenceText,
+			RecognizedText: fromText(row.RecognizedText),
+			Topic:          fromText(row.Topic),
+			OverallScore:   row.OverallScore,
+			FluencyScore:   row.FluencyScore,
+			ProsodyScore:   fromFloat4(row.ProsodyScore),
+			RubricScore:    fromFloat4(row.RubricScore),
+			CEFRLevel:      fromText(row.CefrLevel),
+			GradingStatus:  row.GradingStatus,
+		})
+	}
+	return out, nil
+}
+
+func (r *pronunciationRepository) CountByType(ctx context.Context, userID uuid.UUID) (map[string]int, error) {
+	rows, err := r.q.CountAttemptsByType(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	out := map[string]int{}
+	for _, row := range rows {
+		out[row.TaskType] = int(row.Attempts)
+	}
+	return out, nil
 }

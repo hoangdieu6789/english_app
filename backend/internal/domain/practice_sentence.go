@@ -12,5 +12,6 @@ type PracticeSentence struct {
 	Text      string
 	Phonetic  string
 	Gloss     string
+	GlossLang string // language of Gloss
 	CreatedAt time.Time
 }

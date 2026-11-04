@@ -112,3 +112,24 @@ func buildWAV(fmtChunk, pcm []byte) []byte {
 	b.Write(pcm)
 	return b.Bytes()
 }
+
+// AudioLevel returns the length in seconds and the loudest 20 ms RMS of a 16-bit mono PCM
+// WAV, for logs (a peak under ~300 is near silence). ok is false for other formats.
+func AudioLevel(wav []byte) (seconds, peakRMS float64, ok bool) {
+	_, dataOff, dataLen, ok := parseWAV(wav)
+	if !ok {
+		return 0, 0, false
+	}
+	pcm := wav[dataOff : dataOff+dataLen]
+	const frame = 320 // 20 ms at 16 kHz
+	n := len(pcm) / 2
+	for start := 0; start+frame <= n; start += frame {
+		var sum float64
+		for i := start; i < start+frame; i++ {
+			v := float64(int16(uint16(pcm[2*i]) | uint16(pcm[2*i+1])<<8))
+			sum += v * v
+		}
+		peakRMS = math.Max(peakRMS, math.Sqrt(sum/frame))
+	}
+	return float64(n) / 16000, peakRMS, true
+}

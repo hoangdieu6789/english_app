@@ -16,7 +16,7 @@ import (
 // one by one (ClaimNext), so one LLM call can fill the queue with a whole batch.
 type PracticeSentenceRepository interface {
 	// Create adds a sentence to the user's queue.
-	Create(ctx context.Context, userID uuid.UUID, text, phonetic, gloss string) (*domain.PracticeSentence, error)
+	Create(ctx context.Context, userID uuid.UUID, text, phonetic, gloss, glossLang string) (*domain.PracticeSentence, error)
 	// ClaimNext marks the oldest queued sentence as shown and returns it; nil when the queue is empty.
 	ClaimNext(ctx context.Context, userID uuid.UUID) (*domain.PracticeSentence, error)
 	CountQueued(ctx context.Context, userID uuid.UUID) (int, error)
@@ -39,16 +39,18 @@ func toPracticeSentence(row sqlcgen.PracticeSentence) *domain.PracticeSentence {
 		Text:      row.Text,
 		Phonetic:  row.Phonetic,
 		Gloss:     row.Gloss,
+		GlossLang: row.GlossLang,
 		CreatedAt: row.CreatedAt.Time,
 	}
 }
 
-func (r *practiceSentenceRepository) Create(ctx context.Context, userID uuid.UUID, text, phonetic, gloss string) (*domain.PracticeSentence, error) {
+func (r *practiceSentenceRepository) Create(ctx context.Context, userID uuid.UUID, text, phonetic, gloss, glossLang string) (*domain.PracticeSentence, error) {
 	row, err := r.q.CreatePracticeSentence(ctx, sqlcgen.CreatePracticeSentenceParams{
-		UserID:   userID,
-		Text:     text,
-		Phonetic: phonetic,
-		Gloss:    gloss,
+		UserID:    userID,
+		Text:      text,
+		Phonetic:  phonetic,
+		Gloss:     gloss,
+		GlossLang: glossLang,
 	})
 	if err != nil {
 		return nil, err

@@ -21,7 +21,7 @@ WHERE id = (
   LIMIT 1
   FOR UPDATE SKIP LOCKED
 )
-RETURNING id, user_id, text, phonetic, gloss, created_at, served_at
+RETURNING id, user_id, text, phonetic, gloss, created_at, served_at, gloss_lang
 `
 
 // Takes the oldest queued sentence and marks it as shown. SKIP LOCKED keeps two parallel
@@ -37,6 +37,7 @@ func (q *Queries) ClaimNextPracticeSentence(ctx context.Context, userID uuid.UUI
 		&i.Gloss,
 		&i.CreatedAt,
 		&i.ServedAt,
+		&i.GlossLang,
 	)
 	return i, err
 }
@@ -54,16 +55,17 @@ func (q *Queries) CountQueuedPracticeSentences(ctx context.Context, userID uuid.
 }
 
 const createPracticeSentence = `-- name: CreatePracticeSentence :one
-INSERT INTO practice_sentences (user_id, text, phonetic, gloss)
-VALUES ($1, $2, $3, $4)
-RETURNING id, user_id, text, phonetic, gloss, created_at, served_at
+INSERT INTO practice_sentences (user_id, text, phonetic, gloss, gloss_lang)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, user_id, text, phonetic, gloss, created_at, served_at, gloss_lang
 `
 
 type CreatePracticeSentenceParams struct {
-	UserID   uuid.UUID `json:"user_id"`
-	Text     string    `json:"text"`
-	Phonetic string    `json:"phonetic"`
-	Gloss    string    `json:"gloss"`
+	UserID    uuid.UUID `json:"user_id"`
+	Text      string    `json:"text"`
+	Phonetic  string    `json:"phonetic"`
+	Gloss     string    `json:"gloss"`
+	GlossLang string    `json:"gloss_lang"`
 }
 
 // Adds a sentence to the user's queue (served_at stays NULL until it is shown).
@@ -73,6 +75,7 @@ func (q *Queries) CreatePracticeSentence(ctx context.Context, arg CreatePractice
 		arg.Text,
 		arg.Phonetic,
 		arg.Gloss,
+		arg.GlossLang,
 	)
 	var i PracticeSentence
 	err := row.Scan(
@@ -83,6 +86,7 @@ func (q *Queries) CreatePracticeSentence(ctx context.Context, arg CreatePractice
 		&i.Gloss,
 		&i.CreatedAt,
 		&i.ServedAt,
+		&i.GlossLang,
 	)
 	return i, err
 }

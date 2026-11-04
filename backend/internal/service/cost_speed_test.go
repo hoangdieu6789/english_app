@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"net/http"
@@ -233,7 +234,7 @@ type fakeSentenceGen struct {
 	delay time.Duration // simulates a slow LLM
 }
 
-func (g *fakeSentenceGen) GenerateBatch(_ context.Context, _ []string, n, _ int) ([]GeneratedSentence, error) {
+func (g *fakeSentenceGen) GenerateBatch(_ context.Context, _ []string, n, _ int, _ string) ([]GeneratedSentence, error) {
 	time.Sleep(g.delay)
 	g.mu.Lock()
 	defer g.mu.Unlock()
@@ -255,10 +256,10 @@ type memSentenceRepo struct {
 	all   []string
 }
 
-func (r *memSentenceRepo) Create(_ context.Context, uid uuid.UUID, text, ph, gl string) (*domain.PracticeSentence, error) {
+func (r *memSentenceRepo) Create(_ context.Context, uid uuid.UUID, text, ph, gl, glLang string) (*domain.PracticeSentence, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	s := &domain.PracticeSentence{ID: uuid.New(), UserID: uid, Text: text, Phonetic: ph, Gloss: gl}
+	s := &domain.PracticeSentence{ID: uuid.New(), UserID: uid, Text: text, Phonetic: ph, Gloss: gl, GlossLang: glLang}
 	r.queue = append(r.queue, s)
 	r.all = append(r.all, text)
 	return s, nil
@@ -293,7 +294,7 @@ func TestPracticeSentencesAreBatched(t *testing.T) {
 	uid := uuid.New()
 	seen := map[string]bool{}
 	for i := 0; i < 25; i++ {
-		s, err := svc.NextSentence(context.Background(), uid)
+		s, err := svc.NextSentence(context.Background(), uid, "vi")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -314,11 +315,12 @@ func TestPracticeSentencesAreBatched(t *testing.T) {
 func TestEmptyQueueWaitsForRunningRefill(t *testing.T) {
 	gen, repo := &fakeSentenceGen{size: 4, delay: 100 * time.Millisecond}, &memSentenceRepo{}
 	svc := NewPracticeSentenceService(gen, repo, 10)
+	svc.starters = nil // this test is about LLM batches
 	uid := uuid.New()
 	ctx := context.Background()
 	next := func() {
 		t.Helper()
-		if _, err := svc.NextSentence(ctx, uid); err != nil {
+		if _, err := svc.NextSentence(ctx, uid, "vi"); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -360,5 +362,90 @@ func TestParseGeneratedSentences(t *testing.T) {
 	stray := `{"sentences":[{"text":"I usually take the bus to work because it is cheaper.","phonetic":"p","gloss":"g"}]}}`
 	if got, err := parseGeneratedSentences(stray, nil, 10); err != nil || len(got) != 1 {
 		t.Errorf("trailing brace: got %v, err %v", got, err)
+	}
+}
+
+func TestAzureNoSpeechIsReportedAsNoSpeechError(t *testing.T) {
+	for _, status := range []string{"NoMatch", "InitialSilenceTimeout", "BabbleTimeout"} {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_, _ = w.Write([]byte(`{"RecognitionStatus":"` + status + `"}`))
+		}))
+		s := NewAzurePronunciationScorer("k", "eastus", 1)
+		s.endpoint = srv.URL
+		_, err := s.Score(context.Background(), []byte("RIFF"), "")
+		srv.Close()
+		var noSpeech *NoSpeechError
+		if !errors.As(err, &noSpeech) || noSpeech.Status != status {
+			t.Fatalf("%s: err = %v, want NoSpeechError", status, err)
+		}
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"RecognitionStatus":"Error"}`))
+	}))
+	defer srv.Close()
+	s := NewAzurePronunciationScorer("k", "eastus", 1)
+	s.endpoint = srv.URL
+	var noSpeech *NoSpeechError
+	if _, err := s.Score(context.Background(), []byte("RIFF"), ""); err == nil || errors.As(err, &noSpeech) {
+		t.Fatalf("status Error must be a plain error, got %v", err)
+	}
+}
+
+func TestAudioLevel(t *testing.T) {
+	// 0.5 s silence, 1 s tone (amplitude 8000), 0.5 s silence.
+	secs, peak, ok := AudioLevel(toneWAV(0.5, 1))
+	if !ok || secs != 2 || peak < 5000 || peak > 6000 { // RMS of a sine = amplitude / sqrt 2 ≈ 5657
+		t.Fatalf("secs=%v peak=%v ok=%v", secs, peak, ok)
+	}
+	if _, _, ok := AudioLevel([]byte("RIFF")); ok {
+		t.Fatal("bad WAV must not be ok")
+	}
+}
+
+func TestNewLearnerGetsStarterSentencesWithoutLLM(t *testing.T) {
+	gen, repo := &fakeSentenceGen{delay: time.Second}, &memSentenceRepo{}
+	svc := NewPracticeSentenceService(gen, repo, 10)
+	if len(svc.starters) < sentenceRefillBelow+1 {
+		t.Fatalf("starters = %d", len(svc.starters))
+	}
+	for _, st := range svc.starters {
+		if countWords(st.Text) < 10 || st.Phonetic == "" || st.Gloss == "" {
+			t.Errorf("starter %+v", st)
+		}
+	}
+	start := time.Now()
+	s, err := svc.NextSentence(context.Background(), uuid.New(), "vi")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if took := time.Since(start); took > 200*time.Millisecond || s.Text != svc.starters[0].Text {
+		t.Fatalf("first sentence %q took %s", s.Text, took)
+	}
+	svc.wg.Wait()
+	if gen.calls != 0 {
+		t.Errorf("LLM calls = %d, want 0 while starters remain", gen.calls)
+	}
+	// Once the learner has had sentences, an empty queue uses the LLM again.
+	repo.queue = nil
+	if _, err := svc.NextSentence(context.Background(), uuid.New(), "vi"); err != nil {
+		t.Fatal(err)
+	}
+	if gen.calls != 1 {
+		t.Errorf("LLM calls = %d, want 1 after the starters", gen.calls)
+	}
+}
+
+// A sentence queued in English shows no gloss in another language, except a starter, whose
+// Vietnamese gloss is built in.
+func TestPracticeSentenceGlossFollowsLanguage(t *testing.T) {
+	svc := NewPracticeSentenceService(&fakeSentenceGen{}, &memSentenceRepo{}, 10)
+	uid := uuid.New()
+	first, err := svc.NextSentence(context.Background(), uid, "en")
+	if err != nil || first.Gloss != "" {
+		t.Fatalf("en: %+v %v", first, err)
+	}
+	second, err := svc.NextSentence(context.Background(), uid, "vi")
+	if err != nil || second.Gloss == "" {
+		t.Fatalf("vi starter must keep its gloss: %+v %v", second, err)
 	}
 }

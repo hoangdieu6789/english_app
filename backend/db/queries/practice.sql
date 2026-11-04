@@ -1,7 +1,7 @@
 -- name: CreatePracticeSentence :one
 -- Adds a sentence to the user's queue (served_at stays NULL until it is shown).
-INSERT INTO practice_sentences (user_id, text, phonetic, gloss)
-VALUES ($1, $2, $3, $4)
+INSERT INTO practice_sentences (user_id, text, phonetic, gloss, gloss_lang)
+VALUES ($1, $2, $3, $4, $5)
 RETURNING *;
 
 -- name: ClaimNextPracticeSentence :one

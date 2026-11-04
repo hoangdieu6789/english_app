@@ -58,6 +58,12 @@ services:
       LLM_PROVIDERS: ${LLM_PROVIDERS:-openrouter}
       LLM_BRIDGE_URL: ${LLM_BRIDGE_URL:-http://host.docker.internal:8765}
       LLM_BRIDGE_TOKEN: ${LLM_BRIDGE_TOKEN:-}
+      TRANSCRIBER: ${TRANSCRIBER:-whisper}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
       CLAUDE_MODEL: ${CLAUDE_MODEL:-sonnet}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-flash-latest,gemini-3-flash-preview}

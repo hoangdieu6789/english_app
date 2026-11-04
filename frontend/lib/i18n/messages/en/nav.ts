@@ -1,0 +1,24 @@
+import type { nav as source } from "../vi/nav";
+
+export const nav: Record<keyof typeof source, string> = {
+  "nav.dashboard": "Home",
+  "nav.practice": "Practice",
+  "nav.history": "History",
+  "nav.review": "Review",
+  "nav.progress": "Progress",
+  "nav.title.dashboard": "Home",
+  "nav.sub.dashboard": "Your learning today at a glance",
+  "nav.title.practice": "Practice",
+  "nav.sub.practice": "Shadowing and IELTS Speaking Part 1–3",
+  "nav.title.history": "History",
+  "nav.sub.history": "Every answer you recorded: listen again and see the scores",
+  "nav.title.review": "Review",
+  "nav.sub.review": "New words and words you said wrongly, on a spaced-repetition schedule",
+  "nav.title.progress": "Progress",
+  "nav.sub.progress": "Streak, pronunciation and IELTS band from your practice",
+  "nav.streak": "{n}-day streak",
+  "nav.noStreak": "No streak yet",
+  "nav.band30": "30-day IELTS band: {band}",
+  "nav.noBand": "No IELTS band yet",
+  "nav.logout": "Sign out",
+};

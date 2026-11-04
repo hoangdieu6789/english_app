@@ -1,30 +1,44 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { authApi } from "@/lib/auth-api";
+import { authApi, authErrorMessage } from "@/lib/auth-api";
 import { useSessionStore } from "@/lib/session-store";
-import { ApiError } from "@/lib/api-client";
+import { useRedirectIfSignedIn } from "@/lib/use-redirect-if-signed-in";
+import { saveLang, useI18n } from "@/lib/i18n";
+import { LanguageSwitcher } from "@/components/language-switcher";
+
+// After a password reset the reset page sends the learner here with ?reset=1.
+function ResetNotice() {
+  const { t } = useI18n();
+  if (!useSearchParams().has("reset")) return null;
+  return <p style={{ fontSize: 13, color: "var(--ds-success)" }}>{t("auth.login.resetDone")}</p>;
+}
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t, lang } = useI18n();
   const setUser = useSessionStore((s) => s.setUser);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  useRedirectIfSignedIn();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
-      const user = await authApi.login(email, password);
+      const user = await authApi.login(email, password, remember);
       setUser(user);
-      router.push("/dashboard");
+      // Store the language picked on this page on the account.
+      await saveLang(lang);
+      router.replace("/dashboard");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Đăng nhập thất bại");
+      setError(authErrorMessage(err, "login", t));
     } finally {
       setLoading(false);
     }
@@ -94,9 +108,9 @@ export default function LoginPage() {
             <span style={{ font: "700 24px var(--font-display)", letterSpacing: ".01em" }}>SpeakUp</span>
           </div>
           <div style={{ marginTop: 6 }}>
-            <div style={{ font: "700 30px/1.2 var(--font-display)" }}>Luyện nghe &amp; nói tiếng Anh mỗi ngày</div>
+            <div style={{ font: "700 30px/1.2 var(--font-display)" }}>{t("auth.brand.tagline")}</div>
             <div style={{ marginTop: 14, fontSize: 15, lineHeight: 1.6, color: "rgba(255,255,255,.86)" }}>
-              Nói thật nhiều, sai không sao — hệ thống chấm phát âm, phát hiện từ còn yếu và theo dõi tiến bộ của bạn.
+              {t("auth.brand.intro")}
             </div>
           </div>
           <div
@@ -111,34 +125,34 @@ export default function LoginPage() {
           >
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <i className="pi pi-check-circle" />
-              <span>Chấm phát âm theo từng từ &amp; âm tiết</span>
+              <span>{t("auth.brand.feature1")}</span>
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <i className="pi pi-check-circle" />
-              <span>Ôn từ vựng bằng spaced repetition</span>
+              <span>{t("auth.brand.feature2")}</span>
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <i className="pi pi-check-circle" />
-              <span>Biểu đồ tiến độ theo tuần</span>
+              <span>{t("auth.brand.feature3")}</span>
             </div>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} style={{ padding: "44px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
           <div>
-            <div style={{ font: "700 24px var(--font-display)", color: "var(--ds-text)" }}>Đăng nhập</div>
+            <div style={{ font: "700 24px var(--font-display)", color: "var(--ds-text)" }}>{t("auth.login.title")}</div>
             <div style={{ fontSize: 14, color: "var(--ds-text-muted)", marginTop: 4 }}>
-              Sign in — tiếp tục hành trình học của bạn
+              {t("auth.login.subtitle")}
             </div>
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: "var(--ds-text-secondary)" }}>Email</label>
+            <label style={{ fontSize: 13, fontWeight: 600, color: "var(--ds-text-secondary)" }}>{t("auth.field.email")}</label>
             <input
               className="ds-input"
               type="email"
               required
-              placeholder="you@email.com"
+              placeholder={t("auth.field.emailPlaceholder")}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
@@ -146,7 +160,7 @@ export default function LoginPage() {
 
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <label style={{ fontSize: 13, fontWeight: 600, color: "var(--ds-text-secondary)" }}>
-              Mật khẩu / Password
+              {t("auth.field.password")}
             </label>
             <input
               className="ds-input"
@@ -158,25 +172,36 @@ export default function LoginPage() {
           </div>
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13 }}>
-            <label style={{ display: "flex", gap: 7, alignItems: "center", color: "var(--ds-text-secondary)" }}>
-              <input type="checkbox" defaultChecked style={{ accentColor: "var(--ds-primary)", width: 15, height: 15 }} />
-              Ghi nhớ đăng nhập
+            <label
+              style={{ display: "flex", gap: 7, alignItems: "center", color: "var(--ds-text-secondary)" }}
+              title={t("auth.login.rememberHint")}
+            >
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+                style={{ accentColor: "var(--ds-primary)", width: 15, height: 15 }}
+              />
+              {t("auth.login.remember")}
             </label>
-            <a href="#">Quên mật khẩu?</a>
+            <Link href="/forgot-password">{t("auth.login.forgot")}</Link>
           </div>
 
+          <Suspense fallback={null}>
+            <ResetNotice />
+          </Suspense>
           {error && <p style={{ fontSize: 13, color: "var(--ds-danger)" }}>{error}</p>}
 
           <button type="submit" disabled={loading} className="ds-btn ds-btn-lg" style={{ width: "100%", marginTop: 4 }}>
-            <span>{loading ? "Đang đăng nhập..." : "Đăng nhập"}</span>
+            <span>{loading ? t("auth.login.submitting") : t("auth.login.submit")}</span>
             <i className="pi pi-arrow-right" />
           </button>
 
           <div style={{ textAlign: "center", fontSize: 13, color: "var(--ds-text-muted)" }}>
-            Chưa có tài khoản? <Link href="/register">Đăng ký ngay</Link>
+            {t("auth.login.noAccount")} <Link href="/register">{t("auth.login.registerLink")}</Link>
           </div>
-          <div style={{ marginTop: 6, textAlign: "center", fontSize: 12, color: "var(--ds-text-disabled)" }}>
-            Cần hỗ trợ? Hotline 1900 1080
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <LanguageSwitcher />
           </div>
         </form>
       </div>

@@ -31,6 +31,18 @@ func main() {
 	userRepo := repository.NewUserRepository(pool)
 	refreshTokenRepo := repository.NewRefreshTokenRepository(pool)
 	authService := service.NewAuthService(userRepo, refreshTokenRepo, cfg)
+	var mailer service.Mailer = service.LogMailer{}
+	if cfg.SMTPHost != "" {
+		from := cfg.SMTPFrom
+		if from == "" {
+			from = cfg.SMTPUsername
+		}
+		mailer = service.NewSMTPMailer(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUsername, cfg.SMTPPassword, from)
+		log.Printf("mail: SMTP %s:%d", cfg.SMTPHost, cfg.SMTPPort)
+	} else {
+		log.Printf("mail: SMTP_HOST not set; password reset links are written to this log")
+	}
+	authService.EnablePasswordReset(repository.NewPasswordResetRepository(pool), mailer)
 	authHandler := handler.NewAuthHandler(authService, cfg)
 	jwtAuth := middleware.NewJWTAuth(cfg)
 
@@ -98,6 +110,15 @@ func main() {
 	speakingGrader := service.NewSpeakingGrader(rubricCfg, graderLLM, pitchAnalyzer)
 	pronunciationRepo := repository.NewPronunciationRepository(pool)
 	pronunciationService := service.NewPronunciationService(pronunciationScorer, speakingGrader, audioStorage, pronunciationRepo)
+	switch {
+	case cfg.Transcriber == "whisper" && cfg.LLMBridgeToken != "":
+		pronunciationService.SetTranscriber(service.NewBridgeTranscriber(cfg.LLMBridgeURL, cfg.LLMBridgeToken))
+		log.Printf("transcriber: whisper through the LLM bridge (falls back to Azure recognition)")
+	case cfg.Transcriber == "whisper":
+		log.Printf("transcriber: azure (TRANSCRIBER=whisper needs LLM_BRIDGE_TOKEN, see tools/llm-bridge)")
+	default:
+		log.Printf("transcriber: azure")
+	}
 	// IELTS question sets: seed bank on start, new sets written by the free LLM when a
 	// learner is close to the end of the bank.
 	questionSetRepo := repository.NewQuestionSetRepository(pool)
@@ -116,12 +137,41 @@ func main() {
 	ieltsHandler := handler.NewIeltsHandler(ieltsQuestionService)
 	progressHandler := handler.NewProgressHandler(service.NewProgressService(repository.NewProgressRepository(pool)))
 	pronunciationHandler := handler.NewPronunciationHandler(pronunciationService, ieltsQuestionService)
+	// Finish the background LLM step of attempts left pending by a restart.
+	if n, err := pronunciationService.ResumePending(context.Background()); err != nil {
+		log.Printf("speaking rubric: resume pending grading: %v", err)
+	} else if n > 0 {
+		log.Printf("speaking rubric: resumed grading of %d attempts", n)
+	}
 
 	sentenceGenerator := service.NewLLMSentenceGenerator(newLLM(cfg.OpenRouterModel, 0.9, 90*time.Second))
 	practiceSentenceRepo := repository.NewPracticeSentenceRepository(pool)
 	// Generated sentences have at least as many words as the Pronunciation criterion needs.
 	practiceSentenceService := service.NewPracticeSentenceService(sentenceGenerator, practiceSentenceRepo, rubricCfg.Pronunciation.Thresholds.MinWords)
 	practiceHandler := handler.NewPracticeHandler(practiceSentenceService)
+
+	// Spaced-repetition review of the words said wrongly in attempts.
+	reviewService := service.NewReviewService(repository.NewReviewRepository(pool), pronunciationScorer)
+	pronunciationService.SetReviews(reviewService)
+	if n, err := reviewService.CleanupMisrecognised(context.Background()); err != nil {
+		log.Printf("review: clean-up: %v", err)
+	} else if n > 0 {
+		log.Printf("review: removed %d misrecognised words", n)
+	}
+	// New words by band (NGSL/NAWL); the LLM writes each word's meaning and example once.
+	var vocabEnricher service.VocabEnricher
+	if graderLLM != nil {
+		vocabEnricher = service.NewLLMVocabEnricher(newLLM(cfg.OpenRouterModel, 0.3, 120*time.Second))
+	}
+	vocabService := service.NewVocabService(repository.NewVocabRepository(pool), userRepo, vocabEnricher)
+	seedVocabCtx, cancelSeedVocab := context.WithTimeout(context.Background(), 30*time.Second)
+	if err := vocabService.Seed(seedVocabCtx); err != nil {
+		log.Fatalf("seed vocab words: %v", err)
+	}
+	cancelSeedVocab()
+	reviewHandler := handler.NewReviewHandler(reviewService, vocabService)
+	// Model answers and improved answers at the learner's target band.
+	coachHandler := handler.NewCoachHandler(service.NewCoachService(graderLLM, repository.NewCoachRepository(pool), pronunciationRepo, vocabService))
 
 	e := echo.New()
 	e.Use(echomw.Logger())
@@ -139,6 +189,8 @@ func main() {
 	handler.RegisterPracticeRoutes(api, practiceHandler, jwtAuth)
 	handler.RegisterIeltsRoutes(api, ieltsHandler, jwtAuth)
 	handler.RegisterProgressRoutes(api, progressHandler, jwtAuth)
+	handler.RegisterReviewRoutes(api, reviewHandler, jwtAuth)
+	handler.RegisterCoachRoutes(api, coachHandler, jwtAuth)
 
 	e.GET("/healthz", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})

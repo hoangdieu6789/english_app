@@ -3,28 +3,24 @@
 import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/app-shell";
 import { WeeklyLineChart } from "@/components/charts/line-chart";
+import { BandGoalForm } from "@/components/band-goal-form";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { hasMessage, useI18n, type MessageKey } from "@/lib/i18n";
 import { phonemeToIpa } from "@/lib/phonemes";
 import { progressQuery, type ProgressSummary } from "@/lib/progress-api";
+import { goalsQuery } from "@/lib/review-api";
 import { scoreColor } from "@/lib/score-color";
 
 // All numbers come from the learner's own attempts (GET /api/progress/summary).
 
 const WEEKS_SHOWN = 6;
 
-const CRITERIA: { id: string; label: string }[] = [
-  { id: "fluency_coherence", label: "Trôi chảy & mạch lạc" },
-  { id: "lexical_resource", label: "Từ vựng" },
-  { id: "grammatical_range_accuracy", label: "Ngữ pháp" },
-  { id: "pronunciation", label: "Phát âm" },
+const CRITERIA: { id: string; label: MessageKey }[] = [
+  { id: "fluency_coherence", label: "progress.criteria.fluency_coherence" },
+  { id: "lexical_resource", label: "progress.criteria.lexical_resource" },
+  { id: "grammatical_range_accuracy", label: "progress.criteria.grammatical_range_accuracy" },
+  { id: "pronunciation", label: "progress.criteria.pronunciation" },
 ];
-
-const TASKS: Record<string, string> = {
-  shadowing: "Shadowing",
-  part1: "IELTS Part 1",
-  part2: "IELTS Part 2",
-  part3: "IELTS Part 3",
-  full_test: "Thi thử",
-};
 
 function bandColor(band: number): string {
   if (band >= 7) return "var(--ds-success)";
@@ -75,38 +71,41 @@ function Bar({ label, value, max, color, right }: { label: string; value: number
 }
 
 function StatCards({ p }: { p: ProgressSummary }) {
+  const { t } = useI18n();
   const cards = [
     {
-      label: "Streak",
+      label: t("progress.stat.streak"),
       icon: "pi pi-bolt",
       color: "var(--ds-warning)",
       value: String(p.streak),
-      unit: "ngày",
-      note: `${p.activeDays} ngày đã luyện`,
+      unit: t("progress.stat.days"),
+      note: t("progress.stat.activeDays", { n: p.activeDays }),
     },
     {
-      label: "Bài đã luyện",
+      label: t("progress.stat.attempts"),
       icon: "pi pi-microphone",
       color: "var(--ds-info)",
       value: String(p.attempts),
       unit: "",
-      note: `hôm nay ${p.attemptsToday}`,
+      note: t("progress.stat.today", { n: p.attemptsToday }),
     },
     {
-      label: "Chính xác TB (30 ngày)",
+      label: t("progress.stat.accuracy30"),
       icon: "pi pi-chart-line",
       color: "var(--ds-primary)",
       value: p.last30Days.attempts ? String(Math.round(p.last30Days.accuracy)) : "—",
       unit: p.last30Days.attempts ? "/100" : "",
-      note: p.last30Days.attempts ? `trôi chảy ${Math.round(p.last30Days.fluency)} · ${p.last30Days.attempts} bài` : "chưa có bài",
+      note: p.last30Days.attempts
+        ? t("progress.stat.fluencyNote", { fluency: Math.round(p.last30Days.fluency), n: p.last30Days.attempts })
+        : t("progress.stat.noAttempts"),
     },
     {
-      label: "Band IELTS TB (30 ngày)",
+      label: t("progress.stat.band30"),
       icon: "pi pi-star",
       color: "var(--ds-success)",
       value: p.last30Days.banded ? formatBand(p.last30Days.band) : "—",
       unit: "",
-      note: p.last30Days.banded ? `${p.last30Days.banded} bài IELTS có band` : "chưa có bài IELTS có band",
+      note: p.last30Days.banded ? t("progress.stat.bandedCount", { n: p.last30Days.banded }) : t("progress.stat.noBanded"),
     },
   ];
   return (
@@ -128,13 +127,15 @@ function StatCards({ p }: { p: ProgressSummary }) {
 }
 
 export default function ProgressPage() {
+  const { t, locale } = useI18n();
   const { data: p, isError, error } = useQuery(progressQuery);
+  const goals = useQuery(goalsQuery);
 
   if (!p) {
     return (
       <AppShell>
         <div style={{ maxWidth: 1120, margin: "0 auto", fontSize: 14, color: isError ? "var(--ds-danger)" : "var(--ds-text-muted)" }}>
-          {isError ? `Không tải được tiến độ. ${error.message}` : "Đang tải tiến độ..."}
+          {isError ? t("progress.loadFailed", { error: error.message }) : t("progress.loading")}
         </div>
       </AppShell>
     );
@@ -144,10 +145,15 @@ export default function ProgressPage() {
   const byWeek = new Map(p.weeks.map((w) => [w.start, w]));
   const accuracy = weeks.map((w) => byWeek.get(w)?.accuracy ?? null);
   const fluency = weeks.map((w) => byWeek.get(w)?.fluency ?? null);
+  // Day and month in the UI locale (e.g. 03/11 in Vietnamese, 11/03 in US English).
   const weekLabels = weeks.map((w) => {
-    const [, m, d] = w.split("-");
-    return `${d}/${m}`;
+    const [y, m, d] = w.split("-").map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString(locale, { day: "2-digit", month: "2-digit" });
   });
+  const taskLabel = (type: string) => {
+    const key = `progress.task.${type}`;
+    return hasMessage(key) ? t(key) : type;
+  };
   const criteria = new Map(p.criteria.map((c) => [c.criterion, c]));
   const graded = p.graders.filter((g) => g.provider);
   const ungraded = p.graders.find((g) => !g.provider)?.attempts ?? 0;
@@ -158,48 +164,63 @@ export default function ProgressPage() {
         <StatCards p={p} />
 
         <div className="ds-card" style={{ padding: 24 }}>
+          <div style={{ font: "700 16px var(--font-display)", marginBottom: 12 }}>{t("progress.goals.title")}</div>
+          {goals.data ? <BandGoalForm goals={goals.data} /> : <Empty>{t("common.loading")}</Empty>}
+          <div style={{ marginTop: 16 }}>
+            <LanguageSwitcher sync showHint />
+          </div>
+        </div>
+
+        <div className="ds-card" style={{ padding: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
             <div>
-              <div style={{ font: "700 17px var(--font-display)" }}>Chính xác &amp; trôi chảy theo tuần</div>
+              <div style={{ font: "700 17px var(--font-display)" }}>{t("progress.weekly.title")}</div>
               <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>
-                Điểm Azure trung bình (0–100), {WEEKS_SHOWN} tuần gần nhất, tuần bắt đầu thứ Hai
+                {t("progress.weekly.subtitle", { n: WEEKS_SHOWN })}
               </div>
             </div>
             <div style={{ display: "flex", gap: 16, fontSize: 13 }}>
               <span style={{ display: "flex", alignItems: "center", gap: 7 }}>
                 <span style={{ width: 14, height: 3, borderRadius: 2, background: "var(--ds-primary)" }} />
-                Chính xác
+                {t("common.accuracy")}
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: 7 }}>
                 <span style={{ width: 14, height: 3, borderRadius: 2, background: "var(--ds-info)" }} />
-                Trôi chảy
+                {t("common.fluency")}
               </span>
             </div>
           </div>
           {p.weeks.length ? (
             <WeeklyLineChart weeks={weekLabels} accuracy={accuracy} fluency={fluency} />
           ) : (
-            <Empty>Chưa có bài luyện nào trong {WEEKS_SHOWN} tuần gần đây.</Empty>
+            <Empty>{t("progress.weekly.empty", { n: WEEKS_SHOWN })}</Empty>
           )}
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-          <Card title="Band IELTS theo tiêu chí" subtitle="Trung bình 90 ngày, chỉ bài chấm theo rubric v2 (0–9)">
+          <Card title={t("progress.criteria.title")} subtitle={t("progress.criteria.subtitle")}>
             {p.criteria.length ? (
               CRITERIA.map((c) => {
                 const s = criteria.get(c.id);
                 return s ? (
-                  <Bar key={c.id} label={c.label} value={s.band} max={9} color={bandColor(s.band)} right={`${formatBand(s.band)} · ${s.samples} bài`} />
+                  <Bar
+                    key={c.id}
+                    label={t(c.label)}
+                    value={s.band}
+                    max={9}
+                    color={bandColor(s.band)}
+                    right={t("progress.criteria.samples", { band: formatBand(s.band), n: s.samples })}
+                  />
                 ) : (
-                  <Bar key={c.id} label={c.label} value={0} max={9} color="var(--ds-border-strong)" right="chưa có" />
+                  <Bar key={c.id} label={t(c.label)} value={0} max={9} color="var(--ds-border-strong)" right={t("progress.criteria.none")} />
                 );
               })
             ) : (
-              <Empty>Chưa có bài nào có band. Làm một bài IELTS Part 1–3, hoặc một câu shadowing đủ 10 từ để có band phát âm.</Empty>
+              <Empty>{t("progress.criteria.empty")}</Empty>
             )}
           </Card>
 
-          <Card title="Top 5 âm khó nhất" subtitle="Điểm Azure trung bình theo âm, 90 ngày, âm xuất hiện ít nhất 3 lần">
+          <Card title={t("progress.phonemes.title")} subtitle={t("progress.phonemes.subtitle")}>
             {p.hardPhonemes.length ? (
               p.hardPhonemes.map((ph) => (
                 <Bar
@@ -208,44 +229,44 @@ export default function ProgressPage() {
                   value={ph.score}
                   max={100}
                   color={scoreColor(ph.score)}
-                  right={`${Math.round(ph.score)} · ${ph.samples} lần`}
+                  right={t("progress.phonemes.samples", { score: Math.round(ph.score), n: ph.samples })}
                 />
               ))
             ) : (
-              <Empty>Chưa đủ dữ liệu. Cần thêm vài bài để mỗi âm xuất hiện ít nhất 3 lần.</Empty>
+              <Empty>{t("progress.phonemes.empty")}</Empty>
             )}
           </Card>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-          <Card title="Theo loại bài" subtitle="Số bài, band trung bình và cao nhất (rubric v2)">
+          <Card title={t("progress.byTask.title")} subtitle={t("progress.byTask.subtitle")}>
             {p.byTask.length ? (
               <table style={{ width: "100%", fontSize: 14, borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ color: "var(--ds-text-muted)", fontSize: 12, textAlign: "left" }}>
-                    <th style={{ fontWeight: 500, paddingBottom: 8 }}>Loại bài</th>
-                    <th style={{ fontWeight: 500, paddingBottom: 8, textAlign: "right" }}>Số bài</th>
-                    <th style={{ fontWeight: 500, paddingBottom: 8, textAlign: "right" }}>Band TB</th>
-                    <th style={{ fontWeight: 500, paddingBottom: 8, textAlign: "right" }}>Cao nhất</th>
+                    <th style={{ fontWeight: 500, paddingBottom: 8 }}>{t("progress.byTask.type")}</th>
+                    <th style={{ fontWeight: 500, paddingBottom: 8, textAlign: "right" }}>{t("progress.byTask.count")}</th>
+                    <th style={{ fontWeight: 500, paddingBottom: 8, textAlign: "right" }}>{t("progress.byTask.avg")}</th>
+                    <th style={{ fontWeight: 500, paddingBottom: 8, textAlign: "right" }}>{t("progress.byTask.best")}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {p.byTask.map((t) => (
-                    <tr key={t.taskType} style={{ borderTop: "1px solid var(--ds-border-subtle)" }}>
-                      <td style={{ padding: "8px 0", fontWeight: 600 }}>{TASKS[t.taskType] ?? t.taskType}</td>
-                      <td style={{ textAlign: "right" }}>{t.attempts}</td>
-                      <td style={{ textAlign: "right", color: t.avgBand ? bandColor(t.avgBand) : undefined }}>{t.avgBand ? formatBand(t.avgBand) : "—"}</td>
-                      <td style={{ textAlign: "right", color: t.bestBand ? bandColor(t.bestBand) : undefined }}>{t.bestBand ? formatBand(t.bestBand) : "—"}</td>
+                  {p.byTask.map((row) => (
+                    <tr key={row.taskType} style={{ borderTop: "1px solid var(--ds-border-subtle)" }}>
+                      <td style={{ padding: "8px 0", fontWeight: 600 }}>{taskLabel(row.taskType)}</td>
+                      <td style={{ textAlign: "right" }}>{row.attempts}</td>
+                      <td style={{ textAlign: "right", color: row.avgBand ? bandColor(row.avgBand) : undefined }}>{row.avgBand ? formatBand(row.avgBand) : "—"}</td>
+                      <td style={{ textAlign: "right", color: row.bestBand ? bandColor(row.bestBand) : undefined }}>{row.bestBand ? formatBand(row.bestBand) : "—"}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             ) : (
-              <Empty>Chưa có bài luyện nào.</Empty>
+              <Empty>{t("progress.byTask.empty")}</Empty>
             )}
           </Card>
 
-          <Card title="Nguồn chấm bài IELTS" subtitle="AI chấm trôi chảy, từ vựng, ngữ pháp; mỗi model đọc rubric hơi khác nhau">
+          <Card title={t("progress.graders.title")} subtitle={t("progress.graders.subtitle")}>
             {graded.length || ungraded ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {graded.map((g) => (
@@ -253,18 +274,18 @@ export default function ProgressPage() {
                     <span>
                       <b>{g.provider}</b> <span style={{ color: "var(--ds-text-muted)" }}>{g.model}</span>
                     </span>
-                    <span>{g.attempts} bài</span>
+                    <span>{t("progress.graders.count", { n: g.attempts })}</span>
                   </div>
                 ))}
                 {ungraded > 0 && (
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "var(--ds-text-muted)" }}>
-                    <span>Không rõ / AI lỗi</span>
-                    <span>{ungraded} bài</span>
+                    <span>{t("progress.graders.unknown")}</span>
+                    <span>{t("progress.graders.count", { n: ungraded })}</span>
                   </div>
                 )}
               </div>
             ) : (
-              <Empty>Chưa có bài IELTS nào.</Empty>
+              <Empty>{t("progress.graders.empty")}</Empty>
             )}
           </Card>
         </div>
