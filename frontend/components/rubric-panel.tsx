@@ -79,6 +79,8 @@ export function RubricPanel({
   ];
   const notAssessed = pending ? rubric.not_assessed.filter((n) => !LLM_CRITERIA.includes(n.id)) : rubric.not_assessed;
   const mispronounced = pron?.mispronounced_words ?? [];
+  const unlinked = pron?.unlinked_pairs ?? [];
+  const linkingMeasured = (pron?.items ?? []).some((it) => it.code === "P-05" && it.measured);
 
   return (
     <div className="ds-card" style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
@@ -182,7 +184,10 @@ export function RubricPanel({
                   color: it.measured ? "var(--ds-text)" : "var(--ds-text-muted)",
                 }}
               >
-                <span>{label(t, "rubric.feature", it.code)}</span>
+                <span>
+                  {label(t, "rubric.feature", it.code)}
+                  {it.code === "P-05" && it.measured && <span style={{ color: "var(--ds-text-muted)" }}> ({t("rubric.estimate")})</span>}
+                </span>
                 <span style={{ fontWeight: 600, whiteSpace: "nowrap", marginLeft: 8, color: it.measured && it.band ? bandColor(it.band) : undefined }}>
                   {it.measured && it.band ? `${it.band}/9` : t("rubric.notMeasured")}
                 </span>
@@ -193,6 +198,14 @@ export function RubricPanel({
             <div style={{ marginTop: 10, fontSize: "var(--text-sm)", color: "var(--ds-text-secondary)" }}>
               {t("rubric.mispronounced")} <span style={{ fontWeight: 600, color: "var(--ds-danger)" }}>{mispronounced.join(", ")}</span>
             </div>
+          )}
+          {unlinked.length > 0 && (
+            <div style={{ marginTop: 10, fontSize: "var(--text-sm)", color: "var(--ds-text-secondary)" }}>
+              {t("rubric.unlinked")} <span style={{ fontWeight: 600, color: "var(--ds-warning)" }}>{unlinked.map((p) => p.replace(" ", " ‿ ")).join(", ")}</span>
+            </div>
+          )}
+          {linkingMeasured && (
+            <div style={{ marginTop: 6, fontSize: "var(--text-xs)", color: "var(--ds-text-muted)" }}>{t("rubric.linkingEstimate")}</div>
           )}
           {pron.tone_issues && pron.tone_issues.length > 0 && (
             <ul style={{ margin: "10px 0 0", paddingLeft: 18, fontSize: "var(--text-sm)", color: "var(--ds-text-secondary)" }}>

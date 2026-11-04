@@ -82,6 +82,7 @@ export type RubricResult = {
     coverage: string;
     items: PronunciationItem[];
     mispronounced_words?: string[];
+    unlinked_pairs?: string[]; // P-05: consonant-vowel joins said with a pause
     tone_issues?: ToneIssue[];
     reason?: string;
   };

@@ -100,7 +100,7 @@ Measured after the changes (2026-11-03):
 - [ ] Test with real human voices. The TTS voice (`say`) gets `Monotone` on every word from Azure, so P-04 = 1/9.
 - [ ] Calibrate `pronunciation.thresholds` with answers rated by IELTS-trained teachers. The thresholds are only a starting point.
 - [ ] Pitch analysis (P-04, `pitch_direction.py`) is off in Docker: `praat-parselmouth` has no Linux ARM64 wheel. Options: a separate Python image built for amd64, or compile Praat in the Dockerfile.
-- [ ] P-05 (connected speech) is not measured. Keep `not_measured` until there is a reliable signal.
+- [x] P-05 (connected speech): linking estimated from word timing (rubric v2.1.0, 2026-11-04). On 25 real answers 15 had enough joins; bands 3–9. Weak forms and elision are still not measured.
 
 ### 6. Old data and history
 
