@@ -12,5 +12,7 @@ func RegisterAuthRoutes(api *echo.Group, h *AuthHandler, jwtAuth *middleware.JWT
 	auth.POST("/login", h.Login)
 	auth.POST("/refresh", h.Refresh)
 	auth.POST("/logout", h.Logout)
+	auth.POST("/forgot-password", h.ForgotPassword)
+	auth.POST("/reset-password", h.ResetPassword)
 	auth.GET("/me", h.Me, jwtAuth.RequireAuth)
 }

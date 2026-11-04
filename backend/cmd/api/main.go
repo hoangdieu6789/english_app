@@ -31,6 +31,18 @@ func main() {
 	userRepo := repository.NewUserRepository(pool)
 	refreshTokenRepo := repository.NewRefreshTokenRepository(pool)
 	authService := service.NewAuthService(userRepo, refreshTokenRepo, cfg)
+	var mailer service.Mailer = service.LogMailer{}
+	if cfg.SMTPHost != "" {
+		from := cfg.SMTPFrom
+		if from == "" {
+			from = cfg.SMTPUsername
+		}
+		mailer = service.NewSMTPMailer(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUsername, cfg.SMTPPassword, from)
+		log.Printf("mail: SMTP %s:%d", cfg.SMTPHost, cfg.SMTPPort)
+	} else {
+		log.Printf("mail: SMTP_HOST not set; password reset links are written to this log")
+	}
+	authService.EnablePasswordReset(repository.NewPasswordResetRepository(pool), mailer)
 	authHandler := handler.NewAuthHandler(authService, cfg)
 	jwtAuth := middleware.NewJWTAuth(cfg)
 
@@ -138,6 +150,11 @@ func main() {
 	practiceSentenceService := service.NewPracticeSentenceService(sentenceGenerator, practiceSentenceRepo, rubricCfg.Pronunciation.Thresholds.MinWords)
 	practiceHandler := handler.NewPracticeHandler(practiceSentenceService)
 
+	// Spaced-repetition review of the words said wrongly in attempts.
+	reviewService := service.NewReviewService(repository.NewReviewRepository(pool), pronunciationScorer)
+	pronunciationService.SetReviews(reviewService)
+	reviewHandler := handler.NewReviewHandler(reviewService)
+
 	e := echo.New()
 	e.Use(echomw.Logger())
 	e.Use(echomw.Recover())
@@ -154,6 +171,7 @@ func main() {
 	handler.RegisterPracticeRoutes(api, practiceHandler, jwtAuth)
 	handler.RegisterIeltsRoutes(api, ieltsHandler, jwtAuth)
 	handler.RegisterProgressRoutes(api, progressHandler, jwtAuth)
+	handler.RegisterReviewRoutes(api, reviewHandler, jwtAuth)
 
 	e.GET("/healthz", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})

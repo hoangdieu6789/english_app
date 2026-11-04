@@ -26,6 +26,7 @@ type UserRepository interface {
 	Create(ctx context.Context, email, passwordHash string) (*domain.User, error)
 	GetByEmail(ctx context.Context, email string) (*domain.User, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*domain.User, error)
+	UpdatePassword(ctx context.Context, id uuid.UUID, passwordHash string) error
 }
 
 type userRepository struct {
@@ -64,6 +65,10 @@ func (r *userRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Use
 		return nil, err
 	}
 	return toDomainUser(row), nil
+}
+
+func (r *userRepository) UpdatePassword(ctx context.Context, id uuid.UUID, passwordHash string) error {
+	return r.q.UpdateUserPassword(ctx, sqlcgen.UpdateUserPasswordParams{ID: id, PasswordHash: passwordHash})
 }
 
 func toDomainUser(row sqlcgen.User) *domain.User {

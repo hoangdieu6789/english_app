@@ -183,3 +183,49 @@ func (h *AuthHandler) clearAuthCookies(c echo.Context) {
 		SameSite: http.SameSiteLaxMode,
 	})
 }
+
+type forgotPasswordRequest struct {
+	Email string `json:"email" validate:"required,email"`
+}
+
+// ForgotPassword always answers 202, so it does not tell whether an e-mail is registered.
+func (h *AuthHandler) ForgotPassword(c echo.Context) error {
+	var req forgotPasswordRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
+	}
+	req.Email = service.NormalizeEmail(req.Email)
+	if err := validate.Struct(req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid email")
+	}
+	if err := h.svc.RequestPasswordReset(c.Request().Context(), req.Email); err != nil {
+		c.Logger().Errorf("password reset request: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to request password reset")
+	}
+	return c.NoContent(http.StatusAccepted)
+}
+
+type resetPasswordRequest struct {
+	Token    string `json:"token" validate:"required"`
+	Password string `json:"password" validate:"required,min=8"`
+}
+
+func (h *AuthHandler) ResetPassword(c echo.Context) error {
+	var req resetPasswordRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
+	}
+	if err := validate.Struct(req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "token and a password of at least 8 characters are required")
+	}
+	err := h.svc.ResetPassword(c.Request().Context(), req.Token, req.Password)
+	if errors.Is(err, service.ErrInvalidResetToken) {
+		return echo.NewHTTPError(http.StatusGone, "invalid or expired reset link")
+	}
+	if err != nil {
+		c.Logger().Errorf("password reset: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to reset password")
+	}
+	h.clearAuthCookies(c)
+	return c.NoContent(http.StatusNoContent)
+}

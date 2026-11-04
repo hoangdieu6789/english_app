@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -44,14 +45,99 @@ func NormalizeEmail(email string) string {
 	return strings.ToLower(strings.TrimSpace(email))
 }
 
+var ErrInvalidResetToken = errors.New("invalid or expired reset link")
+
+const (
+	passwordResetTTL      = 30 * time.Minute
+	passwordResetsPerHour = 3
+)
+
 type AuthService struct {
 	users         repository.UserRepository
 	refreshTokens repository.RefreshTokenRepository
 	cfg           *config.Config
+	resets        repository.PasswordResetRepository // nil = password reset off
+	mailer        Mailer
 }
 
 func NewAuthService(users repository.UserRepository, refreshTokens repository.RefreshTokenRepository, cfg *config.Config) *AuthService {
 	return &AuthService{users: users, refreshTokens: refreshTokens, cfg: cfg}
+}
+
+// EnablePasswordReset turns on "forgot password": links are stored in resets and sent with
+// mailer, pointing to cfg.FrontendOrigin + "/reset-password?token=...".
+func (s *AuthService) EnablePasswordReset(resets repository.PasswordResetRepository, mailer Mailer) {
+	s.resets, s.mailer = resets, mailer
+}
+
+// RequestPasswordReset e-mails a one-time link (valid 30 minutes) when the account exists.
+// It reports nothing about whether the e-mail is registered, and sends at most 3 links per
+// account per hour. The e-mail is sent in the background.
+func (s *AuthService) RequestPasswordReset(ctx context.Context, email string) error {
+	if s.resets == nil {
+		return errors.New("password reset is not configured")
+	}
+	user, err := s.users.GetByEmail(ctx, NormalizeEmail(email))
+	if errors.Is(err, repository.ErrNotFound) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("get user: %w", err)
+	}
+	n, err := s.resets.CountRecent(ctx, user.ID)
+	if err != nil {
+		return fmt.Errorf("count reset links: %w", err)
+	}
+	if n >= passwordResetsPerHour {
+		log.Printf("auth: password reset rate limit for user %s", user.ID)
+		return nil
+	}
+	raw, err := generateRandomToken()
+	if err != nil {
+		return fmt.Errorf("generate reset token: %w", err)
+	}
+	if err := s.resets.Create(ctx, user.ID, hashToken(raw), time.Now().Add(passwordResetTTL)); err != nil {
+		return fmt.Errorf("store reset token: %w", err)
+	}
+	link := strings.TrimRight(s.cfg.FrontendOrigin, "/") + "/reset-password?token=" + raw
+	body := "Xin chào,\n\n" +
+		"Bạn (hoặc ai đó) vừa yêu cầu đặt lại mật khẩu SpeakUp cho " + user.Email + ".\n" +
+		"Mở link sau trong 30 phút để đặt mật khẩu mới:\n\n" + link + "\n\n" +
+		"Nếu bạn không yêu cầu, hãy bỏ qua email này; mật khẩu cũ vẫn dùng được.\n"
+	go func(to string) {
+		sendCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if err := s.mailer.Send(sendCtx, to, "SpeakUp: đặt lại mật khẩu", body); err != nil {
+			log.Printf("auth: send password reset e-mail: %v", err)
+		}
+	}(user.Email)
+	return nil
+}
+
+// ResetPassword sets a new password with a reset link token and signs the account out
+// everywhere (all refresh tokens revoked).
+func (s *AuthService) ResetPassword(ctx context.Context, rawToken, newPassword string) error {
+	if s.resets == nil {
+		return errors.New("password reset is not configured")
+	}
+	userID, err := s.resets.Use(ctx, hashToken(strings.TrimSpace(rawToken)))
+	if errors.Is(err, repository.ErrNotFound) {
+		return ErrInvalidResetToken
+	}
+	if err != nil {
+		return fmt.Errorf("use reset token: %w", err)
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("hash password: %w", err)
+	}
+	if err := s.users.UpdatePassword(ctx, userID, string(hash)); err != nil {
+		return fmt.Errorf("update password: %w", err)
+	}
+	if err := s.refreshTokens.RevokeAllForUser(ctx, userID); err != nil {
+		return fmt.Errorf("revoke sessions: %w", err)
+	}
+	return nil
 }
 
 // Register creates the account and signs the learner in (remembered), so they go straight

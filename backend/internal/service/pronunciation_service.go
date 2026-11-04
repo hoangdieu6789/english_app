@@ -26,11 +26,15 @@ type PronunciationService struct {
 	storage storage.AudioStorage
 	repo    repository.PronunciationRepository
 
-	transcriber Transcriber // nil = Azure recognises free speech by itself
+	transcriber Transcriber    // nil = Azure recognises free speech by itself
+	reviews     *ReviewService // nil = weak words are not queued for review
 
 	bgTimeout time.Duration
 	wg        sync.WaitGroup // background LLM steps
 }
+
+// SetReviews queues the weak words of every attempt for spaced-repetition review.
+func (s *PronunciationService) SetReviews(r *ReviewService) { s.reviews = r }
 
 // SetTranscriber makes free-speech tasks (IELTS parts) transcribe the audio first and score
 // it with Azure against that transcript. Shadowing keeps its given sentence.
@@ -128,6 +132,9 @@ func (s *PronunciationService) SubmitAttempt(ctx context.Context, userID uuid.UU
 	saved, err := s.repo.Create(ctx, attempt)
 	if err != nil {
 		return nil, fmt.Errorf("save pronunciation attempt: %w", err)
+	}
+	if s.reviews != nil {
+		s.reviews.AddFromAttempt(ctx, userID, saved.WordScores)
 	}
 	if pending {
 		s.gradeInBackground(saved.ID, in, st)

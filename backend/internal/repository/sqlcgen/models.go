@@ -20,6 +20,15 @@ type IeltsQuestionSet struct {
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
 
+type PasswordResetToken struct {
+	ID        uuid.UUID          `json:"id"`
+	UserID    uuid.UUID          `json:"user_id"`
+	TokenHash string             `json:"token_hash"`
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+	UsedAt    pgtype.Timestamptz `json:"used_at"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
 type PracticeSentence struct {
 	ID        uuid.UUID          `json:"id"`
 	UserID    uuid.UUID          `json:"user_id"`
@@ -76,6 +85,20 @@ type RefreshToken struct {
 	RevokedAt pgtype.Timestamptz `json:"revoked_at"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	Remember  bool               `json:"remember"`
+}
+
+type ReviewWord struct {
+	ID             uuid.UUID          `json:"id"`
+	UserID         uuid.UUID          `json:"user_id"`
+	Word           string             `json:"word"`
+	LastScore      float32            `json:"last_score"`
+	Ease           float32            `json:"ease"`
+	IntervalDays   int32              `json:"interval_days"`
+	Reps           int32              `json:"reps"`
+	Lapses         int32              `json:"lapses"`
+	DueAt          pgtype.Timestamptz `json:"due_at"`
+	LastReviewedAt pgtype.Timestamptz `json:"last_reviewed_at"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
 }
 
 type Session struct {
