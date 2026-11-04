@@ -1,92 +1,204 @@
 @import "tailwindcss";
 
+/*
+ * SpeakUp design tokens. Same palette as the David Studio hub (Alucard light, Dracula dark,
+ * see docs/design-system.md); the lightning bolt is SpeakUp's own motif.
+ * Light = :root, dark = .dark on <html> (set before paint by lib/theme/boot.ts).
+ * Components use these variables only: no raw hex in app/ or components/
+ * (checked by scripts/check-ui.mjs).
+ */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  /* Type families (next/font vars set the actual family; fallback chain kept for parity with design) */
-  --font-sans: var(--font-sans), "Inter", "Be Vietnam Pro", system-ui, -apple-system, sans-serif;
-  --font-display: var(--font-display), "Be Vietnam Pro", "Inter", system-ui, sans-serif;
+  color-scheme: light;
 
-  /* Brand red */
-  --ds-primary-50: #fef2f2;
-  --ds-primary-100: #fee2e2;
-  --ds-primary-200: #fecaca;
-  --ds-primary-300: #fca5a5;
-  --ds-primary-400: #f87171;
-  --ds-primary-500: #dc2626;
-  --ds-primary: #b9000e;
-  --ds-primary-hover: #a60002;
-  --ds-primary-active: #950002;
-  --ds-primary-contrast: #ffffff;
+  /* Fonts: next/font sets --font-nunito / --font-baloo / --font-almendra (app/layout.tsx). */
+  --font-sans: var(--font-nunito), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-baloo), var(--font-nunito), system-ui, sans-serif;
+  --font-logo: var(--font-almendra), var(--font-baloo), serif;
 
-  --ds-gold: rgb(255, 242, 47);
+  /* Text sizes (David Studio rules: body 18px, labels 16px, nothing under 14px). */
+  --text-xs: 0.875rem; /* 14px: badges, hints */
+  --text-sm: 1rem; /* 16px: labels, sidebar, buttons */
+  --text-base: 1.125rem; /* 18px: reading text */
+  --text-lg: 1.25rem; /* 20px */
+  --text-xl: 1.375rem; /* 22px: card titles */
+  --text-2xl: 1.75rem; /* 28px */
+  --text-3xl: 2rem; /* 32px */
+  --text-4xl: 2.5rem; /* 40px */
 
-  /* Neutral / surfaces */
-  --ds-surface: #ffffff;
-  --ds-surface-subtle: #f6f7f9;
-  --ds-surface-muted: #f0f2f4;
-  --ds-surface-hover: #f0f2f4;
-  --ds-surface-inverse: #14151a;
+  /* Surfaces (Alucard parchment) */
+  --ds-surface-subtle: #fffbeb; /* page */
+  --ds-surface: #fffdf4; /* cards, sidebar */
+  --ds-surface-muted: #f3efda;
+  --ds-surface-hover: #ede7cf;
+  --ds-surface-inverse: #282a36;
+  --ds-logo-tile: #282a36;
 
   /* Text */
-  --ds-text: #14151a;
-  --ds-text-secondary: #4b5563;
-  --ds-text-muted: #6b7280;
-  --ds-text-disabled: #9ca3af;
+  --ds-text: #3a3846;
+  --ds-text-secondary: #504c63;
+  --ds-text-muted: #5c5870;
+  --ds-text-disabled: #8a8599;
   --ds-text-on-primary: #ffffff;
 
-  /* Borders */
-  --ds-border: #e5e7eb;
-  --ds-border-strong: #c3c8d0;
-  --ds-border-subtle: #f0f2f4;
+  /* Borders (decoration only, never text) */
+  --ds-border: #ddd6bb;
+  --ds-border-strong: #b9b096;
+  --ds-border-subtle: #ece6cf;
 
-  --ds-focus: rgb(96, 165, 250);
-  --ds-focus-ring: 0 0 0 3px rgba(96, 165, 250, 0.45);
+  /* Brand: wizard purple + lightning bolt gold */
+  --ds-primary: #644ac9;
+  --ds-primary-hover: #533ab0;
+  --ds-primary-active: #452f96;
+  --ds-primary-edge: #3e2a8c; /* 3D edge under buttons */
+  --ds-primary-50: #f1ecfd;
+  --ds-primary-100: #e3dbfa;
+  --ds-primary-contrast: #ffffff;
+  --ds-bolt: #7a6510; /* bolt as text / stroke on parchment */
+  --ds-bolt-fill: #f2c94c; /* bolt shape fill (decoration) */
+  --ds-bolt-glow: rgba(242, 201, 76, 0.55);
+  --ds-pink: #a3144d;
 
-  /* Semantic status */
-  --ds-success: #16a34a;
-  --ds-success-bg: #f0fdf4;
-  --ds-success-border: rgb(187, 247, 208);
-  --ds-info: #2563eb;
-  --ds-info-bg: #eff6ff;
-  --ds-info-border: #bfdbfe;
-  --ds-warning: #ea580c;
-  --ds-warning-bg: #fff7ed;
-  --ds-warning-border: rgb(254, 215, 170);
-  --ds-danger: #dc2626;
-  --ds-danger-bg: #fef2f2;
-  --ds-danger-border: #fecaca;
+  /* Status (always with a number, word or icon too) */
+  --ds-success: #14710a;
+  --ds-success-bg: #e5f3df;
+  --ds-success-border: #b7dcab;
+  --ds-info: #036a96;
+  --ds-info-bg: #e0eff6;
+  --ds-info-border: #a9d2e4;
+  --ds-warning: #9a4510;
+  --ds-warning-bg: #fbeadb;
+  --ds-warning-border: #f0c49e;
+  --ds-danger: #b42318;
+  --ds-danger-bg: #fbe5e1;
+  --ds-danger-border: #f2b8ae;
 
-  /* Radii */
+  /* IELTS criteria as Hogwarts houses (bars, eyebrow labels) */
+  --ds-house-fc: #a4161a; /* Gryffindor: Fluency & Coherence */
+  --ds-house-lr: #1f4e9c; /* Ravenclaw: Lexical Resource */
+  --ds-house-gra: #1a6b3c; /* Slytherin: Grammatical Range & Accuracy */
+  --ds-house-pron: #7d5f00; /* Hufflepuff: Pronunciation */
+
+  --ds-focus: #846e15;
+  --ds-focus-ring: 0 0 0 3px #f2c94c;
+
+  /* Hero panels: a night-sky purple card with a gold bolt, in both themes */
+  --ds-hero-bg: linear-gradient(150deg, #3e2a8c 0%, #644ac9 100%);
+  --ds-hero-text: #ffffff;
+  --ds-hero-text-muted: rgba(255, 255, 255, 0.88);
+  --ds-hero-chip: rgba(255, 255, 255, 0.16);
+  --ds-hero-track: rgba(255, 255, 255, 0.25);
+  --ds-auth-bg: linear-gradient(160deg, #fffbeb 0%, #f3efda 100%);
+  --ds-auth-glow: radial-gradient(circle at 70% 70%, rgba(100, 74, 201, 0.12), transparent 60%);
+
+  /* Shape, depth, motion */
   --ds-radius-xs: 4px;
   --ds-radius-sm: 6px;
-  --ds-radius-md: 8px;
-  --ds-radius-lg: 10px;
-  --ds-radius-xl: 12px;
-  --ds-radius-2xl: 16px;
+  --ds-radius-md: 10px;
+  --ds-radius-lg: 12px;
+  --ds-radius-xl: 16px;
+  --ds-radius-2xl: 20px;
   --ds-radius-full: 9999px;
+  --ds-depth: 6px; /* thickness of cards and buttons */
+  --ds-card-edge: var(--ds-border);
 
-  /* Elevation */
-  --ds-shadow-xs: 0 1px 2px rgba(18, 26, 43, 0.06);
-  --ds-shadow-sm: 0 1px 3px rgba(18, 26, 43, 0.1), 0 1px 2px rgba(18, 26, 43, 0.06);
-  --ds-shadow-md: 0 4px 8px -2px rgba(18, 26, 43, 0.1), 0 2px 4px -2px rgba(18, 26, 43, 0.06);
-  --ds-shadow-lg: 0 12px 16px -4px rgba(18, 26, 43, 0.1), 0 4px 6px -2px rgba(18, 26, 43, 0.05);
-  --ds-shadow-xl: 0 20px 28px -6px rgba(18, 26, 43, 0.14), 0 8px 10px -6px rgba(18, 26, 43, 0.06);
+  /* Light mode: crisp edges, no blur (blur looks dirty on parchment) */
+  --ds-shadow-xs: 0 1px 0 var(--ds-border);
+  --ds-shadow-sm: 0 2px 0 var(--ds-border);
+  --ds-shadow-md: 0 4px 0 var(--ds-border);
+  --ds-shadow-lg: 0 6px 0 var(--ds-border);
+  --ds-shadow-xl: 0 8px 0 var(--ds-border);
 
-  --ds-control-h-sm: 36px;
-  --ds-control-h-md: 44px;
-  --ds-control-h-lg: 48px;
+  --ds-control-h-sm: 44px;
+  --ds-control-h-md: 48px;
+  --ds-control-h-lg: 56px;
 
-  --ds-ease: cubic-bezier(0.4, 0, 0.2, 1);
-  --ds-dur: 160ms;
+  --ds-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ds-ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ds-dur: 180ms;
+}
+
+.dark {
+  color-scheme: dark;
+
+  /* Surfaces (Dracula) */
+  --ds-surface-subtle: #282a36;
+  --ds-surface: #21222c;
+  --ds-surface-muted: #343746;
+  --ds-surface-hover: #3b3e51;
+  --ds-surface-inverse: #f8f8f2;
+  --ds-logo-tile: #3b2e5a;
+
+  --ds-text: #e2e2ea;
+  --ds-text-secondary: #c3c8e0;
+  --ds-text-muted: #aab1d3;
+  --ds-text-disabled: #6e7598;
+  --ds-text-on-primary: #21222c;
+
+  --ds-border: #44475a;
+  --ds-border-strong: #6272a4;
+  --ds-border-subtle: #343746;
+
+  --ds-primary: #bd93f9;
+  --ds-primary-hover: #cdaafb;
+  --ds-primary-active: #d9bdfc;
+  --ds-primary-edge: #5b3f9e;
+  --ds-primary-50: #2f2a45;
+  --ds-primary-100: #3b2e5a;
+  --ds-primary-contrast: #21222c;
+  --ds-bolt: #f1fa8c;
+  --ds-bolt-fill: #f1fa8c;
+  --ds-bolt-glow: rgba(241, 250, 140, 0.45);
+  --ds-pink: #ff79c6;
+
+  --ds-success: #50fa7b;
+  --ds-success-bg: #1f3a2a;
+  --ds-success-border: #2f6a43;
+  --ds-info: #8be9fd;
+  --ds-info-bg: #1e3540;
+  --ds-info-border: #2c5d6e;
+  --ds-warning: #ffb86c;
+  --ds-warning-bg: #3d2e1e;
+  --ds-warning-border: #6d4c2a;
+  --ds-danger: #ff7a7a;
+  --ds-danger-bg: #40232a;
+  --ds-danger-border: #7a3a44;
+
+  --ds-house-fc: #ff7a7a;
+  --ds-house-lr: #8bb8ff;
+  --ds-house-gra: #50fa7b;
+  --ds-house-pron: #f1fa8c;
+
+  --ds-focus: #f1fa8c;
+  --ds-focus-ring: 0 0 0 3px #f1fa8c;
+
+  --ds-hero-bg: linear-gradient(150deg, #2f2a45 0%, #4a3a7a 100%);
+  --ds-hero-text: #f8f8f2;
+  --ds-hero-text-muted: rgba(248, 248, 242, 0.86);
+  --ds-hero-chip: rgba(248, 248, 242, 0.12);
+  --ds-hero-track: rgba(248, 248, 242, 0.22);
+  --ds-auth-bg: linear-gradient(160deg, #282a36 0%, #21222c 100%);
+  --ds-auth-glow: radial-gradient(circle at 70% 70%, rgba(189, 147, 249, 0.14), transparent 60%);
+
+  --ds-card-edge: #191a21;
+  --ds-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --ds-shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.35);
+  --ds-shadow-md: 0 6px 14px rgba(0, 0, 0, 0.4);
+  --ds-shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.45);
+  --ds-shadow-xl: 0 20px 36px rgba(0, 0, 0, 0.5);
 }
 
 @keyframes wave {
   0%, 100% { transform: scaleY(0.18); }
   50% { transform: scaleY(1); }
 }
+/* Recording: the bolt glow pulses (box-shadow on a fixed-size button, no layout change). */
 @keyframes recpulse {
-  0% { box-shadow: 0 0 0 0 rgba(185, 0, 14, 0.45); }
-  70% { box-shadow: 0 0 0 16px rgba(185, 0, 14, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(185, 0, 14, 0); }
+  0% { box-shadow: 0 0 0 0 var(--ds-bolt-glow); }
+  70% { box-shadow: 0 0 0 16px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
 }
 @keyframes fadeup {
   from { opacity: 0; transform: translateY(10px); }
@@ -95,12 +207,33 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+/* A bolt flickers once (new streak day, goal reached). */
+@keyframes bolt-flicker {
+  0%, 100% { opacity: 1; }
+  20% { opacity: 0.35; }
+  30% { opacity: 1; }
+  45% { opacity: 0.5; }
+  55% { opacity: 1; }
+}
+
+html {
+  font-size: 100%;
+}
 
 body {
   margin: 0;
   background: var(--ds-surface-subtle);
   font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 450;
+  line-height: 1.6;
   color: var(--ds-text);
+}
+
+/* Theme change: colors fade for 200ms (set by the theme switch only, off with reduced motion). */
+html.ds-theme-fade,
+html.ds-theme-fade * {
+  transition: background-color 200ms var(--ds-ease), border-color 200ms var(--ds-ease), color 200ms var(--ds-ease) !important;
 }
 
 a {
@@ -111,86 +244,332 @@ a:hover {
   color: var(--ds-primary-hover);
 }
 
-.navitem:hover {
-  background: var(--ds-primary-50) !important;
+:focus-visible {
+  outline: 3px solid var(--ds-focus);
+  outline-offset: 2px;
 }
 
 .fade {
   animation: fadeup 0.32s var(--ds-ease) both;
 }
 
+/* "Skip to content": the first Tab stop, visible only when focused. */
+.ds-skip {
+  position: absolute;
+  left: 12px;
+  top: -80px;
+  z-index: 50;
+  padding: 12px 16px;
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface);
+  color: var(--ds-primary);
+  font-weight: 700;
+}
+.ds-skip:focus {
+  top: 12px;
+}
+
+/* Text links that are tap targets: 44px tall without changing the text. */
+.ds-tap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+}
+
+/* Segmented tabs: scroll sideways on narrow screens instead of wrapping words. */
+.ds-tabs {
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+/* Eyebrow label above a title (house names, small context). */
+.ds-eyebrow {
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ---- Cards: parchment / night sky panels with a thick edge ---- */
 .ds-card {
   background: var(--ds-surface);
   border: 1px solid var(--ds-border);
   border-radius: var(--ds-radius-xl);
-  box-shadow: var(--ds-shadow-xs);
+  box-shadow: 0 var(--ds-depth) 0 var(--ds-card-edge);
+}
+.dark .ds-card {
+  box-shadow: 0 var(--ds-depth) 0 var(--ds-card-edge), var(--ds-shadow-sm);
 }
 
+/* ---- Buttons: toy-like, thick edge, press down on click ---- */
 .ds-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   justify-content: center;
-  height: var(--ds-control-h-md);
-  padding: 0 18px;
+  min-height: var(--ds-control-h-md);
+  padding: 0 20px;
   border-radius: var(--ds-radius-lg);
   border: 1px solid var(--ds-primary);
   background: var(--ds-primary);
-  color: #fff;
-  font: 600 14.5px var(--font-sans);
+  color: var(--ds-primary-contrast);
+  font: 700 var(--text-sm) / 1.2 var(--font-display);
   cursor: pointer;
-  transition: background var(--ds-dur) var(--ds-ease);
+  box-shadow: 0 4px 0 var(--ds-primary-edge);
+  transition: transform var(--ds-dur) var(--ds-ease), box-shadow var(--ds-dur) var(--ds-ease), background var(--ds-dur) var(--ds-ease);
 }
 .ds-btn:hover {
   background: var(--ds-primary-hover);
   border-color: var(--ds-primary-hover);
+  color: var(--ds-primary-contrast);
+}
+.ds-btn:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--ds-primary-edge);
 }
 .ds-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 .ds-btn-lg {
-  height: var(--ds-control-h-lg);
-  padding: 0 24px;
-  font-size: 15px;
+  min-height: var(--ds-control-h-lg);
+  padding: 0 26px;
+  font-size: var(--text-base);
 }
 .ds-btn-sm {
-  height: var(--ds-control-h-sm);
+  min-height: var(--ds-control-h-sm);
   padding: 0 14px;
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 .ds-btn-outline {
-  background: transparent;
+  background: var(--ds-surface);
   color: var(--ds-primary);
+  border-color: var(--ds-border-strong);
+  box-shadow: 0 4px 0 var(--ds-border);
 }
 .ds-btn-outline:hover {
   background: var(--ds-primary-50);
-  color: var(--ds-primary-hover);
+  border-color: var(--ds-primary);
+  color: var(--ds-primary);
+}
+.ds-btn-outline:active:not(:disabled) {
+  box-shadow: 0 1px 0 var(--ds-border);
 }
 .ds-btn-text {
   background: transparent;
   border-color: transparent;
   color: var(--ds-primary);
   padding: 0 6px;
-  height: auto;
+  min-height: 44px;
+  box-shadow: none;
 }
 .ds-btn-text:hover {
   background: transparent;
   color: var(--ds-primary-hover);
 }
+.ds-btn-text:active:not(:disabled) {
+  transform: none;
+  box-shadow: none;
+}
 
 .ds-input {
   width: 100%;
-  height: var(--ds-control-h-md);
+  min-height: var(--ds-control-h-md);
   padding: 0 14px;
   border-radius: var(--ds-radius-lg);
-  border: 1px solid var(--ds-border);
-  background: #fff;
-  font: 400 14.5px var(--font-sans);
+  border: 1px solid var(--ds-border-strong);
+  background: var(--ds-surface);
+  font: 450 var(--text-sm) var(--font-sans);
   color: var(--ds-text);
+}
+.ds-input::placeholder {
+  color: var(--ds-text-muted);
 }
 .ds-input:focus {
   outline: none;
   border-color: var(--ds-focus);
   box-shadow: var(--ds-focus-ring);
+}
+
+/* ---- App shell: sidebar on wide screens, top bar + bottom tabs on phones ---- */
+.app-root {
+  min-height: 100vh;
+  display: flex;
+}
+.app-sidebar {
+  width: 260px;
+  flex: none;
+  background: var(--ds-surface);
+  border-right: 1px solid var(--ds-border);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+.app-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.app-header {
+  min-height: 72px;
+  flex: none;
+  background: var(--ds-surface);
+  border-bottom: 1px solid var(--ds-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 28px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.app-content {
+  flex: 1;
+  padding: 28px;
+}
+.app-bottomnav,
+.app-mobile-only {
+  display: none;
+}
+.navitem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 0 14px 0 22px;
+  border-radius: var(--ds-radius-lg);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ds-text-secondary);
+}
+.navitem:hover {
+  background: var(--ds-surface-hover);
+  color: var(--ds-text);
+}
+.navitem[aria-current="page"] {
+  background: var(--ds-primary-50);
+  color: var(--ds-primary);
+}
+/* The active item gets a small lightning bolt on its left edge. */
+.navitem[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 50%;
+  width: 12px;
+  height: 20px;
+  translate: 0 -50%;
+  background: var(--ds-bolt-fill);
+  clip-path: polygon(55% 0, 10% 58%, 45% 58%, 30% 100%, 92% 38%, 55% 38%, 75% 0);
+}
+
+@media (max-width: 899px) {
+  .app-sidebar {
+    display: none;
+  }
+  .app-header {
+    padding: 8px 16px;
+    min-height: 60px;
+  }
+  .app-content {
+    padding: 16px 14px calc(88px + env(safe-area-inset-bottom));
+  }
+  .app-mobile-only {
+    display: flex;
+  }
+  .app-desktop-only {
+    display: none !important;
+  }
+  .app-bottomnav {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    background: var(--ds-surface);
+    border-top: 1px solid var(--ds-border);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  }
+  .app-bottomnav a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: 56px;
+    border-radius: var(--ds-radius-lg);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    color: var(--ds-text-muted);
+    position: relative;
+  }
+  .app-bottomnav a[aria-current="page"] {
+    color: var(--ds-primary);
+    background: var(--ds-primary-50);
+  }
+  .app-bottomnav i {
+    font-size: 20px;
+  }
+}
+
+/* Sign-in pages: two panels side by side; on phones the form comes first under a short
+   brand header (logo + tagline; intro and feature list hidden). */
+:root {
+  --ds-auth-pad: 32px;
+}
+@media (max-width: 899px) {
+  :root {
+    --ds-auth-pad: 14px;
+  }
+  .ds-auth-split {
+    grid-template-columns: 1fr !important;
+  }
+  .ds-auth-hero {
+    padding: 22px 20px !important;
+    gap: 12px !important;
+  }
+  .ds-auth-hero > :nth-child(n + 3),
+  .ds-auth-hero > :nth-child(2) > :nth-child(n + 2) {
+    display: none !important;
+  }
+  .ds-auth-form {
+    padding: 24px 20px !important;
+  }
+  .ds-auth-hero > :nth-child(2) > :first-child {
+    font-size: var(--text-xl) !important;
+  }
+}
+
+/* Phones: multi-column grids in the page content (inline styles) become one column, and
+   hero rows wrap. Mark a grid with .ds-keep-cols to keep its columns. */
+@media (max-width: 899px) {
+  .app-content [style*="grid-template-columns"]:not(.ds-keep-cols),
+  .ds-grid-2,
+  .ds-grid-3 {
+    grid-template-columns: 1fr !important;
+  }
+  .app-content [style*="max-width: 60%"] {
+    max-width: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

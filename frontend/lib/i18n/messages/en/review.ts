@@ -34,6 +34,7 @@ export const review: Record<keyof typeof source, string> = {
   "review.empty.title": "No cards to review yet",
   "review.empty.body": "Add new words for your band above. Words you often say wrongly while practising also go here.",
   "review.allDone.title": "All cards due today are done",
+  "review.allDone.joke": "Mischief managed. See you at the next review.",
   "review.allDone.body": "The next card is due {when}.",
   "review.dueLater": "later",
   "review.practice": "Practise speaking",

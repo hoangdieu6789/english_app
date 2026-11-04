@@ -1,5 +1,6 @@
 "use client";
 
+import { BoltMark } from "@/components/brand";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -42,8 +43,8 @@ export default function RegisterPage() {
         minHeight: "100vh",
         display: "grid",
         placeItems: "center",
-        padding: 32,
-        background: "linear-gradient(160deg,#fff7f5 0%,#fdeef0 100%)",
+        padding: "var(--ds-auth-pad)",
+        background: "var(--ds-auth-bg)",
         position: "relative",
         overflow: "hidden",
       }}
@@ -55,12 +56,12 @@ export default function RegisterPage() {
           right: -60,
           width: 520,
           height: 320,
-          background: "radial-gradient(circle at 70% 70%,rgba(185,0,14,.10),transparent 60%)",
+          background: "var(--ds-auth-glow)",
           pointerEvents: "none",
         }}
       />
       <div
-        className="fade"
+        className="fade ds-auth-split"
         style={{
           width: "100%",
           maxWidth: 820,
@@ -74,34 +75,23 @@ export default function RegisterPage() {
         }}
       >
         <div
+          className="ds-auth-hero"
           style={{
             padding: "44px 40px",
             display: "flex",
             flexDirection: "column",
             gap: 22,
-            background: "linear-gradient(165deg,var(--ds-primary) 0%,#8f0009 100%)",
-            color: "#fff",
+            background: "var(--ds-hero-bg)",
+            color: "var(--ds-hero-text)",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <span
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 11,
-                background: "rgba(255,255,255,.16)",
-                display: "grid",
-                placeItems: "center",
-                backdropFilter: "blur(4px)",
-              }}
-            >
-              <i className="pi pi-microphone" style={{ fontSize: 22 }} />
-            </span>
-            <span style={{ font: "700 24px var(--font-display)", letterSpacing: ".01em" }}>SpeakUp</span>
+            <BoltMark size={44} />
+            <span style={{ font: "700 var(--text-2xl)/1 var(--font-logo)" }}>SpeakUp</span>
           </div>
           <div style={{ marginTop: 6 }}>
-            <div style={{ font: "700 30px/1.2 var(--font-display)" }}>{t("auth.register.tagline")}</div>
-            <div style={{ marginTop: 14, fontSize: 15, lineHeight: 1.6, color: "rgba(255,255,255,.86)" }}>
+            <div style={{ font: "700 var(--text-3xl)/1.2 var(--font-display)" }}>{t("auth.register.tagline")}</div>
+            <div style={{ marginTop: 14, fontSize: "var(--text-base)", lineHeight: 1.6, color: "var(--ds-hero-text-muted)" }}>
               {t("auth.register.intro")}
             </div>
           </div>
@@ -111,8 +101,8 @@ export default function RegisterPage() {
               display: "flex",
               flexDirection: "column",
               gap: 12,
-              fontSize: 14,
-              color: "rgba(255,255,255,.9)",
+              fontSize: "var(--text-sm)",
+              color: "var(--ds-hero-text-muted)",
             }}
           >
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -130,14 +120,14 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ padding: "44px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
+        <form onSubmit={handleSubmit} className="ds-auth-form" style={{ padding: "44px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
           <div>
-            <div style={{ font: "700 24px var(--font-display)", color: "var(--ds-text)" }}>{t("auth.register.title")}</div>
-            <div style={{ fontSize: 14, color: "var(--ds-text-muted)", marginTop: 4 }}>{t("auth.register.subtitle")}</div>
+            <div style={{ font: "700 var(--text-xl)/1.3 var(--font-display)", color: "var(--ds-text)" }}>{t("auth.register.title")}</div>
+            <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)", marginTop: 4 }}>{t("auth.register.subtitle")}</div>
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: "var(--ds-text-secondary)" }}>{t("auth.field.email")}</label>
+            <label style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ds-text-secondary)" }}>{t("auth.field.email")}</label>
             <input
               className="ds-input"
               type="email"
@@ -149,7 +139,7 @@ export default function RegisterPage() {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: "var(--ds-text-secondary)" }}>
+            <label style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ds-text-secondary)" }}>
               {t("auth.field.password")}
             </label>
             <input
@@ -163,14 +153,14 @@ export default function RegisterPage() {
             />
           </div>
 
-          {error && <p style={{ fontSize: 13, color: "var(--ds-danger)" }}>{error}</p>}
+          {error && <p style={{ fontSize: "var(--text-sm)", color: "var(--ds-danger)" }}>{error}</p>}
 
           <button type="submit" disabled={loading} className="ds-btn ds-btn-lg" style={{ width: "100%", marginTop: 4 }}>
             <span>{loading ? t("auth.register.submitting") : t("auth.register.submit")}</span>
             <i className="pi pi-arrow-right" />
           </button>
 
-          <div style={{ textAlign: "center", fontSize: 13, color: "var(--ds-text-muted)" }}>
+          <div style={{ textAlign: "center", fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>
             {t("auth.register.haveAccount")} <Link href="/login">{t("auth.register.loginLink")}</Link>
           </div>
           <div style={{ display: "flex", justifyContent: "center" }}>

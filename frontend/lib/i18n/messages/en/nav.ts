@@ -21,4 +21,8 @@ export const nav: Record<keyof typeof source, string> = {
   "nav.band30": "30-day IELTS band: {band}",
   "nav.noBand": "No IELTS band yet",
   "nav.logout": "Sign out",
+  "nav.skip": "Skip to content",
+  "nav.menu": "Main menu",
+  "nav.account": "Account and settings",
+  "nav.tagline": "Speak quick as lightning",
 };

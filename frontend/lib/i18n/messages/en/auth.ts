@@ -53,6 +53,7 @@ export const auth: Record<keyof typeof source, string> = {
   "auth.welcome.title": "Welcome to SpeakUp",
   "auth.welcome.intro": "Tell us your current IELTS Speaking band (an estimate) and the band you want to reach. The app uses these two numbers to pick new words at your level.",
   "auth.notFound.title": "Page not found",
+  "auth.notFound.joke": "This page probably left from Platform 9¾.",
   "auth.notFound.text": "The link may be wrong, or the page has moved.",
   "auth.notFound.home": "Go to home",
 };

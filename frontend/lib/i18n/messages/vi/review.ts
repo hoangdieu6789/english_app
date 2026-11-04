@@ -33,6 +33,7 @@ export const review = {
   "review.empty.title": "Chưa có thẻ nào cần ôn",
   "review.empty.body": "Thêm từ mới theo band ở trên. Từ bạn phát âm sai nhiều lần khi luyện nói cũng sẽ vào đây.",
   "review.allDone.title": "Xong các thẻ đến hạn hôm nay",
+  "review.allDone.joke": "Mischief managed. Hẹn gặp lại ở buổi ôn sau.",
   "review.allDone.body": "Thẻ tiếp theo đến hạn {when}.",
   "review.dueLater": "sau",
   "review.practice": "Luyện nói",

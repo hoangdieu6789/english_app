@@ -5,6 +5,7 @@ import { AppShell } from "@/components/app-shell";
 import { WeeklyLineChart } from "@/components/charts/line-chart";
 import { BandGoalForm } from "@/components/band-goal-form";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 import { hasMessage, useI18n, type MessageKey } from "@/lib/i18n";
 import { phonemeToIpa } from "@/lib/phonemes";
 import { progressQuery, type ProgressSummary } from "@/lib/progress-api";
@@ -47,25 +48,25 @@ function lastWeeks(): string[] {
 function Card({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
     <div className="ds-card" style={{ padding: 24 }}>
-      <div style={{ font: "700 17px var(--font-display)", marginBottom: 4 }}>{title}</div>
-      {subtitle && <div style={{ fontSize: 13, color: "var(--ds-text-muted)", marginBottom: 16 }}>{subtitle}</div>}
+      <div style={{ font: "700 var(--text-base)/1.3 var(--font-display)", marginBottom: 4 }}>{title}</div>
+      {subtitle && <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)", marginBottom: 16 }}>{subtitle}</div>}
       {children}
     </div>
   );
 }
 
 function Empty({ children }: { children: React.ReactNode }) {
-  return <div style={{ fontSize: 13, color: "var(--ds-text-muted)", padding: "8px 0" }}>{children}</div>;
+  return <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)", padding: "8px 0" }}>{children}</div>;
 }
 
 function Bar({ label, value, max, color, right }: { label: string; value: number; max: number; color: string; right: string }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 13 }}>
-      <span style={{ fontSize: 14, fontWeight: 600, width: 150 }}>{label}</span>
+      <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, width: 150 }}>{label}</span>
       <div style={{ flex: 1, height: 10, background: "var(--ds-surface-muted)", borderRadius: 99, overflow: "hidden" }}>
         <div style={{ height: "100%", borderRadius: 99, background: color, width: `${Math.min(100, (value / max) * 100)}%` }} />
       </div>
-      <span style={{ fontSize: 13, fontWeight: 600, minWidth: 64, textAlign: "right", color }}>{right}</span>
+      <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, minWidth: 64, textAlign: "right", color }}>{right}</span>
     </div>
   );
 }
@@ -114,12 +115,12 @@ function StatCards({ p }: { p: ProgressSummary }) {
         <div key={s.label} className="ds-card" style={{ padding: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, color: s.color }}>
             <i className={s.icon} />
-            <span style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>{s.label}</span>
+            <span style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{s.label}</span>
           </div>
-          <div style={{ font: "700 30px var(--font-display)", marginTop: 6 }}>
-            {s.value} {s.unit && <span style={{ fontSize: 14, fontWeight: 500, color: "var(--ds-text-muted)" }}>{s.unit}</span>}
+          <div style={{ font: "700 var(--text-3xl)/1.3 var(--font-display)", marginTop: 6 }}>
+            {s.value} {s.unit && <span style={{ fontSize: "var(--text-sm)", fontWeight: 500, color: "var(--ds-text-muted)" }}>{s.unit}</span>}
           </div>
-          <div style={{ fontSize: 12, color: "var(--ds-text-muted)", marginTop: 2 }}>{s.note}</div>
+          <div style={{ fontSize: "var(--text-xs)", color: "var(--ds-text-muted)", marginTop: 2 }}>{s.note}</div>
         </div>
       ))}
     </div>
@@ -134,7 +135,7 @@ export default function ProgressPage() {
   if (!p) {
     return (
       <AppShell>
-        <div style={{ maxWidth: 1120, margin: "0 auto", fontSize: 14, color: isError ? "var(--ds-danger)" : "var(--ds-text-muted)" }}>
+        <div style={{ maxWidth: 1120, margin: "0 auto", fontSize: "var(--text-sm)", color: isError ? "var(--ds-danger)" : "var(--ds-text-muted)" }}>
           {isError ? t("progress.loadFailed", { error: error.message }) : t("progress.loading")}
         </div>
       </AppShell>
@@ -164,9 +165,11 @@ export default function ProgressPage() {
         <StatCards p={p} />
 
         <div className="ds-card" style={{ padding: 24 }}>
-          <div style={{ font: "700 16px var(--font-display)", marginBottom: 12 }}>{t("progress.goals.title")}</div>
+          <div style={{ font: "700 var(--text-base)/1.3 var(--font-display)", marginBottom: 12 }}>{t("progress.goals.title")}</div>
           {goals.data ? <BandGoalForm goals={goals.data} /> : <Empty>{t("common.loading")}</Empty>}
           <div style={{ marginTop: 16 }}>
+            <ThemeSwitcher />
+            <div style={{ height: 12 }} />
             <LanguageSwitcher sync showHint />
           </div>
         </div>
@@ -174,12 +177,12 @@ export default function ProgressPage() {
         <div className="ds-card" style={{ padding: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
             <div>
-              <div style={{ font: "700 17px var(--font-display)" }}>{t("progress.weekly.title")}</div>
-              <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>
+              <div style={{ font: "700 var(--text-base)/1.3 var(--font-display)" }}>{t("progress.weekly.title")}</div>
+              <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>
                 {t("progress.weekly.subtitle", { n: WEEKS_SHOWN })}
               </div>
             </div>
-            <div style={{ display: "flex", gap: 16, fontSize: 13 }}>
+            <div style={{ display: "flex", gap: 16, fontSize: "var(--text-sm)" }}>
               <span style={{ display: "flex", alignItems: "center", gap: 7 }}>
                 <span style={{ width: 14, height: 3, borderRadius: 2, background: "var(--ds-primary)" }} />
                 {t("common.accuracy")}
@@ -241,9 +244,9 @@ export default function ProgressPage() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
           <Card title={t("progress.byTask.title")} subtitle={t("progress.byTask.subtitle")}>
             {p.byTask.length ? (
-              <table style={{ width: "100%", fontSize: 14, borderCollapse: "collapse" }}>
+              <table style={{ width: "100%", fontSize: "var(--text-sm)", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr style={{ color: "var(--ds-text-muted)", fontSize: 12, textAlign: "left" }}>
+                  <tr style={{ color: "var(--ds-text-muted)", fontSize: "var(--text-xs)", textAlign: "left" }}>
                     <th style={{ fontWeight: 500, paddingBottom: 8 }}>{t("progress.byTask.type")}</th>
                     <th style={{ fontWeight: 500, paddingBottom: 8, textAlign: "right" }}>{t("progress.byTask.count")}</th>
                     <th style={{ fontWeight: 500, paddingBottom: 8, textAlign: "right" }}>{t("progress.byTask.avg")}</th>
@@ -270,7 +273,7 @@ export default function ProgressPage() {
             {graded.length || ungraded ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {graded.map((g) => (
-                  <div key={`${g.provider}/${g.model}`} style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}>
+                  <div key={`${g.provider}/${g.model}`} style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-sm)" }}>
                     <span>
                       <b>{g.provider}</b> <span style={{ color: "var(--ds-text-muted)" }}>{g.model}</span>
                     </span>
@@ -278,7 +281,7 @@ export default function ProgressPage() {
                   </div>
                 ))}
                 {ungraded > 0 && (
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "var(--ds-text-muted)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>
                     <span>{t("progress.graders.unknown")}</span>
                     <span>{t("progress.graders.count", { n: ungraded })}</span>
                   </div>

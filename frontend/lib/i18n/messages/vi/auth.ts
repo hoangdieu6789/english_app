@@ -52,6 +52,7 @@ export const auth = {
   "auth.welcome.title": "Chào mừng bạn đến với SpeakUp",
   "auth.welcome.intro": "Cho biết band IELTS Speaking hiện tại (ước lượng) và band bạn muốn đạt. App dùng hai số này để chọn từ mới vừa sức.",
   "auth.notFound.title": "Không tìm thấy trang này",
+  "auth.notFound.joke": "Có lẽ trang này đã đi qua sân ga 9¾.",
   "auth.notFound.text": "Đường dẫn có thể đã sai hoặc trang đã được chuyển đi.",
   "auth.notFound.home": "Về trang chủ",
 };

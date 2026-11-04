@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { BoltMark } from "@/components/brand";
 import { GoalRing } from "@/components/charts/progress-ring";
 import { Sparkline } from "@/components/charts/sparkline";
 import { useI18n, type MessageKey } from "@/lib/i18n";
@@ -49,13 +50,13 @@ function thisMonday(): string {
 function StatTile({ icon, bg, fg, label, value, note }: { icon: string; bg: string; fg: string; label: string; value: string; note: string }) {
   return (
     <div className="ds-card" style={{ padding: "18px 20px", display: "flex", alignItems: "center", gap: 16 }}>
-      <span style={{ width: 46, height: 46, borderRadius: 12, background: bg, color: fg, display: "grid", placeItems: "center", fontSize: 20 }}>
+      <span style={{ width: 46, height: 46, borderRadius: 12, background: bg, color: fg, display: "grid", placeItems: "center", fontSize: "var(--text-lg)" }}>
         <i className={icon} />
       </span>
       <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>{label}</div>
-        <div style={{ font: "700 22px var(--font-display)" }}>{value}</div>
-        <div style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>{note}</div>
+        <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{label}</div>
+        <div style={{ font: "700 var(--text-xl)/1.3 var(--font-display)" }}>{value}</div>
+        <div style={{ fontSize: "var(--text-xs)", color: "var(--ds-text-muted)" }}>{note}</div>
       </div>
     </div>
   );
@@ -79,27 +80,27 @@ function AccuracyTrend({ p, onDetails }: { p: ProgressSummary; onDetails: () => 
   return (
     <div className="ds-card" style={{ padding: 22 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-        <div style={{ font: "700 16px var(--font-display)" }}>{t("dashboard.trend.title")}</div>
-        <a href="#" onClick={(e) => { e.preventDefault(); onDetails(); }} style={{ fontSize: 13, fontWeight: 600 }}>
-          {t("dashboard.details")} <i className="pi pi-angle-right" style={{ fontSize: 11 }} />
+        <div style={{ font: "700 var(--text-base)/1.3 var(--font-display)" }}>{t("dashboard.trend.title")}</div>
+        <a href="#" className="ds-tap" onClick={(e) => { e.preventDefault(); onDetails(); }} style={{ fontSize: "var(--text-sm)", fontWeight: 600 }}>
+          {t("dashboard.details")} <i className="pi pi-angle-right" style={{ fontSize: "var(--text-xs)" }} />
         </a>
       </div>
-      <div style={{ fontSize: 13, color: "var(--ds-text-muted)", marginBottom: 10 }}>{note}</div>
+      <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)", marginBottom: 10 }}>{note}</div>
       {weeks.length >= 2 && <Sparkline data={weeks.map((w) => w.accuracy)} />}
       <div style={{ display: "flex", gap: 20, marginTop: 14 }}>
         <div>
-          <div style={{ font: "700 22px var(--font-display)", color: current ? scoreColor(current.accuracy) : undefined }}>
+          <div style={{ font: "700 var(--text-xl)/1.3 var(--font-display)", color: current ? scoreColor(current.accuracy) : undefined }}>
             {current ? Math.round(current.accuracy) : "—"}
           </div>
-          <div style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>{t("dashboard.trend.thisWeek")}</div>
+          <div style={{ fontSize: "var(--text-xs)", color: "var(--ds-text-muted)" }}>{t("dashboard.trend.thisWeek")}</div>
         </div>
         {delta != null && prev && (
           <div>
-            <div style={{ font: "700 22px var(--font-display)", color: delta >= 0 ? "var(--ds-success)" : "var(--ds-danger)" }}>
+            <div style={{ font: "700 var(--text-xl)/1.3 var(--font-display)", color: delta >= 0 ? "var(--ds-success)" : "var(--ds-danger)" }}>
               {delta >= 0 ? "+" : ""}
               {Math.round(delta)}
             </div>
-            <div style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>{t("dashboard.trend.vsWeek", { date: shortDate(prev.start, locale) })}</div>
+            <div style={{ fontSize: "var(--text-xs)", color: "var(--ds-text-muted)" }}>{t("dashboard.trend.vsWeek", { date: shortDate(prev.start, locale) })}</div>
           </div>
         )}
       </div>
@@ -115,7 +116,7 @@ export default function DashboardPage() {
   if (!p) {
     return (
       <AppShell>
-        <div style={{ maxWidth: 1120, margin: "0 auto", fontSize: 14, color: isError ? "var(--ds-danger)" : "var(--ds-text-muted)" }}>
+        <div style={{ maxWidth: 1120, margin: "0 auto", fontSize: "var(--text-sm)", color: isError ? "var(--ds-danger)" : "var(--ds-text-muted)" }}>
           {isError ? t("dashboard.loadFailed", { error: error.message }) : t("common.loading")}
         </div>
       </AppShell>
@@ -132,22 +133,29 @@ export default function DashboardPage() {
         <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 20 }}>
           <div
             style={{
-              background: "linear-gradient(150deg,var(--ds-primary) 0%,#8f0009 100%)",
+              background: "var(--ds-hero-bg)",
               borderRadius: "var(--ds-radius-2xl)",
               padding: 28,
-              color: "#fff",
+              color: "var(--ds-hero-text)",
               display: "flex",
+              flexWrap: "wrap",
+              gap: 20,
               justifyContent: "space-between",
               alignItems: "center",
-              boxShadow: "var(--ds-shadow-md)",
+              boxShadow: "0 var(--ds-depth) 0 var(--ds-primary-edge)",
+              position: "relative",
+              overflow: "hidden",
             }}
           >
+            <div aria-hidden style={{ position: "absolute", right: -30, top: -40, opacity: 0.16, pointerEvents: "none" }}>
+              <BoltMark size={220} tile={false} />
+            </div>
             <div style={{ maxWidth: "60%" }}>
-              <div style={{ fontSize: 13, opacity: 0.85, letterSpacing: ".02em" }}>{t(greeting(new Date().getHours()))}</div>
-              <div style={{ font: "700 26px var(--font-display)", margin: "6px 0 10px" }}>
+              <div style={{ fontSize: "var(--text-sm)", opacity: 0.85, letterSpacing: ".02em" }}>{t(greeting(new Date().getHours()))}</div>
+              <div style={{ font: "700 var(--text-2xl)/1.3 var(--font-display)", margin: "6px 0 10px" }}>
                 {left === 0 ? t("dashboard.hero.goalReached") : t("dashboard.hero.ready")}
               </div>
-              <div style={{ fontSize: 14, opacity: 0.9, lineHeight: 1.5 }}>
+              <div style={{ fontSize: "var(--text-sm)", opacity: 0.9, lineHeight: 1.5 }}>
                 {left === 0 ? (
                   <>
                     {t("dashboard.hero.doneBefore")}
@@ -165,7 +173,7 @@ export default function DashboardPage() {
               <button
                 onClick={() => router.push("/practice")}
                 className="ds-btn"
-                style={{ marginTop: 16, background: "#fff", color: "var(--ds-primary)", borderColor: "#fff" }}
+                style={{ marginTop: 16, background: "var(--ds-surface)", color: "var(--ds-primary)", borderColor: "var(--ds-surface)", boxShadow: "0 4px 0 var(--ds-primary-edge)" }}
               >
                 <i className="pi pi-microphone" />
                 <span>{t("dashboard.hero.start")}</span>
@@ -175,10 +183,10 @@ export default function DashboardPage() {
               <GoalRing pct={goalPct} />
               <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", textAlign: "center", lineHeight: 1.1 }}>
                 <div>
-                  <div style={{ font: "700 28px var(--font-display)" }}>
+                  <div style={{ font: "700 var(--text-2xl)/1.3 var(--font-display)" }}>
                     {done}/{DAILY_GOAL_ATTEMPTS}
                   </div>
-                  <div style={{ fontSize: 11, opacity: 0.85 }}>{t("dashboard.hero.today")}</div>
+                  <div style={{ fontSize: "var(--text-xs)", opacity: 0.85 }}>{t("dashboard.hero.today")}</div>
                 </div>
               </div>
             </div>
@@ -207,12 +215,12 @@ export default function DashboardPage() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
           <div className="ds-card" style={{ padding: 22 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-              <div style={{ font: "700 16px var(--font-display)" }}>{t("dashboard.weak.title")}</div>
-              <a href="#" onClick={(e) => { e.preventDefault(); router.push("/practice"); }} style={{ fontSize: 13, fontWeight: 600 }}>
-                {t("dashboard.weak.practice")} <i className="pi pi-angle-right" style={{ fontSize: 11 }} />
+              <div style={{ font: "700 var(--text-base)/1.3 var(--font-display)" }}>{t("dashboard.weak.title")}</div>
+              <a href="#" className="ds-tap" onClick={(e) => { e.preventDefault(); router.push("/practice"); }} style={{ fontSize: "var(--text-sm)", fontWeight: 600 }}>
+                {t("dashboard.weak.practice")} <i className="pi pi-angle-right" style={{ fontSize: "var(--text-xs)" }} />
               </a>
             </div>
-            <div style={{ fontSize: 13, color: "var(--ds-text-muted)", marginBottom: 8 }}>{t("dashboard.weak.subtitle")}</div>
+            <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)", marginBottom: 8 }}>{t("dashboard.weak.subtitle")}</div>
             {p.weakWords.length ? (
               p.weakWords.map((w) => (
                 <div key={w.word} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: "1px solid var(--ds-border-subtle)" }}>
@@ -231,13 +239,13 @@ export default function DashboardPage() {
                       color: "var(--ds-text-secondary)",
                     }}
                   >
-                    <i className="pi pi-volume-up" style={{ fontSize: 14 }} />
+                    <i className="pi pi-volume-up" style={{ fontSize: "var(--text-sm)" }} />
                   </button>
-                  <div style={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: 14 }}>{w.word}</div>
-                  <span style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>{t("dashboard.weak.times", { n: w.times })}</span>
+                  <div style={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: "var(--text-sm)" }}>{w.word}</div>
+                  <span style={{ fontSize: "var(--text-xs)", color: "var(--ds-text-muted)" }}>{t("dashboard.weak.times", { n: w.times })}</span>
                   <span
                     style={{
-                      fontSize: 12,
+                      fontSize: "var(--text-xs)",
                       fontWeight: 600,
                       padding: "3px 10px",
                       borderRadius: 99,
@@ -252,7 +260,7 @@ export default function DashboardPage() {
                 </div>
               ))
             ) : (
-              <div style={{ fontSize: 13, color: "var(--ds-text-muted)", padding: "8px 0" }}>
+              <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)", padding: "8px 0" }}>
                 {p.attempts ? t("dashboard.weak.allGood") : t("dashboard.noAttempts")}
               </div>
             )}

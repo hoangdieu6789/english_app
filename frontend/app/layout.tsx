@@ -1,21 +1,31 @@
 import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
-import { Inter, Be_Vietnam_Pro } from "next/font/google";
+import { Almendra, Baloo_2, Nunito } from "next/font/google";
 import "primeicons/primeicons.css";
 import "./globals.css";
 import { ReactQueryProvider } from "@/lib/react-query-provider";
 import { I18nProvider } from "@/lib/i18n";
 import { DEFAULT_LANG, LANG_COOKIE, isLang, type Lang } from "@/lib/i18n/languages";
+import { bootScript } from "@/lib/theme/boot";
+import { ThemeSync } from "@/components/theme-sync";
 
-const inter = Inter({
-  variable: "--font-sans",
+// Same family as the David Studio hub (Nunito body). Headings use Baloo 2 instead of the
+// hub's Fredoka, which has no Vietnamese letters. Almendra: logo word only.
+const nunito = Nunito({
+  variable: "--font-nunito",
   subsets: ["latin", "vietnamese"],
 });
 
-const beVietnamPro = Be_Vietnam_Pro({
-  variable: "--font-display",
-  weight: ["400", "500", "600", "700", "800"],
+const baloo = Baloo_2({
+  variable: "--font-baloo",
+  weight: ["500", "600", "700", "800"],
   subsets: ["latin", "vietnamese"],
+});
+
+const almendra = Almendra({
+  variable: "--font-almendra",
+  weight: ["700"],
+  subsets: ["latin"],
 });
 
 const META: Record<Lang, Metadata> = {
@@ -52,8 +62,14 @@ export default async function RootLayout({
 }>) {
   const lang = await cookieLang();
   return (
-    <html lang={lang} className={`${inter.variable} ${beVietnamPro.variable} h-full antialiased`}>
+    // suppressHydrationWarning: the boot script adds class="dark" before React hydrates.
+    <html lang={lang} className={`${nunito.variable} ${baloo.variable} ${almendra.variable} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        {/* Sets the theme before the first paint (no flash of the wrong theme). */}
+        <script dangerouslySetInnerHTML={{ __html: bootScript() }} />
+      </head>
       <body className="min-h-full flex flex-col">
+        <ThemeSync />
         <I18nProvider initialLang={lang}>
           <ReactQueryProvider>{children}</ReactQueryProvider>
         </I18nProvider>

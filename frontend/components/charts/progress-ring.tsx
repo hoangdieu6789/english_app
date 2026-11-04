@@ -44,13 +44,13 @@ export function GoalRing({ pct, size = 136, strokeWidth = 12 }: { pct: number; s
 
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <circle cx={cx} cy={cx} r={r} fill="none" stroke="rgba(255,255,255,.25)" strokeWidth={strokeWidth} />
+      <circle cx={cx} cy={cx} r={r} fill="none" stroke="var(--ds-hero-track)" strokeWidth={strokeWidth} />
       <circle
         cx={cx}
         cy={cx}
         r={r}
         fill="none"
-        stroke="#fff"
+        stroke="var(--ds-bolt-fill)"
         strokeWidth={strokeWidth}
         strokeLinecap="round"
         strokeDasharray={c}

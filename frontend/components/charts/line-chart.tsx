@@ -37,14 +37,14 @@ export function WeeklyLineChart({
   const gridLines: number[] = [];
   for (let v = min; v <= max; v += step) gridLines.push(v);
   const dots = (arr: (number | null)[], color: string) =>
-    arr.map((v, i) => (v == null ? null : <circle key={i} cx={x(i)} cy={y(v)} r={4} fill="#fff" stroke={color} strokeWidth={2.5} />));
+    arr.map((v, i) => (v == null ? null : <circle key={i} cx={x(i)} cy={y(v)} r={4} fill="var(--ds-surface)" stroke={color} strokeWidth={2.5} />));
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block", marginTop: 8 }}>
       {gridLines.map((v) => (
         <g key={v}>
           <line x1={pl} y1={y(v)} x2={W - pr} y2={y(v)} stroke="var(--ds-border-subtle)" strokeWidth={1} />
-          <text x={pl - 8} y={y(v) + 4} textAnchor="end" fontSize={11} fill="var(--ds-text-muted)">
+          <text x={pl - 8} y={y(v) + 4} textAnchor="end" fontSize={14} fill="var(--ds-text-muted)">
             {v}
           </text>
         </g>
@@ -54,7 +54,7 @@ export function WeeklyLineChart({
       {dots(accuracy, "var(--ds-primary)")}
       {dots(fluency, "var(--ds-info)")}
       {weeks.map((w, i) => (
-        <text key={w} x={x(i)} y={H - 14} textAnchor="middle" fontSize={11} fill="var(--ds-text-muted)">
+        <text key={w} x={x(i)} y={H - 14} textAnchor="middle" fontSize={14} fill="var(--ds-text-muted)">
           {w}
         </text>
       ))}

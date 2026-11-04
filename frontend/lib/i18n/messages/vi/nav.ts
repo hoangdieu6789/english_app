@@ -20,4 +20,8 @@ export const nav = {
   "nav.band30": "Band IELTS TB 30 ngày: {band}",
   "nav.noBand": "Chưa có band IELTS",
   "nav.logout": "Đăng xuất",
+  "nav.skip": "Bỏ qua, tới nội dung",
+  "nav.menu": "Menu chính",
+  "nav.account": "Tài khoản và cài đặt",
+  "nav.tagline": "Nói nhanh như tia chớp",
 };

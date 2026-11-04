@@ -32,7 +32,7 @@ export default function ForgotPasswordPage() {
   return (
     <AuthCard title={t("auth.forgot.title")} subtitle={t("auth.forgot.subtitle")}>
       {sent ? (
-        <p style={{ fontSize: 14, lineHeight: 1.6, color: "var(--ds-text-secondary)" }}>
+        <p style={{ fontSize: "var(--text-sm)", lineHeight: 1.6, color: "var(--ds-text-secondary)" }}>
           {sentBefore}
           <b>{email}</b>
           {sentAfter}
@@ -40,7 +40,7 @@ export default function ForgotPasswordPage() {
       ) : (
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: "var(--ds-text-secondary)" }}>{t("auth.field.email")}</label>
+            <label style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ds-text-secondary)" }}>{t("auth.field.email")}</label>
             <input
               className="ds-input"
               type="email"
@@ -50,7 +50,7 @@ export default function ForgotPasswordPage() {
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
-          {error && <p style={{ fontSize: 13, color: "var(--ds-danger)" }}>{error}</p>}
+          {error && <p style={{ fontSize: "var(--text-sm)", color: "var(--ds-danger)" }}>{error}</p>}
           <button type="submit" disabled={loading} className="ds-btn ds-btn-lg" style={{ width: "100%" }}>
             <span>{loading ? t("auth.forgot.submitting") : t("auth.forgot.submit")}</span>
           </button>

@@ -35,7 +35,7 @@ function Sounds({ phonemes }: { phonemes: PhonemeScore[] }) {
         <span
           key={i}
           title={`${Math.round(p.score)}/100`}
-          style={{ padding: "2px 7px", borderRadius: 7, background: "var(--ds-surface-subtle)", color: scoreColor(p.score), fontWeight: 600, fontSize: 14 }}
+          style={{ padding: "2px 7px", borderRadius: 7, background: "var(--ds-surface-subtle)", color: scoreColor(p.score), fontWeight: 600, fontSize: "var(--text-sm)" }}
         >
           {phonemeToIpa(p.phoneme).replace(/\//g, "")}
         </span>
@@ -105,31 +105,31 @@ function WordTip({ w }: { w: WordScore }) {
         aria-expanded={open}
         style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, border: "none", background: "none", cursor: "pointer", padding: 0, textAlign: "left" }}
       >
-        <span style={{ font: "600 17px var(--font-display)", color: scoreColor(w.accuracyScore), minWidth: 110 }}>{w.word}</span>
-        <span style={{ flex: 1, fontSize: 13, color: "var(--ds-text-muted)" }}>
+        <span style={{ font: "600 var(--text-base)/1.3 var(--font-display)", color: scoreColor(w.accuracyScore), minWidth: 110 }}>{w.word}</span>
+        <span style={{ flex: 1, fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>
           {w.errorType === "omission"
             ? t("tips.omitted")
             : weak.length > 0
               ? t("tips.soundsToFix", { sounds: weak.map((p) => phonemeToIpa(p.phoneme)).join(" ") })
               : `${Math.round(w.accuracyScore)}/100`}
         </span>
-        <i className={open ? "pi pi-chevron-up" : "pi pi-chevron-down"} style={{ fontSize: 12, color: "var(--ds-text-muted)" }} />
+        <i className={open ? "pi pi-chevron-up" : "pi pi-chevron-down"} style={{ fontSize: "var(--text-xs)", color: "var(--ds-text-muted)" }} />
       </button>
       {open && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "10px 0 4px" }}>
           {phonemes.length > 0 && (
-            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", fontSize: 13, color: "var(--ds-text-muted)" }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>
               <span>{t("tips.correctSounds")}</span>
               <Sounds phonemes={phonemes} />
             </div>
           )}
           {weak.map((p, i) => (
-            <div key={i} style={{ fontSize: 13.5, lineHeight: 1.6, color: "var(--ds-text-secondary)" }}>
+            <div key={i} style={{ fontSize: "var(--text-sm)", lineHeight: 1.6, color: "var(--ds-text-secondary)" }}>
               <b style={{ color: scoreColor(p.score) }}>{phonemeToIpa(p.phoneme)}</b> ({Math.round(p.score)}/100): {phonemeTip(t, p.phoneme, p.last)}
             </div>
           ))}
           {weak.length === 0 && w.errorType === "omission" && (
-            <div style={{ fontSize: 13.5, color: "var(--ds-text-secondary)" }}>{t("tips.omittedHint")}</div>
+            <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-secondary)" }}>{t("tips.omittedHint")}</div>
           )}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             <button className="ds-btn ds-btn-outline ds-btn-sm" onClick={() => speakEnglish(w.word)}>
@@ -145,14 +145,14 @@ function WordTip({ w }: { w: WordScore }) {
               <span>{state === "recording" ? t("tips.stop", { secs: MAX_WORD_SECONDS - recorder.secs }) : state === "scoring" ? t("tips.scoring") : t("tips.retry")}</span>
             </button>
             {tryResult && (
-              <span style={{ display: "inline-flex", gap: 8, alignItems: "center", fontSize: 13 }}>
+              <span style={{ display: "inline-flex", gap: 8, alignItems: "center", fontSize: "var(--text-sm)" }}>
                 <b style={{ color: scoreColor(tryResult.score) }}>{Math.round(tryResult.score)}/100</b>
                 {tryResult.score >= 80 ? t("tips.good") : tryResult.score > Math.round(w.accuracyScore) ? t("tips.better") : t("tips.tryAgain")}
                 {tryResult.phonemes.length > 0 && <Sounds phonemes={tryResult.phonemes} />}
               </span>
             )}
           </div>
-          {error && <div style={{ fontSize: 13, color: "var(--ds-danger)" }}>{error}</div>}
+          {error && <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-danger)" }}>{error}</div>}
         </div>
       )}
     </div>
@@ -166,8 +166,8 @@ export function WordTips({ words }: { words: WordScore[] }) {
   if (list.length === 0) return null;
   return (
     <div className="ds-card" style={{ padding: 20 }}>
-      <div style={{ font: "700 16px var(--font-display)" }}>{t("tips.title")}</div>
-      <div style={{ fontSize: 13, color: "var(--ds-text-muted)", margin: "4px 0 6px" }}>
+      <div style={{ font: "700 var(--text-base)/1.3 var(--font-display)" }}>{t("tips.title")}</div>
+      <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)", margin: "4px 0 6px" }}>
         {t("tips.intro", { count: list.length })}
       </div>
       {list.map((w, i) => (
