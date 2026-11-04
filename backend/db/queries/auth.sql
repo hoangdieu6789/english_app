@@ -4,16 +4,17 @@ VALUES ($1, $2)
 RETURNING *;
 
 -- name: GetUserByEmail :one
+-- The service passes a normalised (lower-case) e-mail; lower() also finds older rows.
 SELECT * FROM users
-WHERE email = $1;
+WHERE lower(email) = lower($1);
 
 -- name: GetUserByID :one
 SELECT * FROM users
 WHERE id = $1;
 
 -- name: CreateRefreshToken :one
-INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
-VALUES ($1, $2, $3)
+INSERT INTO refresh_tokens (user_id, token_hash, expires_at, remember)
+VALUES ($1, $2, $3, $4)
 RETURNING *;
 
 -- name: GetRefreshTokenByHash :one

@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"englishapp/backend/internal/domain"
@@ -13,6 +14,13 @@ import (
 )
 
 var ErrNotFound = errors.New("not found")
+
+// IsUniqueViolation reports a Postgres unique-constraint error (SQLSTATE 23505), e.g. two
+// registrations of one e-mail at the same moment.
+func IsUniqueViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "23505"
+}
 
 type UserRepository interface {
 	Create(ctx context.Context, email, passwordHash string) (*domain.User, error)

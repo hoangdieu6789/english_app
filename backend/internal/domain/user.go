@@ -22,4 +22,5 @@ type RefreshToken struct {
 	ExpiresAt time.Time
 	RevokedAt *time.Time
 	CreatedAt time.Time
+	Remember  bool // false: session cookie, short TTL ("remember me" unticked)
 }

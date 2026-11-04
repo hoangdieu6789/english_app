@@ -37,11 +37,12 @@ func (h *AuthHandler) Register(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
 	}
+	req.Email = service.NormalizeEmail(req.Email)
 	if err := validate.Struct(req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	user, err := h.svc.Register(c.Request().Context(), req.Email, req.Password)
+	user, tokens, err := h.svc.Register(c.Request().Context(), req.Email, req.Password)
 	if err != nil {
 		if errors.Is(err, service.ErrEmailTaken) {
 			return echo.NewHTTPError(http.StatusConflict, "email already registered")
@@ -49,6 +50,7 @@ func (h *AuthHandler) Register(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to register")
 	}
 
+	h.setAuthCookies(c, tokens) // signed in right away
 	return c.JSON(http.StatusCreated, map[string]any{
 		"id":    user.ID,
 		"email": user.Email,
@@ -58,6 +60,7 @@ func (h *AuthHandler) Register(c echo.Context) error {
 type loginRequest struct {
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required"`
+	Remember *bool  `json:"remember"` // "remember me"; missing = true
 }
 
 func (h *AuthHandler) Login(c echo.Context) error {
@@ -65,11 +68,13 @@ func (h *AuthHandler) Login(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
 	}
+	req.Email = service.NormalizeEmail(req.Email)
 	if err := validate.Struct(req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	user, tokens, err := h.svc.Login(c.Request().Context(), req.Email, req.Password)
+	remember := req.Remember == nil || *req.Remember
+	user, tokens, err := h.svc.Login(c.Request().Context(), req.Email, req.Password, remember)
 	if err != nil {
 		if errors.Is(err, service.ErrInvalidCredentials) {
 			return echo.NewHTTPError(http.StatusUnauthorized, "invalid email or password")
@@ -140,12 +145,16 @@ func (h *AuthHandler) setAuthCookies(c echo.Context, tokens *service.AuthTokens)
 		Secure:   h.cfg.CookieSecure,
 		SameSite: http.SameSiteLaxMode,
 	})
+	refreshMaxAge := int(tokens.RefreshTTL.Seconds())
+	if !tokens.Remember {
+		refreshMaxAge = 0 // no Max-Age: the browser drops it when it closes
+	}
 	c.SetCookie(&http.Cookie{
 		Name:     refreshCookieName,
 		Value:    tokens.RefreshToken,
 		Path:     "/api/auth",
 		Domain:   h.cfg.CookieDomain,
-		MaxAge:   int(tokens.RefreshTTL.Seconds()),
+		MaxAge:   refreshMaxAge,
 		HttpOnly: true,
 		Secure:   h.cfg.CookieSecure,
 		SameSite: http.SameSiteLaxMode,
