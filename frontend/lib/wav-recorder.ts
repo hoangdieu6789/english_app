@@ -1,3 +1,5 @@
+import { getLang, translate } from "@/lib/i18n";
+
 const TARGET_SAMPLE_RATE = 16000;
 
 // Loudest block RMS (0–1) under which a recording counts as silent. The backend uses
@@ -7,10 +9,7 @@ export const SILENT_RMS = 0.01;
 
 export class SilentRecordingError extends Error {
   constructor() {
-    super(
-      "Micro gần như không thu được tiếng nên bản ghi chưa được gửi đi chấm. " +
-        "Kiểm tra micro đang chọn (System Settings → Sound → Input), quyền micro của trình duyệt, rồi nói to hơn và thử lại.",
-    );
+    super(translate(getLang(), "practice.silentRecording"));
     this.name = "SilentRecordingError";
   }
 }
@@ -84,7 +83,7 @@ export class WavRecorder {
     this.audioContext?.close();
 
     if (this.chunks.length === 0) {
-      throw new Error("Không thu được âm thanh từ microphone — kiểm tra quyền truy cập mic.");
+      throw new Error(translate(getLang(), "practice.noMicAudio"));
     }
     if (this.maxRms < SILENT_RMS) {
       throw new SilentRecordingError();

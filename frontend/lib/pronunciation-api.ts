@@ -1,4 +1,4 @@
-import { getFeedbackLang } from "@/lib/feedback-lang";
+import { getLang, translate } from "@/lib/i18n";
 import { API_BASE_URL, apiFetch, errorFrom } from "./http";
 
 const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
@@ -96,7 +96,7 @@ export type PronunciationAttempt = {
   recognizedText: string | null;
   taskType: string;
   taskPrompt: string | null;
-  feedbackLang: "vi" | "en" | null;
+  feedbackLang: string | null; // language the attempt was graded in
   overallScore: number;
   fluencyScore: number;
   completenessScore: number | null;
@@ -134,7 +134,7 @@ export async function submitPronunciationAttempt(
   form.append("taskType", task.type);
   if (task.prompt) form.append("taskPrompt", task.prompt);
   if (task.questionSetId) form.append("questionSetId", task.questionSetId);
-  form.append("lang", getFeedbackLang());
+  form.append("lang", getLang());
 
   // The form (with the WAV) can be sent twice when the token is renewed; FormData is reusable.
   const res = await apiFetch("/pronunciation/attempts", { method: "POST", body: form });
@@ -164,7 +164,7 @@ export async function scoreWord(word: string, wav: Blob): Promise<{ word: string
   form.append("audio", wav, "word.wav");
   form.append("word", word);
   const res = await apiFetch("/pronunciation/word", { method: "POST", body: form });
-  if (!res.ok) throw await errorFrom(res, "Chấm điểm thất bại. Thử lại.");
+  if (!res.ok) throw await errorFrom(res, translate(getLang(), "common.scoringFailed"));
   return res.json();
 }
 
@@ -175,14 +175,14 @@ export async function fetchSampleAnswer(taskType: string, question: string, lang
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ taskType, question, lang }),
   });
-  if (!res.ok) throw await errorFrom(res, "AI chưa viết được câu trả lời mẫu. Thử lại sau.");
+  if (!res.ok) throw await errorFrom(res, translate(getLang(), "coach.sampleFailedRetry"));
   return res.json();
 }
 
 /** The learner's answer of an attempt rewritten at their target band (saved with it). */
 export async function improveAnswer(attemptId: string, lang: string): Promise<ImprovedAnswer> {
   const res = await apiFetch(`/pronunciation/attempts/${attemptId}/improve?lang=${lang}`, { method: "POST" });
-  if (!res.ok) throw await errorFrom(res, "AI chưa viết lại được câu trả lời. Thử lại sau.");
+  if (!res.ok) throw await errorFrom(res, translate(getLang(), "coach.improveFailedRetry"));
   return res.json();
 }
 
@@ -207,6 +207,6 @@ export async function fetchHistory(type: string, before?: string): Promise<{ att
   if (type) q.set("type", type);
   if (before) q.set("before", before);
   const res = await apiFetch(`/pronunciation/attempts?${q}`);
-  if (!res.ok) throw await errorFrom(res, "Không tải được lịch sử.");
+  if (!res.ok) throw await errorFrom(res, translate(getLang(), "coach.historyFailed"));
   return res.json();
 }

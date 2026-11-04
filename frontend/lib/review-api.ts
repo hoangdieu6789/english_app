@@ -1,7 +1,10 @@
 import { apiFetch, errorFrom } from "./http";
+import { getLang, translate } from "@/lib/i18n";
 
 // Spaced-repetition review of the words the learner said wrongly (backend: /api/review).
-export type VocabInfo = { pos: string; ipa: string; meaningVi: string; exampleEn: string; exampleVi: string; band: number };
+// meaning and exampleTranslation are in the learner's language; exampleTranslation is "" for
+// English learners (meaning is then a short English definition).
+export type VocabInfo = { pos: string; ipa: string; meaning: string; exampleEn: string; exampleTranslation: string; band: number };
 
 // pronunciation: a word the learner said wrongly (Azure scores each try and schedules it);
 // vocab: a new word for the learner's band (the learner rates how well they remembered it).
@@ -42,13 +45,13 @@ export async function submitReviewAttempt(id: string, wav: Blob): Promise<Review
   const form = new FormData();
   form.append("audio", wav, "word.wav");
   const res = await apiFetch(`/review/words/${id}/attempt`, { method: "POST", body: form });
-  if (!res.ok) throw await errorFrom(res, "Chấm điểm thất bại. Thử lại.");
+  if (!res.ok) throw await errorFrom(res, translate(getLang(), "common.scoringFailed"));
   return res.json();
 }
 
 export async function removeReviewWord(id: string): Promise<void> {
   const res = await apiFetch(`/review/words/${id}`, { method: "DELETE" });
-  if (!res.ok) throw await errorFrom(res, "Không bỏ được từ này. Thử lại.");
+  if (!res.ok) throw await errorFrom(res, translate(getLang(), "review.err.remove"));
 }
 
 /** Self-rating of a vocab card: 1 forgot, 3 hard, 4 good, 5 easy. */
@@ -58,7 +61,7 @@ export async function gradeReviewWord(id: string, quality: 1 | 3 | 4 | 5): Promi
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ quality }),
   });
-  if (!res.ok) throw await errorFrom(res, "Không lưu được. Thử lại.");
+  if (!res.ok) throw await errorFrom(res, translate(getLang(), "common.saveFailed"));
   return res.json();
 }
 
@@ -70,7 +73,7 @@ export type Goals = {
   bandFrom: number; // new words have band in (bandFrom, bandTo]
   bandTo: number;
   remaining: number;
-  feedbackLang: "vi" | "en"; // language of the AI feedback
+  lang: string; // the learner's language (UI, AI feedback, meanings)
 };
 
 export const goalsQuery = {
@@ -88,7 +91,7 @@ export async function saveGoals(selfBand: number | null, targetBand: number | nu
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ selfBand, targetBand }),
   });
-  if (!res.ok) throw await errorFrom(res, "Không lưu được mục tiêu. Thử lại.");
+  if (!res.ok) throw await errorFrom(res, translate(getLang(), "review.err.saveGoals"));
   return res.json();
 }
 
@@ -98,7 +101,7 @@ export async function addNewWords(count = 10): Promise<{ word: string; band: num
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ count }),
   });
-  if (!res.ok) throw await errorFrom(res, "Không thêm được từ mới. Thử lại.");
+  if (!res.ok) throw await errorFrom(res, translate(getLang(), "review.err.addWords"));
   return (await res.json()).added;
 }
 

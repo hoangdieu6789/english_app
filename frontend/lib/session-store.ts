@@ -5,6 +5,7 @@ export type SessionUser = {
   email: string;
   selfBand?: number | null; // the learner's own estimate (onboarding)
   targetBand?: number | null;
+  lang?: string; // the learner's language saved on the server
 };
 
 type SessionState = {

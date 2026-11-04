@@ -6,9 +6,12 @@ import Link from "next/link";
 import { authApi, authErrorMessage } from "@/lib/auth-api";
 import { useSessionStore } from "@/lib/session-store";
 import { useRedirectIfSignedIn } from "@/lib/use-redirect-if-signed-in";
+import { saveLang, useI18n } from "@/lib/i18n";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { t, lang } = useI18n();
   const setUser = useSessionStore((s) => s.setUser);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,9 +26,11 @@ export default function RegisterPage() {
     try {
       // The API signs the new learner in, so go straight into the app.
       setUser(await authApi.register(email, password));
+      // Store the language picked on this page on the new account.
+      await saveLang(lang);
       router.replace("/welcome");
     } catch (err) {
-      setError(authErrorMessage(err, "register"));
+      setError(authErrorMessage(err, "register", t));
     } finally {
       setLoading(false);
     }
@@ -95,9 +100,9 @@ export default function RegisterPage() {
             <span style={{ font: "700 24px var(--font-display)", letterSpacing: ".01em" }}>SpeakUp</span>
           </div>
           <div style={{ marginTop: 6 }}>
-            <div style={{ font: "700 30px/1.2 var(--font-display)" }}>Bắt đầu hành trình luyện nói của bạn</div>
+            <div style={{ font: "700 30px/1.2 var(--font-display)" }}>{t("auth.register.tagline")}</div>
             <div style={{ marginTop: 14, fontSize: 15, lineHeight: 1.6, color: "rgba(255,255,255,.86)" }}>
-              Tạo tài khoản miễn phí — nói thật nhiều, sai không sao, hệ thống sẽ giúp bạn tiến bộ mỗi ngày.
+              {t("auth.register.intro")}
             </div>
           </div>
           <div
@@ -112,32 +117,32 @@ export default function RegisterPage() {
           >
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <i className="pi pi-check-circle" />
-              <span>Chấm phát âm theo từng từ &amp; âm tiết</span>
+              <span>{t("auth.brand.feature1")}</span>
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <i className="pi pi-check-circle" />
-              <span>Ôn từ bạn phát âm sai theo lịch nhắc lại</span>
+              <span>{t("auth.brand.feature2")}</span>
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <i className="pi pi-check-circle" />
-              <span>Biểu đồ tiến độ theo tuần</span>
+              <span>{t("auth.brand.feature3")}</span>
             </div>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} style={{ padding: "44px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
           <div>
-            <div style={{ font: "700 24px var(--font-display)", color: "var(--ds-text)" }}>Đăng ký</div>
-            <div style={{ fontSize: 14, color: "var(--ds-text-muted)", marginTop: 4 }}>Tạo tài khoản mới</div>
+            <div style={{ font: "700 24px var(--font-display)", color: "var(--ds-text)" }}>{t("auth.register.title")}</div>
+            <div style={{ fontSize: 14, color: "var(--ds-text-muted)", marginTop: 4 }}>{t("auth.register.subtitle")}</div>
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: "var(--ds-text-secondary)" }}>Email</label>
+            <label style={{ fontSize: 13, fontWeight: 600, color: "var(--ds-text-secondary)" }}>{t("auth.field.email")}</label>
             <input
               className="ds-input"
               type="email"
               required
-              placeholder="you@email.com"
+              placeholder={t("auth.field.emailPlaceholder")}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
@@ -145,14 +150,14 @@ export default function RegisterPage() {
 
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <label style={{ fontSize: 13, fontWeight: 600, color: "var(--ds-text-secondary)" }}>
-              Mật khẩu / Password
+              {t("auth.field.password")}
             </label>
             <input
               className="ds-input"
               type="password"
               required
               minLength={8}
-              placeholder="Tối thiểu 8 ký tự"
+              placeholder={t("auth.field.passwordMin")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
@@ -161,12 +166,15 @@ export default function RegisterPage() {
           {error && <p style={{ fontSize: 13, color: "var(--ds-danger)" }}>{error}</p>}
 
           <button type="submit" disabled={loading} className="ds-btn ds-btn-lg" style={{ width: "100%", marginTop: 4 }}>
-            <span>{loading ? "Đang tạo tài khoản..." : "Tạo tài khoản"}</span>
+            <span>{loading ? t("auth.register.submitting") : t("auth.register.submit")}</span>
             <i className="pi pi-arrow-right" />
           </button>
 
           <div style={{ textAlign: "center", fontSize: 13, color: "var(--ds-text-muted)" }}>
-            Đã có tài khoản? <Link href="/login">Đăng nhập</Link>
+            {t("auth.register.haveAccount")} <Link href="/login">{t("auth.register.loginLink")}</Link>
+          </div>
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <LanguageSwitcher />
           </div>
         </form>
       </div>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useI18n } from "@/lib/i18n";
 import { BAND_OPTIONS, saveGoals, type Goals } from "@/lib/review-api";
 
 /**
@@ -10,6 +11,7 @@ import { BAND_OPTIONS, saveGoals, type Goals } from "@/lib/review-api";
  */
 export function BandGoalForm({ goals, onSaved, compact }: { goals?: Goals; onSaved?: (g: Goals) => void; compact?: boolean }) {
   const queryClient = useQueryClient();
+  const { t } = useI18n();
   const measured = goals && goals.measuredBand > 0 ? goals.measuredBand : 0;
   const [self, setSelf] = useState<string>(goals?.selfBand != null ? String(goals.selfBand) : "");
   const [target, setTarget] = useState<string>(
@@ -27,7 +29,7 @@ export function BandGoalForm({ goals, onSaved, compact }: { goals?: Goals; onSav
       queryClient.invalidateQueries({ queryKey: ["me"] });
       onSaved?.(g);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Không lưu được.");
+      setError(err instanceof Error ? err.message : t("progress.form.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -48,25 +50,24 @@ export function BandGoalForm({ goals, onSaved, compact }: { goals?: Goals; onSav
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
         <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--ds-text-secondary)" }}>
-          Band hiện tại {measured > 0 ? "(đo từ bài làm)" : "(ước lượng)"}
+          {t("progress.form.current")} {measured > 0 ? t("progress.form.measured") : t("progress.form.estimated")}
           {measured > 0 ? (
             <span style={{ font: "700 20px var(--font-display)", color: "var(--ds-text)", padding: "6px 0" }}>{measured.toFixed(1)}</span>
           ) : (
-            select(self, setSelf, "Chưa biết", "Band hiện tại")
+            select(self, setSelf, t("progress.form.unknown"), t("progress.form.current"))
           )}
         </label>
         <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--ds-text-secondary)" }}>
-          Band mục tiêu
-          {select(target, setTarget, "", "Band mục tiêu")}
+          {t("progress.form.target")}
+          {select(target, setTarget, "", t("progress.form.target"))}
         </label>
         <button className="ds-btn" onClick={save} disabled={saving}>
-          {saving ? "Đang lưu..." : "Lưu"}
+          {saving ? t("common.saving") : t("common.save")}
         </button>
       </div>
       {!compact && (
         <div style={{ fontSize: 12.5, color: "var(--ds-text-muted)", lineHeight: 1.6 }}>
-          Từ mới được chọn từ khoảng band hiện tại đến band mục tiêu, nên bạn không phải ôn từ quá dễ. Khi đã có bài IELTS được chấm,
-          app dùng band đo được thay cho ước lượng.
+          {t("progress.form.hint")}
         </div>
       )}
       {error && <div style={{ fontSize: 13, color: "var(--ds-danger)" }}>{error}</div>}

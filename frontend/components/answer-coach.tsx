@@ -1,22 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { useFeedbackLang } from "@/lib/feedback-lang";
+import { useI18n } from "@/lib/i18n";
 import { fetchSampleAnswer, improveAnswer, type ImprovedAnswer, type SampleAnswer } from "@/lib/pronunciation-api";
 import { speakEnglish } from "@/lib/text-to-speech";
 
 function Listen({ text }: { text: string }) {
+  const { t } = useI18n();
   return (
     <button className="ds-btn ds-btn-outline ds-btn-sm" onClick={() => speakEnglish(text)}>
       <i className="pi pi-volume-up" />
-      <span>Nghe</span>
+      <span>{t("common.listen")}</span>
     </button>
   );
 }
 
 /** A model answer to the question at the learner's target band (cached on the server). */
 export function SampleAnswerBox({ taskType, question }: { taskType: string; question: string }) {
-  const [lang] = useFeedbackLang();
+  const { lang, t } = useI18n();
   const [sample, setSample] = useState<SampleAnswer | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +31,7 @@ export function SampleAnswerBox({ taskType, question }: { taskType: string; ques
     try {
       setSample(await fetchSampleAnswer(taskType, question, lang));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "AI chưa viết được câu trả lời mẫu.");
+      setError(err instanceof Error ? err.message : t("coach.sampleFailed"));
     } finally {
       setLoading(false);
     }
@@ -40,25 +41,26 @@ export function SampleAnswerBox({ taskType, question }: { taskType: string; ques
     return (
       <button className="ds-btn ds-btn-outline ds-btn-sm" onClick={load}>
         <i className="pi pi-lightbulb" />
-        <span>Xem câu trả lời mẫu</span>
+        <span>{t("coach.showSample")}</span>
       </button>
     );
   }
   return (
     <div style={{ textAlign: "left", background: "var(--ds-surface-subtle)", borderRadius: "var(--ds-radius-lg)", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-        <b style={{ fontSize: 14 }}>Câu trả lời mẫu{sample ? ` · band ${sample.band.toFixed(1)}` : ""}</b>
+        <b style={{ fontSize: 14 }}>{t("coach.sampleTitle")}
+          {sample ? t("coach.sampleBand", { band: sample.band.toFixed(1) }) : ""}</b>
         <div style={{ display: "flex", gap: 6 }}>
           {sample && <Listen text={sample.answer} />}
           <button className="ds-btn ds-btn-outline ds-btn-sm" onClick={() => setOpen(false)}>
-            Ẩn
+            {t("common.hide")}
           </button>
         </div>
       </div>
       {loading && (
         <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>
           <i className="pi pi-spinner" style={{ animation: "spin 1s linear infinite", marginRight: 6 }} />
-          AI đang viết câu trả lời mẫu (lần đầu khoảng 10–30 giây)...
+          {t("coach.sampleLoading")}
         </div>
       )}
       {error && <div style={{ fontSize: 13, color: "var(--ds-danger)" }}>{error}</div>}
@@ -67,7 +69,7 @@ export function SampleAnswerBox({ taskType, question }: { taskType: string; ques
           <div style={{ fontSize: 15, lineHeight: 1.7 }}>{sample.answer}</div>
           {sample.phrases.length > 0 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 13.5 }}>
-              <b style={{ fontSize: 13 }}>Cụm từ nên dùng</b>
+              <b style={{ fontSize: 13 }}>{t("coach.phrases")}</b>
               {sample.phrases.map((p) => (
                 <div key={p.phrase}>
                   <span style={{ fontWeight: 600, color: "var(--ds-primary)" }}>{p.phrase}</span>
@@ -78,12 +80,12 @@ export function SampleAnswerBox({ taskType, question }: { taskType: string; ques
           )}
           {sample.tips.length > 0 && (
             <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: "var(--ds-text-secondary)", lineHeight: 1.6 }}>
-              {sample.tips.map((t) => (
-                <li key={t}>{t}</li>
+              {sample.tips.map((tip) => (
+                <li key={tip}>{tip}</li>
               ))}
             </ul>
           )}
-          <div style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>Dùng để học ý và cách diễn đạt; trả lời bằng ý của chính bạn khi luyện.</div>
+          <div style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>{t("coach.sampleNote")}</div>
         </>
       )}
     </div>
@@ -92,7 +94,7 @@ export function SampleAnswerBox({ taskType, question }: { taskType: string; ques
 
 /** The learner's answer rewritten at their target band, with the main changes. */
 export function ImprovedAnswerBox({ attemptId, initial }: { attemptId: string; initial: ImprovedAnswer | null }) {
-  const [lang] = useFeedbackLang();
+  const { lang, t } = useI18n();
   const [improved, setImproved] = useState<ImprovedAnswer | null>(initial && initial.lang === lang ? initial : null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -103,7 +105,7 @@ export function ImprovedAnswerBox({ attemptId, initial }: { attemptId: string; i
     try {
       setImproved(await improveAnswer(attemptId, lang));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "AI chưa viết lại được.");
+      setError(err instanceof Error ? err.message : t("coach.improveFailed"));
     } finally {
       setLoading(false);
     }
@@ -113,15 +115,15 @@ export function ImprovedAnswerBox({ attemptId, initial }: { attemptId: string; i
     <div className="ds-card" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <div>
-          <div style={{ font: "700 16px var(--font-display)" }}>Câu trả lời của bạn, bản tốt hơn</div>
+          <div style={{ font: "700 16px var(--font-display)" }}>{t("coach.improvedTitle")}</div>
           <div style={{ fontSize: 13, color: "var(--ds-text-muted)", marginTop: 3 }}>
-            AI giữ ý của bạn, sửa ngữ pháp và nâng từ vựng lên band mục tiêu.
+            {t("coach.improvedHint")}
           </div>
         </div>
         {!improved && (
           <button className="ds-btn ds-btn-sm" onClick={load} disabled={loading}>
             <i className={loading ? "pi pi-spinner" : "pi pi-sparkles"} style={loading ? { animation: "spin 1s linear infinite" } : undefined} />
-            <span>{loading ? "AI đang viết lại..." : "Viết lại câu trả lời"}</span>
+            <span>{loading ? t("coach.improving") : t("coach.improve")}</span>
           </button>
         )}
       </div>
@@ -130,7 +132,7 @@ export function ImprovedAnswerBox({ attemptId, initial }: { attemptId: string; i
         <>
           <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
             <div style={{ flex: 1, fontSize: 15, lineHeight: 1.7, background: "var(--ds-surface-subtle)", borderRadius: "var(--ds-radius-lg)", padding: "12px 14px" }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ds-text-muted)", marginBottom: 4 }}>Band {improved.band.toFixed(1)}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ds-text-muted)", marginBottom: 4 }}>{t("coach.band", { band: improved.band.toFixed(1) })}</div>
               {improved.improved}
             </div>
             <Listen text={improved.improved} />

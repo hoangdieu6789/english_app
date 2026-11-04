@@ -1,42 +1,15 @@
+"use client";
+
+import { hasMessage, useI18n, type MessageKey } from "@/lib/i18n";
 import type { PronunciationAttempt, RubricResult } from "@/lib/pronunciation-api";
 import { SCORE_AMBER, SCORE_GREEN, SCORE_RED } from "@/lib/score-color";
 
 // Learner-facing names for the IELTS criteria and the Pronunciation features
-// (backend/internal/rubric/criteria/*.md).
-const CRITERION_LABELS: Record<string, string> = {
-  fluency_coherence: "Trôi chảy & mạch lạc",
-  lexical_resource: "Từ vựng",
-  grammatical_range_accuracy: "Ngữ pháp",
-  pronunciation: "Phát âm",
-};
-
-const PRONUNCIATION_LABELS: Record<string, string> = {
-  "P-01": "Phát âm từ & âm",
-  "P-02": "Ngắt cụm từ",
-  "P-03": "Nhịp điệu",
-  "P-04": "Ngữ điệu & trọng âm",
-  "P-05": "Nối âm",
-  "P-06": "Độ dễ hiểu",
-};
-
-const REASON_LABELS: Record<string, string> = {
-  insufficient_speech: "bài nói quá ngắn",
-  no_acoustic_data: "không có dữ liệu âm thanh",
-  grader_unavailable: "AI chấm đang lỗi hoặc hết lượt miễn phí hôm nay",
-  not_returned: "AI chưa chấm được",
-  invalid_band: "AI chưa chấm được",
-  not_in_task: "bài đọc theo câu mẫu không chấm tiêu chí này",
-  off_topic: "lạc đề",
-  memorised_response: "bài nói học thuộc",
-};
-
-const TASK_LABELS: Record<string, string> = {
-  shadowing: "Đọc theo câu mẫu",
-  part1: "Part 1",
-  part2: "Part 2",
-  part3: "Part 3",
-  full_test: "Full test",
-};
+// (backend/internal/rubric/criteria/*.md), with a fallback to the raw id.
+function label(t: (key: MessageKey) => string, prefix: string, id: string) {
+  const key = `${prefix}.${id}`;
+  return hasMessage(key) ? t(key) : id;
+}
 
 // IELTS bands: 7–9 good, 5–6 competent, 1–4 needs work.
 function bandColor(band: number) {
@@ -69,6 +42,8 @@ export function RubricPanel({
   grader?: PronunciationAttempt["grader"];
   pendingSecs?: number;
 }) {
+  const { t } = useI18n();
+  const criterion = (id: string) => label(t, "rubric.criterion", id);
   const pending = pendingSecs != null;
   const pron = rubric.pronunciation;
   const overall = rubric.overall;
@@ -80,10 +55,10 @@ export function RubricPanel({
   const scored = overall.band > 0 && (!ielts || !overall.provisional || missing.length <= 1);
   const showCefr = !!overall.cefr && !overall.provisional;
   const bandLabel = !ielts
-    ? "band phát âm"
+    ? t("rubric.bandPronunciation")
     : overall.provisional
-      ? `tạm tính, thiếu ${missing.map((id) => CRITERION_LABELS[id] ?? id).join(", ")}`
-      : "band tổng";
+      ? t("rubric.bandProvisional", { missing: missing.map(criterion).join(", ") })
+      : t("rubric.bandOverall");
   const rows: { id: string; band: number | null }[] = [
     ...rubric.criteria.map((c) => ({ id: c.id, band: c.band })),
     ...(pending ? LLM_CRITERIA.filter((id) => !rubric.criteria.some((c) => c.id === id)).map((id) => ({ id, band: null })) : []),
@@ -96,24 +71,24 @@ export function RubricPanel({
     <div className="ds-card" style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
         <div>
-          <div style={{ font: "700 16px var(--font-display)" }}>Chấm theo bộ tiêu chí</div>
+          <div style={{ font: "700 16px var(--font-display)" }}>{t("rubric.title")}</div>
           <div style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>
-            IELTS Speaking · {TASK_LABELS[rubric.task_type] ?? rubric.task_type} · v{rubric.version}
+            IELTS Speaking · {label(t, "rubric.task", rubric.task_type)} · v{rubric.version}
           </div>
-          <div style={{ fontSize: 12, color: "var(--ds-text-muted)" }} title="Phát âm luôn do code chấm từ dữ liệu Azure">
+          <div style={{ fontSize: 12, color: "var(--ds-text-muted)" }} title={t("rubric.graderNote")}>
             {pending
-              ? `AI đang chấm trôi chảy, từ vựng, ngữ pháp... ${pendingSecs}s`
+              ? t("rubric.graderPending", { secs: pendingSecs })
               : grader
-              ? `Trôi chảy, từ vựng, ngữ pháp chấm bởi ${grader.provider}${grader.model ? ` · ${grader.model}` : ""}`
+              ? t("rubric.gradedBy", { grader: `${grader.provider}${grader.model ? ` · ${grader.model}` : ""}` })
               : rubric.task_type === "shadowing"
-                ? "Chấm bằng code từ dữ liệu Azure (không dùng AI)"
-                : "AI không chấm được bài này"}
+                ? t("rubric.gradedByCode")
+                : t("rubric.notGraded")}
           </div>
         </div>
         {pending ? (
           <div style={{ textAlign: "right", fontSize: 13, color: "var(--ds-text-muted)" }}>
             <i className="pi pi-spinner" style={{ animation: "spin 1s linear infinite", marginRight: 6 }} />
-            Đang chấm band tổng...
+            {t("rubric.pendingOverall")}
           </div>
         ) : scored ? (
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -127,7 +102,7 @@ export function RubricPanel({
             </div>
             {showCefr && (
               <span
-                title="Ước lượng, chưa hiệu chỉnh"
+                title={t("rubric.cefrTitle")}
                 style={{
                   fontSize: 12,
                   fontWeight: 700,
@@ -143,7 +118,7 @@ export function RubricPanel({
           </div>
         ) : (
           <span style={{ fontSize: 13, color: "var(--ds-text-muted)", textAlign: "right", maxWidth: 220 }}>
-            {ielts && overall.band > 0 ? "Chưa đủ dữ liệu để tính band tổng" : "Chưa đủ dữ liệu để chấm"}
+            {ielts && overall.band > 0 ? t("rubric.noOverall") : t("rubric.noData")}
           </span>
         )}
       </div>
@@ -155,7 +130,7 @@ export function RubricPanel({
           {rows.map((r) =>
             r.band == null ? (
               <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 13, width: 160, color: "var(--ds-text-secondary)" }}>{CRITERION_LABELS[r.id] ?? r.id}</span>
+                <span style={{ fontSize: 13, width: 160, color: "var(--ds-text-secondary)" }}>{criterion(r.id)}</span>
                 <div style={{ flex: 1, height: 8, borderRadius: 99, background: "var(--ds-surface-muted)", overflow: "hidden" }}>
                   <div style={{ width: "35%", height: "100%", background: "var(--ds-border-strong)", animation: "recpulse 1.6s infinite" }} />
                 </div>
@@ -165,7 +140,7 @@ export function RubricPanel({
               </div>
             ) : (
               <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 13, width: 160, color: "var(--ds-text-secondary)" }}>{CRITERION_LABELS[r.id] ?? r.id}</span>
+                <span style={{ fontSize: 13, width: 160, color: "var(--ds-text-secondary)" }}>{criterion(r.id)}</span>
                 <Bar pct={(r.band / 9) * 100} color={bandColor(r.band)} />
                 <span style={{ fontSize: 12, fontWeight: 600, width: 30, textAlign: "right", color: bandColor(r.band) }}>{r.band}/9</span>
               </div>
@@ -177,7 +152,7 @@ export function RubricPanel({
       {pron && (
         <div style={{ borderTop: "1px solid var(--ds-border-subtle)", paddingTop: 14 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ds-text-secondary)", marginBottom: 10 }}>
-            Phát âm: đo được {pron.coverage} đặc điểm
+            {t("rubric.pronunciationCoverage", { coverage: pron.coverage })}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 8 }}>
             {pron.items.map((it) => (
@@ -194,24 +169,22 @@ export function RubricPanel({
                   color: it.measured ? "var(--ds-text)" : "var(--ds-text-muted)",
                 }}
               >
-                <span>{PRONUNCIATION_LABELS[it.code] ?? it.code}</span>
+                <span>{label(t, "rubric.feature", it.code)}</span>
                 <span style={{ fontWeight: 600, whiteSpace: "nowrap", marginLeft: 8, color: it.measured && it.band ? bandColor(it.band) : undefined }}>
-                  {it.measured && it.band ? `${it.band}/9` : "chưa đo"}
+                  {it.measured && it.band ? `${it.band}/9` : t("rubric.notMeasured")}
                 </span>
               </div>
             ))}
           </div>
           {mispronounced.length > 0 && (
             <div style={{ marginTop: 10, fontSize: 13, color: "var(--ds-text-secondary)" }}>
-              Từ phát âm sai: <span style={{ fontWeight: 600, color: "var(--ds-danger)" }}>{mispronounced.join(", ")}</span>
+              {t("rubric.mispronounced")} <span style={{ fontWeight: 600, color: "var(--ds-danger)" }}>{mispronounced.join(", ")}</span>
             </div>
           )}
           {pron.tone_issues && pron.tone_issues.length > 0 && (
             <ul style={{ margin: "10px 0 0", paddingLeft: 18, fontSize: 13, color: "var(--ds-text-secondary)" }}>
-              {pron.tone_issues.map((t) => (
-                <li key={t.segment_id}>
-                  “{t.quote}”: nên {t.expected === "rise" ? "lên" : "xuống"} giọng ở cuối câu
-                </li>
+              {pron.tone_issues.map((ti) => (
+                <li key={ti.segment_id}>{t(ti.expected === "rise" ? "rubric.toneRise" : "rubric.toneFall", { quote: ti.quote })}</li>
               ))}
             </ul>
           )}
@@ -220,7 +193,7 @@ export function RubricPanel({
 
       {rubric.criteria.some((c) => (c.issues ?? []).length > 0) && (
         <div style={{ borderTop: "1px solid var(--ds-border-subtle)", paddingTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ds-text-secondary)" }}>Lỗi cần sửa</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ds-text-secondary)" }}>{t("rubric.issuesTitle")}</div>
           {rubric.criteria.flatMap((c) =>
             (c.issues ?? []).map((is, i) => (
               <div key={`${c.id}-${i}`} style={{ fontSize: 13, lineHeight: 1.5 }}>
@@ -237,9 +210,9 @@ export function RubricPanel({
 
       {notAssessed.length > 0 && (
         <div style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>
-          Chưa chấm:{" "}
+          {t("rubric.notAssessed")}{" "}
           {notAssessed
-            .map((n) => `${CRITERION_LABELS[n.id] ?? n.id} (${REASON_LABELS[n.reason] ?? n.reason})`)
+            .map((n) => `${criterion(n.id)} (${label(t, "rubric.reason", n.reason)})`)
             .join(", ")}
         </div>
       )}

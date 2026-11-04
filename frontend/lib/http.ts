@@ -3,6 +3,8 @@
 // rotated by the backend) and repeats the call. Parallel calls share one refresh. If the
 // refresh fails too, the session is over and the learner is sent to the login page.
 
+import { getCurrentLang } from "@/lib/i18n/current";
+
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api";
 
 let refreshing: Promise<boolean> | null = null;
@@ -20,7 +22,10 @@ function refreshSession(): Promise<boolean> {
 const NO_REFRESH = ["/auth/login", "/auth/register", "/auth/refresh", "/auth/logout", "/auth/forgot-password", "/auth/reset-password"];
 
 export async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
-  const call = () => fetch(`${API_BASE_URL}${path}`, { ...init, credentials: "include" });
+  // The learner's language: backend messages, AI feedback and meanings follow it.
+  const headers = new Headers(init.headers);
+  headers.set("X-App-Lang", getCurrentLang());
+  const call = () => fetch(`${API_BASE_URL}${path}`, { ...init, headers, credentials: "include" });
   let res = await call();
   if (res.status !== 401 || NO_REFRESH.includes(path)) return res;
 

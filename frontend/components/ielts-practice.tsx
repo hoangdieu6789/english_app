@@ -6,7 +6,6 @@ import { Waveform } from "@/components/charts/waveform";
 import { ImprovedAnswerBox, SampleAnswerBox } from "@/components/answer-coach";
 import { RubricPanel } from "@/components/rubric-panel";
 import { WordTips } from "@/components/word-tips";
-import { FeedbackLangSwitch } from "@/lib/feedback-lang";
 import {
   PART_INFO,
   cueCardText,
@@ -24,12 +23,14 @@ import {
 import { scoreColor } from "@/lib/score-color";
 import { speakEnglish } from "@/lib/text-to-speech";
 import { MAX_ANSWER_SECONDS, formatSecs, useRecorder } from "@/lib/use-recorder";
+import { useI18n } from "@/lib/i18n";
 
 const PREP_SECONDS = 60; // Part 2 preparation time, as in the real test
 
 type Phase = "ready" | "prep" | "recording" | "processing" | "result" | "error";
 
 export function IeltsPractice({ part }: { part: IeltsPart }) {
+  const { t, locale } = useI18n();
   const queryClient = useQueryClient();
   // Each request asks the backend for a set this learner has not done (exclude = set on screen).
   const [request, setRequest] = useState<{ n: number; exclude?: string }>({ n: 0 });
@@ -109,7 +110,7 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
       await recorder.start();
       setPhase("recording");
     } catch {
-      setError("Không truy cập được microphone. Kiểm tra quyền trình duyệt.");
+      setError(t("common.micDenied"));
       setPhase("error");
     }
   }
@@ -129,7 +130,7 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
       // The AI grades FC/LR/GRA in the background: keep the timer running until it is done.
       if (attempt.gradingStatus !== "pending") stopWaitTimer();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Chấm điểm thất bại. Thử lại.");
+      setError(err instanceof Error ? err.message : t("common.scoringFailed"));
       setPhase("error");
       stopWaitTimer();
     }
@@ -164,7 +165,7 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
       const wav = recorder.stop();
       if (wav) submit(wav);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Không thu được âm thanh.");
+      setError(err instanceof Error ? err.message : t("common.noAudio"));
       setPhase("error");
     }
   }
@@ -199,16 +200,16 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
       <div className="ds-card" style={{ padding: 26, textAlign: "center", color: "var(--ds-text-muted)" }}>
         {next.isError ? (
           <>
-            <div style={{ color: "var(--ds-danger)", marginBottom: 12 }}>Không tải được đề. {next.error.message}</div>
+            <div style={{ color: "var(--ds-danger)", marginBottom: 12 }}>{t("ielts.loadFailed", { error: next.error.message })}</div>
             <button onClick={() => next.refetch()} className="ds-btn ds-btn-outline ds-btn-sm">
               <i className="pi pi-refresh" />
-              <span>Thử lại</span>
+              <span>{t("common.retry")}</span>
             </button>
           </>
         ) : (
           <span>
             <i className="pi pi-spinner" style={{ animation: "spin 1s linear infinite", marginRight: 8 }} />
-            Đang lấy đề chưa làm...
+            {t("ielts.loadingSet")}
           </span>
         )}
       </div>
@@ -216,11 +217,11 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
   }
 
   const badge = picked
-    ? { text: "Làm lại", bg: "var(--ds-warning-bg)", fg: "var(--ds-warning)" }
+    ? { text: t("ielts.badge.redo"), bg: "var(--ds-warning-bg)", fg: "var(--ds-warning)" }
     : next.data?.seen
-      ? { text: "Ôn lại · đã làm hết đề", bg: "var(--ds-warning-bg)", fg: "var(--ds-warning)" }
+      ? { text: t("ielts.badge.review"), bg: "var(--ds-warning-bg)", fg: "var(--ds-warning)" }
       : set.source === "generated"
-        ? { text: "Đề mới", bg: "var(--ds-success-bg)", fg: "var(--ds-success)" }
+        ? { text: t("ielts.badge.new"), bg: "var(--ds-success-bg)", fg: "var(--ds-success)" }
         : null;
 
   return (
@@ -238,11 +239,11 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
                 color: "var(--ds-info)",
               }}
             >
-              {info.title}
+              {t(info.title)}
             </span>
             <span style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>
-              Chủ đề: {set.topic}
-              {part !== "part2" && ` · Câu ${qIndex + 1}/${set.questions.length}`}
+              {t("ielts.topic", { topic: set.topic })}
+              {part !== "part2" && t("ielts.questionOf", { n: qIndex + 1, total: set.questions.length })}
             </span>
             {badge && (
               <span style={{ fontSize: 12, fontWeight: 600, padding: "2px 8px", borderRadius: 99, background: badge.bg, color: badge.fg }}>
@@ -253,10 +254,10 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
           <div style={{ display: "flex", gap: 4 }}>
             <button onClick={() => setShowDone((v) => !v)} disabled={busy} className="ds-btn ds-btn-text ds-btn-sm" aria-expanded={showDone}>
               <i className="pi pi-history" />
-              <span>Đề đã làm</span>
+              <span>{t("ielts.doneSets")}</span>
             </button>
             <button onClick={newSet} disabled={busy} className="ds-btn ds-btn-text ds-btn-sm">
-              <span>Chủ đề khác</span>
+              <span>{t("ielts.otherTopic")}</span>
               <i className="pi pi-refresh" />
             </button>
           </div>
@@ -264,7 +265,9 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
 
         {next.data && !picked && (
           <div style={{ fontSize: 12, color: "var(--ds-text-muted)", marginTop: -10, marginBottom: 14 }}>
-            {next.data.seen ? "Đang tìm thêm đề mới cho bạn" : `Còn ${next.data.unseenCount} bộ đề chưa làm ở ${info.title.split(" · ")[0]}`}
+            {next.data.seen
+              ? t("ielts.findingMore")
+              : t("ielts.unseenLeft", { n: next.data.unseenCount, part: t(info.title).split(" · ")[0] })}
           </div>
         )}
 
@@ -281,9 +284,9 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
             }}
           >
             {doneSets.isLoading ? (
-              <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>Đang tải...</div>
+              <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>{t("common.loading")}</div>
             ) : done.length === 0 ? (
-              <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>Bạn chưa làm bộ đề nào ở phần này.</div>
+              <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>{t("ielts.noDoneSets")}</div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 {done.map((s) => (
@@ -295,9 +298,9 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
                   >
                     <span>{s.topic}</span>
                     <span style={{ fontSize: 12, color: "var(--ds-text-muted)", whiteSpace: "nowrap" }}>
-                      {s.attemptCount} lần
-                      {s.bestBand != null && ` · cao nhất ${s.bestBand}`}
-                      {s.lastAttemptAt && ` · ${new Date(s.lastAttemptAt).toLocaleDateString("vi-VN")}`}
+                      {t("ielts.attempts", { n: s.attemptCount })}
+                      {s.bestBand != null && t("ielts.best", { band: s.bestBand })}
+                      {s.lastAttemptAt && ` · ${new Date(s.lastAttemptAt).toLocaleDateString(locale)}`}
                     </span>
                   </button>
                 ))}
@@ -307,7 +310,7 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
         )}
 
         <div style={{ textAlign: "center", padding: "4px 0" }}>
-          <div style={{ fontSize: 13, color: "var(--ds-text-muted)", marginBottom: 8 }}>{info.hint}</div>
+          <div style={{ fontSize: 13, color: "var(--ds-text-muted)", marginBottom: 8 }}>{t(info.hint)}</div>
           <div style={{ font: "600 26px/1.4 var(--font-display)", color: "var(--ds-text)" }}>{question}</div>
           {part === "part2" && (
             <div style={{ display: "inline-block", textAlign: "left", marginTop: 12, fontSize: 15, color: "var(--ds-text-secondary)" }}>
@@ -320,12 +323,12 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
             </div>
           )}
           {part === "part3" && (
-            <div style={{ fontSize: 13, color: "var(--ds-text-muted)", marginTop: 8 }}>Liên quan tới Part 2: {set.prompt}</div>
+            <div style={{ fontSize: 13, color: "var(--ds-text-muted)", marginTop: 8 }}>{t("ielts.relatedPart2", { prompt: set.prompt })}</div>
           )}
           <div>
             <button onClick={() => speakEnglish(question)} className="ds-btn ds-btn-outline ds-btn-sm" style={{ marginTop: 14 }}>
               <i className="pi pi-volume-up" />
-              <span>Nghe câu hỏi</span>
+              <span>{t("ielts.listenQuestion")}</span>
             </button>
           </div>
           <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
@@ -336,12 +339,12 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
         {phase === "prep" && (
           <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: 8 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: prepLeft > 0 ? "var(--ds-text-secondary)" : "var(--ds-primary)" }}>
-              {prepLeft > 0 ? `Thời gian chuẩn bị: ${formatSecs(prepLeft)}` : "Hết giờ chuẩn bị — bắt đầu nói"}
+              {prepLeft > 0 ? t("ielts.prepTime", { time: formatSecs(prepLeft) }) : t("ielts.prepOver")}
             </div>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Ghi vài từ khoá cho từng ý (không được chấm)"
+              placeholder={t("ielts.notesPlaceholder")}
               rows={4}
               style={{
                 width: "100%",
@@ -378,25 +381,25 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
                 {part === "part2" && (
                   <button onClick={startPrep} className="ds-btn ds-btn-outline ds-btn-lg" style={{ borderRadius: "var(--ds-radius-full)", height: 56 }}>
                     <i className="pi pi-clock" />
-                    <span>Chuẩn bị 1 phút</span>
+                    <span>{t("ielts.prepOneMinute")}</span>
                   </button>
                 )}
                 <button onClick={startRecording} className="ds-btn ds-btn-lg" style={{ borderRadius: "var(--ds-radius-full)", padding: "0 30px", height: 56 }}>
                   <i className="pi pi-microphone" style={{ fontSize: 18 }} />
-                  <span>Nhấn để trả lời</span>
+                  <span>{t("ielts.tapToAnswer")}</span>
                 </button>
               </div>
               {error ? (
                 <div style={{ fontSize: 13, color: "var(--ds-danger)" }}>{error}</div>
               ) : (
-                <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>Mỗi câu trả lời ghi tối đa {MAX_ANSWER_SECONDS} giây</div>
+                <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>{t("ielts.maxSeconds", { s: MAX_ANSWER_SECONDS })}</div>
               )}
             </>
           )}
           {phase === "prep" && (
             <button onClick={startRecording} className="ds-btn ds-btn-lg" style={{ borderRadius: "var(--ds-radius-full)", padding: "0 30px", height: 56 }}>
               <i className="pi pi-microphone" style={{ fontSize: 18 }} />
-              <span>{prepLeft > 0 ? "Bắt đầu nói ngay" : "Bắt đầu nói"}</span>
+              <span>{prepLeft > 0 ? t("ielts.startNow") : t("ielts.start")}</span>
             </button>
           )}
           {phase === "recording" && (
@@ -407,11 +410,9 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
                 style={{ borderRadius: "var(--ds-radius-full)", padding: "0 30px", height: 56, animation: "recpulse 1.6s infinite" }}
               >
                 <i className="pi pi-stop-circle" style={{ fontSize: 18 }} />
-                <span>
-                  Đang ghi âm {formatSecs(recorder.secs)} / {formatSecs(MAX_ANSWER_SECONDS)} · Dừng
-                </span>
+                <span>{t("ielts.recordingStop", { time: formatSecs(recorder.secs), max: formatSecs(MAX_ANSWER_SECONDS) })}</span>
               </button>
-              <div style={{ width: 220, height: 6, borderRadius: 99, background: "var(--ds-surface-muted)", overflow: "hidden" }} title="Mức âm thanh micro">
+              <div style={{ width: 220, height: 6, borderRadius: 99, background: "var(--ds-surface-muted)", overflow: "hidden" }} title={t("ielts.micLevel")}>
                 <div
                   style={{
                     height: "100%",
@@ -423,11 +424,11 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
               </div>
               {recorder.quiet ? (
                 <div style={{ fontSize: 13, color: "var(--ds-danger)", fontWeight: 600, textAlign: "center", maxWidth: 460 }}>
-                  Micro gần như không thu được tiếng. Kiểm tra micro đang chọn hoặc nói to hơn.
+                  {t("ielts.quiet")}
                 </div>
               ) : (
                 <div style={{ fontSize: 13, color: "var(--ds-primary)", fontWeight: 600 }}>
-                  {recorder.secs >= MAX_ANSWER_SECONDS - 10 ? "Sắp hết thời gian, hãy kết thúc ý" : "🔴 Đang nghe bạn nói..."}
+                  {recorder.secs >= MAX_ANSWER_SECONDS - 10 ? t("ielts.almostOver") : t("practice.listening")}
                 </div>
               )}
             </>
@@ -436,10 +437,10 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
             <>
               <button disabled className="ds-btn ds-btn-lg" style={{ borderRadius: "var(--ds-radius-full)", padding: "0 30px", height: 56 }}>
                 <i className="pi pi-spinner" style={{ fontSize: 18, animation: "spin 1s linear infinite" }} />
-                <span>Đang chấm điểm... {waitSecs}s</span>
+                <span>{t("ielts.scoringSecs", { s: waitSecs })}</span>
               </button>
               <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>
-                Azure chấm phát âm (thường 3–10 giây); AI chấm trôi chảy, từ vựng, ngữ pháp tiếp ngay sau đó
+                {t("ielts.scoringHint")}
               </div>
             </>
           )}
@@ -450,45 +451,42 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
         <div className="fade" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div className="ds-card" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-              <div style={{ font: "700 16px var(--font-display)" }}>Bạn đã nói</div>
+              <div style={{ font: "700 16px var(--font-display)" }}>{t("common.youSaid")}</div>
               <audio controls src={resolveAudioUrl(shown.audioUrl)} style={{ height: 32 }} />
             </div>
-            <div style={{ fontSize: 15, lineHeight: 1.7, color: "var(--ds-text)" }}>{shown.recognizedText || "(không nhận diện được)"}</div>
+            <div style={{ fontSize: 15, lineHeight: 1.7, color: "var(--ds-text)" }}>{shown.recognizedText || t("common.notRecognized")}</div>
             <div style={{ fontSize: 12, color: "var(--ds-text-muted)" }}>
               {shown.transcriptSource === "whisper"
-                ? "Chép lời bởi Whisper; Azure chấm phát âm từng từ theo bản chép này."
-                : "Chép lời bởi Azure; có thể nhận sai từ phát âm chưa rõ."}
+                ? t("ielts.byWhisper")
+                : t("ielts.byAzure")}
             </div>
             <div style={{ display: "flex", gap: 18, fontSize: 13, color: "var(--ds-text-muted)", flexWrap: "wrap" }}>
               <span>
-                Chính xác <b style={{ color: scoreColor(shown.overallScore) }}>{Math.round(shown.overallScore)}</b>
+                {t("common.accuracy")} <b style={{ color: scoreColor(shown.overallScore) }}>{Math.round(shown.overallScore)}</b>
               </span>
               <span>
-                Trôi chảy <b style={{ color: scoreColor(shown.fluencyScore) }}>{Math.round(shown.fluencyScore)}</b>
+                {t("common.fluency")} <b style={{ color: scoreColor(shown.fluencyScore) }}>{Math.round(shown.fluencyScore)}</b>
               </span>
               {shown.prosodyScore != null && (
                 <span>
-                  Ngữ điệu <b style={{ color: scoreColor(shown.prosodyScore) }}>{Math.round(shown.prosodyScore)}</b>
+                  {t("common.prosody")} <b style={{ color: scoreColor(shown.prosodyScore) }}>{Math.round(shown.prosodyScore)}</b>
                 </span>
               )}
-              <span>(điểm Azure 0–100)</span>
+              <span>{t("common.azureScale")}</span>
             </div>
           </div>
 
           {shown.rubric && <RubricPanel rubric={shown.rubric} grader={shown.grader} pendingSecs={pendingSecs} />}
           <WordTips words={shown.wordScores} />
           {(shown.recognizedText ?? "").split(/\s+/).length >= 3 && <ImprovedAnswerBox key={shown.id} attemptId={shown.id} initial={shown.improvedAnswer} />}
-          <div style={{ textAlign: "center" }}>
-            <FeedbackLangSwitch />
-          </div>
 
           <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
             <button onClick={reset} className="ds-btn ds-btn-outline">
               <i className="pi pi-refresh" />
-              <span>Trả lời lại</span>
+              <span>{t("ielts.answerAgain")}</span>
             </button>
             <button onClick={nextQuestion} className="ds-btn">
-              <span>{part === "part2" || qIndex + 1 >= set.questions.length ? "Bộ đề tiếp theo" : "Câu hỏi tiếp theo"}</span>
+              <span>{part === "part2" || qIndex + 1 >= set.questions.length ? t("ielts.nextSet") : t("ielts.nextQuestion")}</span>
               <i className="pi pi-arrow-right" />
             </button>
           </div>

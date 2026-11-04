@@ -1,7 +1,12 @@
+"use client";
+
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 // A small centred card for the password pages (same look as the login page's form side).
 export function AuthCard({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
+  const { t } = useI18n();
   return (
     <div
       style={{
@@ -19,7 +24,10 @@ export function AuthCard({ title, subtitle, children }: { title: string; subtitl
         </div>
         {children}
         <div style={{ textAlign: "center", fontSize: 13, color: "var(--ds-text-muted)" }}>
-          <Link href="/login">Quay lại đăng nhập</Link>
+          <Link href="/login">{t("auth.card.backToLogin")}</Link>
+        </div>
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <LanguageSwitcher />
         </div>
       </div>
     </div>

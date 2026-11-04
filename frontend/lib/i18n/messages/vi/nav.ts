@@ -1,0 +1,23 @@
+// App shell: sidebar, page titles. Key prefix: "nav.".
+export const nav = {
+  "nav.dashboard": "Trang chủ",
+  "nav.practice": "Luyện nói",
+  "nav.history": "Lịch sử",
+  "nav.review": "Ôn từ",
+  "nav.progress": "Tiến độ",
+  "nav.title.dashboard": "Trang chủ",
+  "nav.sub.dashboard": "Tổng quan việc học của bạn hôm nay",
+  "nav.title.practice": "Luyện nói · Practice",
+  "nav.sub.practice": "Shadowing và IELTS Speaking Part 1–3",
+  "nav.title.history": "Lịch sử · History",
+  "nav.sub.history": "Mọi bài bạn đã nói, nghe lại và xem lại kết quả chấm",
+  "nav.title.review": "Ôn từ · Review",
+  "nav.sub.review": "Ôn từ mới và các từ bạn nói chưa đúng, theo lịch nhắc lại",
+  "nav.title.progress": "Tiến độ · Progress",
+  "nav.sub.progress": "Streak, phát âm và band IELTS từ các bài bạn đã luyện",
+  "nav.streak": "{n} ngày streak",
+  "nav.noStreak": "Chưa có streak",
+  "nav.band30": "Band IELTS TB 30 ngày: {band}",
+  "nav.noBand": "Chưa có band IELTS",
+  "nav.logout": "Đăng xuất",
+};

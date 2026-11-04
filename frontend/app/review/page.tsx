@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { BandGoalForm } from "@/components/band-goal-form";
+import { useI18n, type MessageKey, type Params } from "@/lib/i18n";
 import { phonemeToIpa } from "@/lib/phonemes";
 import {
   addNewWords,
@@ -26,26 +27,28 @@ const NEW_WORDS_PER_BATCH = 10;
 
 type Phase = "ready" | "recording" | "scoring" | "result" | "error";
 
-const RATINGS: { q: 1 | 3 | 4 | 5; label: string; color: string }[] = [
-  { q: 1, label: "Quên", color: "var(--ds-danger)" },
-  { q: 3, label: "Khó", color: "var(--ds-warning)" },
-  { q: 4, label: "Nhớ", color: "var(--ds-primary)" },
-  { q: 5, label: "Dễ", color: "var(--ds-success)" },
+type T = (key: MessageKey, params?: Params) => string;
+
+const RATINGS: { q: 1 | 3 | 4 | 5; label: MessageKey; color: string }[] = [
+  { q: 1, label: "review.rating.forgot", color: "var(--ds-danger)" },
+  { q: 3, label: "review.rating.hard", color: "var(--ds-warning)" },
+  { q: 4, label: "review.rating.good", color: "var(--ds-primary)" },
+  { q: 5, label: "review.rating.easy", color: "var(--ds-success)" },
 ];
 
-function nextReviewText(w: ReviewWord): string {
-  if (w.intervalDays <= 0) return "Ôn lại sau ít phút";
-  if (w.intervalDays === 1) return "Ôn lại vào ngày mai";
-  return `Ôn lại sau ${w.intervalDays} ngày`;
+function nextReviewText(t: T, w: ReviewWord): string {
+  if (w.intervalDays <= 0) return t("review.next.minutes");
+  if (w.intervalDays === 1) return t("review.next.tomorrow");
+  return t("review.next.days", { n: w.intervalDays });
 }
 
-function dueText(iso: string): string {
+function dueText(t: T, locale: string, iso: string): string {
   const d = new Date(iso);
   const mins = Math.round((d.getTime() - Date.now()) / 60000);
-  if (mins < 60) return `${Math.max(mins, 1)} phút nữa`;
+  if (mins < 60) return t("review.due.minutes", { n: Math.max(mins, 1) });
   const hours = Math.round(mins / 60);
-  if (hours < 24) return `${hours} giờ nữa`;
-  return d.toLocaleDateString("vi-VN", { weekday: "short", day: "numeric", month: "numeric" });
+  if (hours < 24) return t("review.due.hours", { n: hours });
+  return d.toLocaleDateString(locale, { weekday: "short", day: "numeric", month: "numeric" });
 }
 
 // Two kinds of spaced-repetition cards (SM-2 on the backend):
@@ -53,6 +56,7 @@ function dueText(iso: string): string {
 // - vocab: a new word for the learner's band range; the learner reveals the meaning and
 //   rates how well they remembered it (saying it aloud is scored but does not schedule it).
 export default function ReviewPage() {
+  const { t, locale } = useI18n();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { data, isLoading, isError } = useQuery(reviewQuery);
@@ -90,7 +94,7 @@ export default function ReviewPage() {
       await recorder.start();
       setPhase("recording");
     } catch {
-      fail("Không truy cập được microphone. Kiểm tra quyền trình duyệt.");
+      fail(t("common.micDenied"));
     }
   }
 
@@ -99,7 +103,7 @@ export default function ReviewPage() {
       const wav = recorder.stop();
       if (wav) score(wav);
     } catch (err) {
-      fail(err instanceof Error ? err.message : "Không thu được âm thanh.");
+      fail(err instanceof Error ? err.message : t("common.noAudio"));
     }
   }
 
@@ -110,7 +114,7 @@ export default function ReviewPage() {
       setResult(await submitReviewAttempt(current.id, wav));
       setPhase("result");
     } catch (err) {
-      fail(err instanceof Error ? err.message : "Chấm điểm thất bại. Thử lại.");
+      fail(err instanceof Error ? err.message : t("common.scoringFailed"));
     }
   }
 
@@ -126,7 +130,7 @@ export default function ReviewPage() {
       await gradeReviewWord(current.id, q);
       next();
     } catch (err) {
-      fail(err instanceof Error ? err.message : "Không lưu được.");
+      fail(err instanceof Error ? err.message : t("review.err.saveShort"));
     }
   }
 
@@ -138,7 +142,7 @@ export default function ReviewPage() {
       queryClient.invalidateQueries({ queryKey: ["review"] });
       queryClient.invalidateQueries({ queryKey: ["goals"] });
     } catch (err) {
-      fail(err instanceof Error ? err.message : "Không bỏ được từ này.");
+      fail(err instanceof Error ? err.message : t("review.err.removeShort"));
     }
   }
 
@@ -147,11 +151,11 @@ export default function ReviewPage() {
     setAddMsg(null);
     try {
       const added = await addNewWords(NEW_WORDS_PER_BATCH);
-      setAddMsg(`Đã thêm ${added.length} từ mới: ${added.map((w) => w.word).join(", ")}.`);
+      setAddMsg(t("review.added", { n: added.length, words: added.map((w) => w.word).join(", ") }));
       queryClient.invalidateQueries({ queryKey: ["review"] });
       queryClient.invalidateQueries({ queryKey: ["goals"] });
     } catch (err) {
-      setAddMsg(err instanceof Error ? err.message : "Không thêm được từ mới.");
+      setAddMsg(err instanceof Error ? err.message : t("review.err.addWordsShort"));
     } finally {
       setAdding(false);
     }
@@ -168,22 +172,26 @@ export default function ReviewPage() {
         <div className="ds-card" style={{ padding: 22, display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <div>
-              <div style={{ font: "700 16px var(--font-display)" }}>Từ mới theo band</div>
+              <div style={{ font: "700 16px var(--font-display)" }}>{t("review.newWords.title")}</div>
               {g && (
                 <div style={{ fontSize: 13, color: "var(--ds-text-muted)", marginTop: 3 }}>
-                  Band hiện tại {g.currentBand.toFixed(1)}
-                  {g.measuredBand > 0 ? " (đo từ bài làm)" : g.selfBand != null ? " (ước lượng)" : " (mặc định)"} · mục tiêu{" "}
-                  {g.targetBand != null ? g.targetBand.toFixed(1) : "chưa đặt"} · từ band {(g.bandFrom + 0.5).toFixed(1)}–{g.bandTo.toFixed(1)} · còn{" "}
-                  {g.remaining} từ
+                  {t("review.goal.status", {
+                    band: g.currentBand.toFixed(1),
+                    source: t(g.measuredBand > 0 ? "review.goal.measured" : g.selfBand != null ? "review.goal.estimated" : "review.goal.default"),
+                    target: g.targetBand != null ? g.targetBand.toFixed(1) : t("review.goal.notSet"),
+                    from: (g.bandFrom + 0.5).toFixed(1),
+                    to: g.bandTo.toFixed(1),
+                    n: g.remaining,
+                  })}
                 </div>
               )}
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <button className="ds-btn ds-btn-outline ds-btn-sm" onClick={() => setEditGoals((v) => !v)}>
-                {editGoals ? "Đóng" : "Đổi mục tiêu"}
+                {editGoals ? t("common.close") : t("review.goal.change")}
               </button>
               <button className="ds-btn ds-btn-sm" onClick={addWords} disabled={adding || !g || g.remaining === 0}>
-                {adding ? "AI đang soạn nghĩa..." : `Thêm ${NEW_WORDS_PER_BATCH} từ mới`}
+                {adding ? t("review.addingWords") : t("review.addWords", { n: NEW_WORDS_PER_BATCH })}
               </button>
             </div>
           </div>
@@ -196,28 +204,28 @@ export default function ReviewPage() {
         {data && (
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--ds-text-muted)" }}>
             <span>
-              {data.dueCount > 0 ? `${data.dueCount} thẻ đến hạn ôn` : "Không còn thẻ đến hạn"}
-              {done > 0 && ` · đã ôn ${done} thẻ`}
+              {data.dueCount > 0 ? t("review.dueCount", { n: data.dueCount }) : t("review.noneDue")}
+              {done > 0 && t("review.doneCount", { n: done })}
             </span>
-            <span>{data.total} thẻ trong danh sách ôn</span>
+            <span>{t("review.total", { n: data.total })}</span>
           </div>
         )}
 
         <div className="ds-card" style={{ padding: 32, minHeight: 300, display: "flex", flexDirection: "column", gap: 16 }}>
-          {isLoading && <div style={{ fontSize: 14, color: "var(--ds-text-muted)" }}>Đang tải...</div>}
-          {isError && <div style={{ fontSize: 14, color: "var(--ds-danger)" }}>Không tải được danh sách ôn. Thử tải lại trang.</div>}
+          {isLoading && <div style={{ fontSize: 14, color: "var(--ds-text-muted)" }}>{t("common.loading")}</div>}
+          {isError && <div style={{ fontSize: 14, color: "var(--ds-danger)" }}>{t("review.err.load")}</div>}
 
           {data && !word && (
             <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 12, alignItems: "center", margin: "auto 0" }}>
-              <div style={{ font: "700 20px var(--font-display)" }}>{data.total === 0 ? "Chưa có thẻ nào cần ôn" : "Xong các thẻ đến hạn hôm nay"}</div>
+              <div style={{ font: "700 20px var(--font-display)" }}>{data.total === 0 ? t("review.empty.title") : t("review.allDone.title")}</div>
               <div style={{ fontSize: 14, color: "var(--ds-text-muted)", maxWidth: 460, lineHeight: 1.6 }}>
                 {data.total === 0
-                  ? "Thêm từ mới theo band ở trên. Từ bạn phát âm sai nhiều lần khi luyện nói cũng sẽ vào đây."
-                  : `Thẻ tiếp theo đến hạn ${data.upcoming[0] ? dueText(data.upcoming[0].dueAt) : "sau"}.`}
+                  ? t("review.empty.body")
+                  : t("review.allDone.body", { when: data.upcoming[0] ? dueText(t, locale, data.upcoming[0].dueAt) : t("review.dueLater") })}
               </div>
               <button className="ds-btn" onClick={() => router.push("/practice")}>
                 <i className="pi pi-microphone" />
-                <span>Luyện nói</span>
+                <span>{t("review.practice")}</span>
               </button>
             </div>
           )}
@@ -234,9 +242,11 @@ export default function ReviewPage() {
                     color: isVocab ? "var(--ds-primary)" : "var(--ds-warning)",
                   }}
                 >
-                  {isVocab ? `Từ mới · band ${current.vocab?.band.toFixed(1) ?? ""}` : `Phát âm · sai ${current.misses} lần`}
+                  {isVocab ? t("review.badge.vocab", { band: current.vocab?.band.toFixed(1) ?? "" }) : t("review.badge.pron", { n: current.misses })}
                 </span>
-                <span>{word.reps > 0 ? `Đã nhớ ${word.reps} lần liên tiếp` : word.lapses > 0 ? `Quên ${word.lapses} lần` : "Thẻ mới"}</span>
+                <span>
+                  {word.reps > 0 ? t("review.streak", { n: word.reps }) : word.lapses > 0 ? t("review.lapses", { n: word.lapses }) : t("review.newCard")}
+                </span>
               </div>
 
               <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
@@ -244,32 +254,34 @@ export default function ReviewPage() {
                 {current.vocab?.ipa && <div style={{ fontSize: 16, color: "var(--ds-text-muted)" }}>{current.vocab.ipa}</div>}
                 <button className="ds-btn ds-btn-outline ds-btn-sm" onClick={() => speakEnglish(current.word)}>
                   <i className="pi pi-volume-up" />
-                  <span>Nghe mẫu</span>
+                  <span>{t("common.listenSample")}</span>
                 </button>
               </div>
 
               {isVocab && current.vocab && !revealed && (
                 <button className="ds-btn ds-btn-lg" onClick={() => setRevealed(true)}>
-                  <span>Bạn nhớ nghĩa từ này chứ? Hiện nghĩa</span>
+                  <span>{t("review.reveal")}</span>
                 </button>
               )}
               {isVocab && current.vocab && revealed && (
                 <div style={{ background: "var(--ds-surface-subtle)", borderRadius: "var(--ds-radius-lg)", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 6 }}>
                   <div style={{ fontSize: 16 }}>
-                    <i style={{ color: "var(--ds-text-muted)" }}>{current.vocab.pos}</i> · <b>{current.vocab.meaningVi}</b>
+                    <i style={{ color: "var(--ds-text-muted)" }}>{current.vocab.pos}</i> · <b>{current.vocab.meaning}</b>
                   </div>
                   <div style={{ fontSize: 14.5, display: "flex", gap: 8, alignItems: "flex-start" }}>
                     <button
                       onClick={() => speakEnglish(current.vocab!.exampleEn)}
-                      title="Nghe câu ví dụ"
-                      aria-label="Nghe câu ví dụ"
+                      title={t("review.listenExample")}
+                      aria-label={t("review.listenExample")}
                       style={{ border: "none", background: "none", cursor: "pointer", color: "var(--ds-primary)", padding: 0 }}
                     >
                       <i className="pi pi-volume-up" />
                     </button>
                     <span>{current.vocab.exampleEn}</span>
                   </div>
-                  <div style={{ fontSize: 13.5, color: "var(--ds-text-muted)" }}>{current.vocab.exampleVi}</div>
+                  {current.vocab.exampleTranslation && (
+                    <div style={{ fontSize: 13.5, color: "var(--ds-text-muted)" }}>{current.vocab.exampleTranslation}</div>
+                  )}
                 </div>
               )}
 
@@ -281,7 +293,7 @@ export default function ReviewPage() {
                   style={{ alignSelf: "center", borderRadius: "var(--ds-radius-full)", padding: "0 24px" }}
                 >
                   <i className="pi pi-microphone" />
-                  <span>{isVocab ? "Đọc to để chấm phát âm" : `Nhấn rồi đọc "${current.word}"`}</span>
+                  <span>{isVocab ? t("review.sayToScore") : t("review.pressAndSay", { word: current.word })}</span>
                 </button>
               )}
               {phase === "recording" && (
@@ -291,30 +303,30 @@ export default function ReviewPage() {
                   style={{ alignSelf: "center", borderRadius: "var(--ds-radius-full)", padding: "0 28px", animation: "recpulse 1.6s infinite" }}
                 >
                   <i className="pi pi-stop-circle" />
-                  <span>Dừng ({MAX_WORD_SECONDS - recorder.secs}s)</span>
+                  <span>{t("review.stop", { n: MAX_WORD_SECONDS - recorder.secs })}</span>
                 </button>
               )}
               {phase === "recording" && recorder.quiet && (
-                <div style={{ textAlign: "center", fontSize: 13, color: "var(--ds-warning)" }}>Micro gần như không thu được tiếng. Nói to hơn.</div>
+                <div style={{ textAlign: "center", fontSize: 13, color: "var(--ds-warning)" }}>{t("review.quiet")}</div>
               )}
               {phase === "scoring" && (
                 <div style={{ textAlign: "center", fontSize: 14, color: "var(--ds-text-muted)" }}>
                   <i className="pi pi-spinner" style={{ animation: "spin 1s linear infinite", marginRight: 6 }} />
-                  Azure đang chấm...
+                  {t("review.scoring")}
                 </div>
               )}
               {phase === "error" && (
                 <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
                   <div style={{ fontSize: 13, color: "var(--ds-danger)" }}>{error}</div>
                   <button className="ds-btn ds-btn-outline" onClick={() => setPhase("ready")}>
-                    Thử lại
+                    {t("common.retry")}
                   </button>
                 </div>
               )}
               {phase === "result" && result && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
                   <div style={{ font: "700 26px var(--font-display)", color: scoreColor(result.score) }}>
-                    {Math.round(result.score)}/100{!isVocab && ` · ${result.passed ? "Đạt" : "Chưa đạt"}`}
+                    {Math.round(result.score)}/100{!isVocab && ` · ${result.passed ? t("review.passed") : t("review.notPassed")}`}
                   </div>
                   {result.phonemes.length > 0 && (
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
@@ -329,15 +341,15 @@ export default function ReviewPage() {
                       ))}
                     </div>
                   )}
-                  {!isVocab && <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>{nextReviewText(result.word)}</div>}
+                  {!isVocab && <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>{nextReviewText(t, result.word)}</div>}
                   <div style={{ display: "flex", gap: 10 }}>
                     <button className="ds-btn ds-btn-outline" onClick={() => setPhase("ready")}>
                       <i className="pi pi-refresh" />
-                      <span>Đọc lại</span>
+                      <span>{t("review.again")}</span>
                     </button>
                     {!isVocab && (
                       <button className="ds-btn" onClick={next}>
-                        <span>Thẻ tiếp theo</span>
+                        <span>{t("review.nextCard")}</span>
                         <i className="pi pi-arrow-right" />
                       </button>
                     )}
@@ -347,11 +359,11 @@ export default function ReviewPage() {
 
               {isVocab && revealed && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
-                  <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>Bạn nhớ từ này thế nào?</div>
+                  <div style={{ fontSize: 13, color: "var(--ds-text-muted)" }}>{t("review.howWell")}</div>
                   <div style={{ display: "flex", gap: 10 }}>
                     {RATINGS.map((r) => (
                       <button key={r.q} onClick={() => rate(r.q)} className="ds-btn ds-btn-outline" style={{ color: r.color, borderColor: r.color }}>
-                        {r.label}
+                        {t(r.label)}
                       </button>
                     ))}
                   </div>
@@ -363,7 +375,7 @@ export default function ReviewPage() {
                   onClick={remove}
                   style={{ alignSelf: "center", border: "none", background: "none", cursor: "pointer", fontSize: 12, color: "var(--ds-text-muted)" }}
                 >
-                  {isVocab ? "Tôi đã biết từ này, bỏ khỏi danh sách ôn" : "Tôi đã nói đúng từ này, bỏ khỏi danh sách ôn"}
+                  {isVocab ? t("review.removeVocab") : t("review.removePron")}
                 </button>
               )}
             </>
@@ -372,15 +384,15 @@ export default function ReviewPage() {
 
         {data && data.upcoming.length > 0 && (
           <div className="ds-card" style={{ padding: 22 }}>
-            <div style={{ font: "700 15px var(--font-display)", marginBottom: 8 }}>Sắp đến hạn</div>
+            <div style={{ font: "700 15px var(--font-display)", marginBottom: 8 }}>{t("review.upcoming")}</div>
             {data.upcoming.map((w) => (
               <div key={w.id} style={{ display: "flex", gap: 12, padding: "8px 0", borderBottom: "1px solid var(--ds-border-subtle)", fontSize: 14 }}>
                 <span style={{ flex: 1, fontWeight: 600 }}>
                   {w.word}
-                  {w.vocab && <span style={{ fontWeight: 400, color: "var(--ds-text-muted)" }}> · {w.vocab.meaningVi}</span>}
+                  {w.vocab && <span style={{ fontWeight: 400, color: "var(--ds-text-muted)" }}> · {w.vocab.meaning}</span>}
                 </span>
-                <span style={{ color: "var(--ds-text-muted)", fontSize: 12 }}>{w.kind === "vocab" ? "từ mới" : "phát âm"}</span>
-                <span style={{ color: "var(--ds-text-muted)", minWidth: 110, textAlign: "right" }}>{dueText(w.dueAt)}</span>
+                <span style={{ color: "var(--ds-text-muted)", fontSize: 12 }}>{w.kind === "vocab" ? t("review.kind.vocab") : t("review.kind.pron")}</span>
+                <span style={{ color: "var(--ds-text-muted)", minWidth: 110, textAlign: "right" }}>{dueText(t, locale, w.dueAt)}</span>
               </div>
             ))}
           </div>

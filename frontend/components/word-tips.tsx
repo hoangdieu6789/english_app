@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useI18n } from "@/lib/i18n";
 import { phonemeToIpa } from "@/lib/phonemes";
 import { phonemeTip } from "@/lib/pronunciation-tips";
 import { scoreWord, type PhonemeScore, type WordScore } from "@/lib/pronunciation-api";
@@ -44,6 +45,7 @@ function Sounds({ phonemes }: { phonemes: PhonemeScore[] }) {
 }
 
 function WordTip({ w }: { w: WordScore }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<"idle" | "recording" | "scoring">("idle");
   const [tryResult, setTryResult] = useState<{ score: number; phonemes: PhonemeScore[] } | null>(null);
@@ -70,7 +72,7 @@ function WordTip({ w }: { w: WordScore }) {
       setTryResult(r);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Chấm điểm thất bại.");
+      setError(err instanceof Error ? err.message : t("tips.scoringFailed"));
     } finally {
       setState("idle");
     }
@@ -83,7 +85,7 @@ function WordTip({ w }: { w: WordScore }) {
         const wav = recorder.stop();
         if (wav) score(wav);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Không thu được âm thanh.");
+        setError(err instanceof Error ? err.message : t("common.noAudio"));
         setState("idle");
       }
       return;
@@ -92,7 +94,7 @@ function WordTip({ w }: { w: WordScore }) {
       await recorder.start();
       setState("recording");
     } catch {
-      setError("Không truy cập được microphone.");
+      setError(t("tips.micDenied"));
     }
   }
 
@@ -106,9 +108,9 @@ function WordTip({ w }: { w: WordScore }) {
         <span style={{ font: "600 17px var(--font-display)", color: scoreColor(w.accuracyScore), minWidth: 110 }}>{w.word}</span>
         <span style={{ flex: 1, fontSize: 13, color: "var(--ds-text-muted)" }}>
           {w.errorType === "omission"
-            ? "bị bỏ qua"
+            ? t("tips.omitted")
             : weak.length > 0
-              ? `âm cần sửa: ${weak.map((p) => phonemeToIpa(p.phoneme)).join(" ")}`
+              ? t("tips.soundsToFix", { sounds: weak.map((p) => phonemeToIpa(p.phoneme)).join(" ") })
               : `${Math.round(w.accuracyScore)}/100`}
         </span>
         <i className={open ? "pi pi-chevron-up" : "pi pi-chevron-down"} style={{ fontSize: 12, color: "var(--ds-text-muted)" }} />
@@ -117,35 +119,35 @@ function WordTip({ w }: { w: WordScore }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "10px 0 4px" }}>
           {phonemes.length > 0 && (
             <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", fontSize: 13, color: "var(--ds-text-muted)" }}>
-              <span>Âm đúng (màu theo điểm của bạn):</span>
+              <span>{t("tips.correctSounds")}</span>
               <Sounds phonemes={phonemes} />
             </div>
           )}
           {weak.map((p, i) => (
             <div key={i} style={{ fontSize: 13.5, lineHeight: 1.6, color: "var(--ds-text-secondary)" }}>
-              <b style={{ color: scoreColor(p.score) }}>{phonemeToIpa(p.phoneme)}</b> ({Math.round(p.score)}/100): {phonemeTip(p.phoneme, p.last)}
+              <b style={{ color: scoreColor(p.score) }}>{phonemeToIpa(p.phoneme)}</b> ({Math.round(p.score)}/100): {phonemeTip(t, p.phoneme, p.last)}
             </div>
           ))}
           {weak.length === 0 && w.errorType === "omission" && (
-            <div style={{ fontSize: 13.5, color: "var(--ds-text-secondary)" }}>Azure không nghe thấy từ này. Hãy đọc rõ từng âm, đừng nuốt từ.</div>
+            <div style={{ fontSize: 13.5, color: "var(--ds-text-secondary)" }}>{t("tips.omittedHint")}</div>
           )}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             <button className="ds-btn ds-btn-outline ds-btn-sm" onClick={() => speakEnglish(w.word)}>
               <i className="pi pi-volume-up" />
-              <span>Nghe mẫu</span>
+              <span>{t("common.listenSample")}</span>
             </button>
             <button className="ds-btn ds-btn-outline ds-btn-sm" onClick={() => speakEnglish(w.word, 0.55)}>
               <i className="pi pi-volume-down" />
-              <span>Nghe chậm</span>
+              <span>{t("common.listenSlow")}</span>
             </button>
             <button className="ds-btn ds-btn-sm" onClick={toggleRecording} disabled={state === "scoring"}>
               <i className={state === "recording" ? "pi pi-stop-circle" : state === "scoring" ? "pi pi-spinner" : "pi pi-microphone"} />
-              <span>{state === "recording" ? `Dừng (${MAX_WORD_SECONDS - recorder.secs}s)` : state === "scoring" ? "Đang chấm..." : "Tập lại"}</span>
+              <span>{state === "recording" ? t("tips.stop", { secs: MAX_WORD_SECONDS - recorder.secs }) : state === "scoring" ? t("tips.scoring") : t("tips.retry")}</span>
             </button>
             {tryResult && (
               <span style={{ display: "inline-flex", gap: 8, alignItems: "center", fontSize: 13 }}>
                 <b style={{ color: scoreColor(tryResult.score) }}>{Math.round(tryResult.score)}/100</b>
-                {tryResult.score >= 80 ? "Tốt rồi!" : tryResult.score > Math.round(w.accuracyScore) ? "Đã tốt hơn, thử thêm lần nữa." : "Thử lại, chú ý các âm ở trên."}
+                {tryResult.score >= 80 ? t("tips.good") : tryResult.score > Math.round(w.accuracyScore) ? t("tips.better") : t("tips.tryAgain")}
                 {tryResult.phonemes.length > 0 && <Sounds phonemes={tryResult.phonemes} />}
               </span>
             )}
@@ -159,13 +161,14 @@ function WordTip({ w }: { w: WordScore }) {
 
 /** Pronunciation tips: the words said wrongly, which sound was off, how to say it, and a retry. */
 export function WordTips({ words }: { words: WordScore[] }) {
+  const { t } = useI18n();
   const list = weakWords(words);
   if (list.length === 0) return null;
   return (
     <div className="ds-card" style={{ padding: 20 }}>
-      <div style={{ font: "700 16px var(--font-display)" }}>Gợi ý phát âm</div>
+      <div style={{ font: "700 16px var(--font-display)" }}>{t("tips.title")}</div>
       <div style={{ fontSize: 13, color: "var(--ds-text-muted)", margin: "4px 0 6px" }}>
-        {list.length} từ cần sửa, từ yếu nhất trước. Bấm vào từ để xem âm sai, cách đặt lưỡi/môi và tập lại.
+        {t("tips.intro", { count: list.length })}
       </div>
       {list.map((w, i) => (
         <WordTip key={`${w.word}-${i}`} w={w} />
