@@ -41,6 +41,21 @@ WHERE a.user_id = sqlc.arg(user_id)
 GROUP BY 1
 ORDER BY 1;
 
+-- name: ProgressDaily :many
+-- Local days since sqlc.arg(since) (a local date), for learners who started recently.
+SELECT
+  (a.created_at AT TIME ZONE sqlc.arg(tz)::text)::date AS day,
+  count(*)::int AS attempts,
+  avg(a.overall_score)::real AS accuracy,
+  avg(a.fluency_score)::real AS fluency,
+  COALESCE(avg(a.rubric_score) FILTER (
+    WHERE a.task_type <> 'shadowing' AND a.rubric_version LIKE '2.%' AND a.rubric_score > 0), 0)::real AS band
+FROM pronunciation_attempts a
+WHERE a.user_id = sqlc.arg(user_id)
+  AND (a.created_at AT TIME ZONE sqlc.arg(tz)::text)::date >= sqlc.arg(since)::date
+GROUP BY 1
+ORDER BY 1;
+
 -- name: ProgressHardPhonemes :many
 -- Lowest average Azure phoneme scores over the last 90 days (phonemes heard at least 3 times).
 SELECT (p->>'phoneme')::text AS phoneme, avg((p->>'score')::real)::real AS score, count(*)::int AS samples

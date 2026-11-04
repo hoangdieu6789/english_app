@@ -6,12 +6,11 @@ import { WeeklyLineChart } from "@/components/charts/line-chart";
 import { hasMessage, useI18n, type MessageKey } from "@/lib/i18n";
 import { phonemeToIpa } from "@/lib/phonemes";
 import { progressQuery, type ProgressSummary } from "@/lib/progress-api";
+import { chartRange, localToday } from "@/lib/progress-range";
 import { scoreColor } from "@/lib/score-color";
 import { IconTile, type IconName, type IconTone } from "@/components/icon";
 
 // All numbers come from the learner's own attempts (GET /api/progress/summary).
-
-const WEEKS_SHOWN = 6;
 
 const CRITERIA: { id: string; label: MessageKey }[] = [
   { id: "fluency_coherence", label: "progress.criteria.fluency_coherence" },
@@ -28,18 +27,6 @@ function bandColor(band: number): string {
 
 function formatBand(b: number): string {
   return (Math.round(b * 2) / 2).toFixed(1);
-}
-
-// Monday of each of the last WEEKS_SHOWN weeks (local dates), oldest first.
-function lastWeeks(): string[] {
-  const now = new Date();
-  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
-  const out: string[] = [];
-  for (let i = WEEKS_SHOWN - 1; i >= 0; i--) {
-    const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() - 7 * i);
-    out.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
-  }
-  return out;
 }
 
 function Card({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
@@ -138,15 +125,15 @@ export default function ProgressPage() {
     );
   }
 
-  const weeks = lastWeeks();
-  const byWeek = new Map(p.weeks.map((w) => [w.start, w]));
-  const accuracy = weeks.map((w) => byWeek.get(w)?.accuracy ?? null);
-  const fluency = weeks.map((w) => byWeek.get(w)?.fluency ?? null);
+  // Day by day for the first 14 days, then week by week (at most 10 weeks).
+  const range = chartRange(localToday(), p.firstDay, p.days, p.weeks);
   // Day and month in the UI locale (e.g. 03/11 in Vietnamese, 11/03 in US English).
-  const weekLabels = weeks.map((w) => {
-    const [y, m, d] = w.split("-").map(Number);
+  const chartLabels = (range?.keys ?? []).map((k) => {
+    const [y, m, d] = k.split("-").map(Number);
     return new Date(y, m - 1, d).toLocaleDateString(locale, { day: "2-digit", month: "2-digit" });
   });
+  const unit = range?.unit ?? "day";
+  const points = range ? range.accuracy.filter((v) => v != null).length : 0;
   const taskLabel = (type: string) => {
     const key = `progress.task.${type}`;
     return hasMessage(key) ? t(key) : type;
@@ -161,11 +148,11 @@ export default function ProgressPage() {
         <StatCards p={p} />
 
         <div className="ds-card" style={{ padding: 24 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-            <div>
-              <div style={{ font: "700 var(--text-base)/1.3 var(--font-display)" }}>{t("progress.weekly.title")}</div>
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "8px 16px", marginBottom: 6 }}>
+            <div style={{ flex: "1 1 260px" }}>
+              <div style={{ font: "700 var(--text-base)/1.3 var(--font-display)" }}>{t(unit === "day" ? "progress.chart.titleDay" : "progress.chart.titleWeek")}</div>
               <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>
-                {t("progress.weekly.subtitle", { n: WEEKS_SHOWN })}
+                {range ? t(unit === "day" ? "progress.chart.subtitleDay" : "progress.chart.subtitleWeek", { n: range.keys.length }) : t("progress.chart.subtitleNone")}
               </div>
             </div>
             <div style={{ display: "flex", gap: 16, fontSize: "var(--text-sm)" }}>
@@ -179,15 +166,15 @@ export default function ProgressPage() {
               </span>
             </div>
           </div>
-          {p.weeks.length ? (
+          {range && points > 0 ? (
             <>
-              <WeeklyLineChart weeks={weekLabels} accuracy={accuracy} fluency={fluency} />
-              {accuracy.filter((v) => v != null).length < 2 && (
-                <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{t("progress.weekly.needTwo")}</p>
+              <WeeklyLineChart weeks={chartLabels} accuracy={range.accuracy} fluency={range.fluency} />
+              {points < 2 && (
+                <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{t("progress.chart.needTwo")}</p>
               )}
             </>
           ) : (
-            <Empty>{t("progress.weekly.empty", { n: WEEKS_SHOWN })}</Empty>
+            <Empty>{t("progress.chart.empty")}</Empty>
           )}
         </div>
 

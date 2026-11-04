@@ -48,10 +48,11 @@ type fakeProgressRepo struct {
 	tz, gotTZ string
 	since     time.Time
 	days      []time.Time
+	daysSince time.Time
 }
 
-func (f *fakeProgressRepo) Summary(_ context.Context, _ uuid.UUID, tz string, since time.Time, _ int) (*domain.ProgressSummary, error) {
-	f.gotTZ, f.since = tz, since
+func (f *fakeProgressRepo) Summary(_ context.Context, _ uuid.UUID, tz string, since, daysSince time.Time, _ int) (*domain.ProgressSummary, error) {
+	f.gotTZ, f.since, f.daysSince = tz, since, daysSince
 	return &domain.ProgressSummary{Attempts: 3}, nil
 }
 
@@ -59,7 +60,7 @@ func (f *fakeProgressRepo) ActiveDayList(context.Context, uuid.UUID, string) ([]
 	return f.days, nil
 }
 
-func TestProgressSummaryUsesLearnerDayAndSixWeeks(t *testing.T) {
+func TestProgressSummaryUsesLearnerDayAndChartRange(t *testing.T) {
 	loc, err := time.LoadLocation("Asia/Ho_Chi_Minh")
 	if err != nil {
 		t.Fatal(err)
@@ -79,8 +80,14 @@ func TestProgressSummaryUsesLearnerDayAndSixWeeks(t *testing.T) {
 	if repo.gotTZ != "Asia/Ho_Chi_Minh" {
 		t.Fatalf("tz = %q", repo.gotTZ)
 	}
-	// Week of Mon 2026-11-02 plus 5 earlier weeks.
-	if !sameDate(repo.since, day("2026-09-28")) {
-		t.Fatalf("since = %s, want 2026-09-28", repo.since.Format("2006-01-02"))
+	// Week of Mon 2026-11-02 plus 9 earlier weeks; days: today plus 13 earlier days.
+	if !sameDate(repo.since, day("2026-08-31")) {
+		t.Fatalf("weeks since = %s, want 2026-08-31", repo.since.Format("2006-01-02"))
+	}
+	if !sameDate(repo.daysSince, day("2026-10-22")) {
+		t.Fatalf("days since = %s, want 2026-10-22", repo.daysSince.Format("2006-01-02"))
+	}
+	if !sameDate(sum.FirstDay, day("2026-11-03")) {
+		t.Fatalf("first day = %s, want 2026-11-03", sum.FirstDay.Format("2006-01-02"))
 	}
 }

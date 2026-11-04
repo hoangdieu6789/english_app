@@ -130,6 +130,62 @@ func (q *Queries) ProgressCriteria(ctx context.Context, userID uuid.UUID) ([]Pro
 	return items, nil
 }
 
+const progressDaily = `-- name: ProgressDaily :many
+SELECT
+  (a.created_at AT TIME ZONE $1::text)::date AS day,
+  count(*)::int AS attempts,
+  avg(a.overall_score)::real AS accuracy,
+  avg(a.fluency_score)::real AS fluency,
+  COALESCE(avg(a.rubric_score) FILTER (
+    WHERE a.task_type <> 'shadowing' AND a.rubric_version LIKE '2.%' AND a.rubric_score > 0), 0)::real AS band
+FROM pronunciation_attempts a
+WHERE a.user_id = $2
+  AND (a.created_at AT TIME ZONE $1::text)::date >= $3::date
+GROUP BY 1
+ORDER BY 1
+`
+
+type ProgressDailyParams struct {
+	Tz     string      `json:"tz"`
+	UserID uuid.UUID   `json:"user_id"`
+	Since  pgtype.Date `json:"since"`
+}
+
+type ProgressDailyRow struct {
+	Day      pgtype.Date `json:"day"`
+	Attempts int32       `json:"attempts"`
+	Accuracy float32     `json:"accuracy"`
+	Fluency  float32     `json:"fluency"`
+	Band     float32     `json:"band"`
+}
+
+// Local days since sqlc.arg(since) (a local date), for learners who started recently.
+func (q *Queries) ProgressDaily(ctx context.Context, arg ProgressDailyParams) ([]ProgressDailyRow, error) {
+	rows, err := q.db.Query(ctx, progressDaily, arg.Tz, arg.UserID, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ProgressDailyRow
+	for rows.Next() {
+		var i ProgressDailyRow
+		if err := rows.Scan(
+			&i.Day,
+			&i.Attempts,
+			&i.Accuracy,
+			&i.Fluency,
+			&i.Band,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const progressGraders = `-- name: ProgressGraders :many
 SELECT COALESCE(a.grader_provider, '')::text AS provider, COALESCE(a.grader_model, '')::text AS model, count(*)::int AS attempts
 FROM pronunciation_attempts a

@@ -49,12 +49,20 @@ func (h *ProgressHandler) Summary(c echo.Context) error {
 }
 
 func toProgressJSON(s *domain.ProgressSummary, tz string) map[string]any {
-	weeks := make([]map[string]any, 0, len(s.Weeks))
-	for _, w := range s.Weeks {
-		weeks = append(weeks, map[string]any{
-			"start": w.Start.Format("2006-01-02"), "attempts": w.Attempts,
-			"accuracy": w.Accuracy, "fluency": w.Fluency, "band": w.Band,
-		})
+	series := func(xs []domain.WeekStats) []map[string]any {
+		out := make([]map[string]any, 0, len(xs))
+		for _, w := range xs {
+			out = append(out, map[string]any{
+				"start": w.Start.Format("2006-01-02"), "attempts": w.Attempts,
+				"accuracy": w.Accuracy, "fluency": w.Fluency, "band": w.Band,
+			})
+		}
+		return out
+	}
+	weeks := series(s.Weeks)
+	firstDay := ""
+	if !s.FirstDay.IsZero() {
+		firstDay = s.FirstDay.Format("2006-01-02")
 	}
 	phonemes := make([]map[string]any, 0, len(s.HardPhonemes))
 	for _, p := range s.HardPhonemes {
@@ -89,6 +97,8 @@ func toProgressJSON(s *domain.ProgressSummary, tz string) map[string]any {
 			"band": s.Last30Days.Band, "banded": s.Last30Days.Banded,
 		},
 		"weeks":        weeks,
+		"days":         series(s.Days),
+		"firstDay":     firstDay,
 		"hardPhonemes": phonemes,
 		"criteria":     criteria,
 		"byTask":       tasks,

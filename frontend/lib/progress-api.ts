@@ -12,7 +12,9 @@ export type ProgressSummary = {
   attemptsToday: number;
   speakingSecondsToday: number;
   last30Days: { attempts: number; accuracy: number; fluency: number; band: number; banded: number };
-  weeks: { start: string; attempts: number; accuracy: number; fluency: number; band: number }[];
+  weeks: { start: string; attempts: number; accuracy: number; fluency: number; band: number }[]; // last 10 weeks with practice
+  days: { start: string; attempts: number; accuracy: number; fluency: number; band: number }[]; // last 14 days with practice
+  firstDay: string; // first practice day (local), "" when none
   hardPhonemes: { phoneme: string; score: number; samples: number }[];
   criteria: { criterion: string; band: number; samples: number }[];
   byTask: { taskType: string; attempts: number; avgBand: number; bestBand: number }[];
