@@ -315,6 +315,7 @@ func TestPracticeSentencesAreBatched(t *testing.T) {
 func TestEmptyQueueWaitsForRunningRefill(t *testing.T) {
 	gen, repo := &fakeSentenceGen{size: 4, delay: 100 * time.Millisecond}, &memSentenceRepo{}
 	svc := NewPracticeSentenceService(gen, repo, 10)
+	svc.starters = nil // this test is about LLM batches
 	uid := uuid.New()
 	ctx := context.Background()
 	next := func() {
@@ -398,5 +399,38 @@ func TestAudioLevel(t *testing.T) {
 	}
 	if _, _, ok := AudioLevel([]byte("RIFF")); ok {
 		t.Fatal("bad WAV must not be ok")
+	}
+}
+
+func TestNewLearnerGetsStarterSentencesWithoutLLM(t *testing.T) {
+	gen, repo := &fakeSentenceGen{delay: time.Second}, &memSentenceRepo{}
+	svc := NewPracticeSentenceService(gen, repo, 10)
+	if len(svc.starters) < sentenceRefillBelow+1 {
+		t.Fatalf("starters = %d", len(svc.starters))
+	}
+	for _, st := range svc.starters {
+		if countWords(st.Text) < 10 || st.Phonetic == "" || st.Gloss == "" {
+			t.Errorf("starter %+v", st)
+		}
+	}
+	start := time.Now()
+	s, err := svc.NextSentence(context.Background(), uuid.New())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if took := time.Since(start); took > 200*time.Millisecond || s.Text != svc.starters[0].Text {
+		t.Fatalf("first sentence %q took %s", s.Text, took)
+	}
+	svc.wg.Wait()
+	if gen.calls != 0 {
+		t.Errorf("LLM calls = %d, want 0 while starters remain", gen.calls)
+	}
+	// Once the learner has had sentences, an empty queue uses the LLM again.
+	repo.queue = nil
+	if _, err := svc.NextSentence(context.Background(), uuid.New()); err != nil {
+		t.Fatal(err)
+	}
+	if gen.calls != 1 {
+		t.Errorf("LLM calls = %d, want 1 after the starters", gen.calls)
 	}
 }

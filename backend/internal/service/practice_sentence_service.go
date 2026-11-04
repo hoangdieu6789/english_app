@@ -2,8 +2,11 @@ package service
 
 import (
 	"context"
+	_ "embed"
+	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
@@ -22,10 +25,32 @@ const (
 	sentenceRefillTTL   = 2 * time.Minute
 )
 
+// A new learner's first sentences come from this fixed list, so the first Shadowing sentence
+// shows at once instead of after a ~17 s LLM batch. The LLM refills the queue in the
+// background when it runs low.
+//
+//go:embed practice_sentence_starters.json
+var starterSentencesJSON []byte
+
+func loadStarterSentences(minWords int) []GeneratedSentence {
+	var all []GeneratedSentence
+	if err := json.Unmarshal(starterSentencesJSON, &all); err != nil {
+		panic(fmt.Sprintf("practice_sentence_starters.json: %v", err))
+	}
+	out := all[:0]
+	for _, s := range all {
+		if countWords(s.Text) >= minWords {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
 type PracticeSentenceService struct {
 	generator SentenceGenerator
 	repo      repository.PracticeSentenceRepository
-	minWords  int // rubric Pronunciation needs this many words (rubric.yaml min_words)
+	minWords  int                 // rubric Pronunciation needs this many words (rubric.yaml min_words)
+	starters  []GeneratedSentence // first queue of a new learner (no LLM call)
 
 	fillLocks sync.Map // userID -> *sync.Mutex: one LLM batch per user at a time
 	refilling sync.Map // userID -> struct{}: at most one background refill goroutine per user
@@ -33,7 +58,7 @@ type PracticeSentenceService struct {
 }
 
 func NewPracticeSentenceService(generator SentenceGenerator, repo repository.PracticeSentenceRepository, minWords int) *PracticeSentenceService {
-	return &PracticeSentenceService{generator: generator, repo: repo, minWords: minWords}
+	return &PracticeSentenceService{generator: generator, repo: repo, minWords: minWords, starters: loadStarterSentences(minWords)}
 }
 
 // NextSentence returns the next queued sentence. Only an empty queue (first use) waits for
@@ -98,6 +123,15 @@ func (s *PracticeSentenceService) fillBelow(ctx context.Context, userID uuid.UUI
 	if err != nil {
 		return fmt.Errorf("list recent sentences: %w", err)
 	}
+	if len(recent) == 0 && len(s.starters) > 0 {
+		// A new learner: the fixed starter list, no LLM wait.
+		for _, g := range s.starters {
+			if _, err := s.repo.Create(ctx, userID, g.Text, g.Phonetic, g.Gloss); err != nil {
+				return fmt.Errorf("save starter sentence: %w", err)
+			}
+		}
+		return nil
+	}
 	batch, err := s.generator.GenerateBatch(ctx, recent, sentenceBatchSize, s.minWords)
 	if err != nil {
 		return fmt.Errorf("generate sentences: %w", err)
@@ -109,3 +143,5 @@ func (s *PracticeSentenceService) fillBelow(ctx context.Context, userID uuid.UUI
 	}
 	return nil
 }
+
+func countWords(s string) int { return len(strings.Fields(s)) }
