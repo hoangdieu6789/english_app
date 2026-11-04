@@ -25,6 +25,7 @@ export const progress = {
   "progress.goals.title": "Mục tiêu band",
   "progress.weekly.title": "Chính xác & trôi chảy theo tuần",
   "progress.weekly.subtitle": "Điểm Azure trung bình (0–100), {n} tuần gần nhất, tuần bắt đầu thứ Hai",
+  "progress.weekly.needTwo": "Mới có 1 tuần luyện tập. Từ tuần sau sẽ có đường nối để thấy bạn tiến bộ thế nào.",
   "progress.weekly.empty": "Chưa có bài luyện nào trong {n} tuần gần đây.",
   "progress.criteria.title": "Band IELTS theo tiêu chí",
   "progress.criteria.subtitle": "Trung bình 90 ngày, chỉ bài chấm theo rubric v2 (0–9)",

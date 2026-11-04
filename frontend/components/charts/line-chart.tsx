@@ -12,11 +12,11 @@ export function WeeklyLineChart({
   const W = 1040;
   const H = 260;
   const pl = 44;
-  const pr = 20;
-  const pt = 24;
+  const pr = 56;
+  const pt = 34;
   const pb = 40;
   const values = [...accuracy, ...fluency].filter((v): v is number => v != null);
-  const min = values.length ? Math.max(0, Math.floor((Math.min(...values) - 5) / 10) * 10) : 0;
+  const min = values.length ? Math.max(0, Math.min(60, Math.floor((Math.min(...values) - 5) / 10) * 10)) : 0;
   const max = 100;
   const x = (i: number) => pl + (W - pl - pr) * (weeks.length > 1 ? i / (weeks.length - 1) : 0.5);
   const y = (v: number) => pt + (H - pt - pb) * (1 - (v - min) / (max - min));
@@ -37,7 +37,19 @@ export function WeeklyLineChart({
   const gridLines: number[] = [];
   for (let v = min; v <= max; v += step) gridLines.push(v);
   const dots = (arr: (number | null)[], color: string) =>
-    arr.map((v, i) => (v == null ? null : <circle key={i} cx={x(i)} cy={y(v)} r={4} fill="var(--ds-surface)" stroke={color} strokeWidth={2.5} />));
+    arr.map((v, i) => (v == null ? null : <circle key={i} cx={x(i)} cy={y(v)} r={6} fill="var(--ds-surface)" stroke={color} strokeWidth={3} />));
+  // The value next to every point; the higher series is labelled above, the lower one below.
+  const labels = (arr: (number | null)[], other: (number | null)[], color: string) =>
+    arr.map((v, i) => {
+      if (v == null) return null;
+      const o = other[i];
+      const above = o == null || v >= o;
+      return (
+        <text key={i} x={x(i)} y={y(v) + (above ? -14 : 26)} textAnchor="middle" fontSize={16} fontWeight={800} fill={color}>
+          {Math.round(v)}
+        </text>
+      );
+    });
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block", marginTop: 8 }}>
@@ -53,6 +65,8 @@ export function WeeklyLineChart({
       <path d={path(fluency)} fill="none" stroke="var(--ds-info)" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
       {dots(accuracy, "var(--ds-primary)")}
       {dots(fluency, "var(--ds-info)")}
+      {labels(accuracy, fluency, "var(--ds-primary)")}
+      {labels(fluency, accuracy, "var(--ds-info)")}
       {weeks.map((w, i) => (
         <text key={w} x={x(i)} y={H - 14} textAnchor="middle" fontSize={14} fill="var(--ds-text-muted)">
           {w}

@@ -23,27 +23,16 @@ function formatBand(band: number) {
   return Number.isInteger(band) ? `${band}.0` : band.toFixed(1);
 }
 
-// IELTS criteria as Hogwarts houses: a colored bar and a small house label; the criterion
-// name stays the main label (docs/tickets/UI-001).
-const HOUSES: Record<string, { house: string; color: string }> = {
-  fluency_coherence: { house: "Gryffindor", color: "var(--ds-house-fc)" },
-  lexical_resource: { house: "Ravenclaw", color: "var(--ds-house-lr)" },
-  grammatical_range_accuracy: { house: "Slytherin", color: "var(--ds-house-gra)" },
-  pronunciation: { house: "Hufflepuff", color: "var(--ds-house-pron)" },
+// One color per IELTS criterion (bar only); the criterion name is the label.
+const CRITERION_COLORS: Record<string, string> = {
+  fluency_coherence: "var(--ds-crit-fc)",
+  lexical_resource: "var(--ds-crit-lr)",
+  grammatical_range_accuracy: "var(--ds-crit-gra)",
+  pronunciation: "var(--ds-crit-pron)",
 };
 
-function CriterionLabel({ id, name }: { id: string; name: string }) {
-  const h = HOUSES[id];
-  return (
-    <span style={{ width: 190, flex: "none", display: "flex", flexDirection: "column", lineHeight: 1.25 }}>
-      {h && (
-        <span className="ds-eyebrow" style={{ color: h.color }}>
-          {h.house}
-        </span>
-      )}
-      <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ds-text)" }}>{name}</span>
-    </span>
-  );
+function CriterionLabel({ name }: { name: string }) {
+  return <span style={{ width: 190, flex: "none", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ds-text)", lineHeight: 1.3 }}>{name}</span>;
 }
 
 function Bar({ pct, color }: { pct: number; color: string }) {
@@ -154,7 +143,7 @@ export function RubricPanel({
           {rows.map((r) =>
             r.band == null ? (
               <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <CriterionLabel id={r.id} name={criterion(r.id)} />
+                <CriterionLabel name={criterion(r.id)} />
                 <div style={{ flex: 1, height: 8, borderRadius: 99, background: "var(--ds-surface-muted)", overflow: "hidden" }}>
                   <div style={{ width: "35%", height: "100%", background: "var(--ds-border-strong)", animation: "recpulse 1.6s infinite" }} />
                 </div>
@@ -164,8 +153,8 @@ export function RubricPanel({
               </div>
             ) : (
               <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <CriterionLabel id={r.id} name={criterion(r.id)} />
-                <Bar pct={(r.band / 9) * 100} color={HOUSES[r.id]?.color ?? bandColor(r.band)} />
+                <CriterionLabel name={criterion(r.id)} />
+                <Bar pct={(r.band / 9) * 100} color={CRITERION_COLORS[r.id] ?? bandColor(r.band)} />
                 <span style={{ fontSize: "var(--text-sm)", fontWeight: 800, width: 44, textAlign: "right", color: "var(--ds-text)" }}>{r.band}/9</span>
               </div>
             ),

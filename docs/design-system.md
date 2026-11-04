@@ -33,9 +33,8 @@ Checks: `npm run check-ui` (contrast in both themes, no raw colors, no px font s
 | `--ds-success` / `warning` / `danger` | `#14710A` / `#9A4510` / `#B42318` | `#50FA7B` / `#FFB86C` / `#FF7A7A` | scores (always with a number) |
 | `--ds-hero-bg` | purple night sky | darker purple | dashboard hero, sign-in panel |
 
-IELTS criteria are Hogwarts houses (bar color + small eyebrow label; the criterion name stays the
-label): Fluency = Gryffindor `--ds-house-fc`, Vocabulary = Ravenclaw `--ds-house-lr`,
-Grammar = Slytherin `--ds-house-gra`, Pronunciation = Hufflepuff `--ds-house-pron`.
+Each IELTS criterion has its own bar color (`--ds-crit-fc`, `--ds-crit-lr`, `--ds-crit-gra`,
+`--ds-crit-pron`); the label is the criterion name only (no Hogwarts house names).
 
 ### Using purple
 

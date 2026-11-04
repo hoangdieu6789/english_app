@@ -180,7 +180,12 @@ export default function ProgressPage() {
             </div>
           </div>
           {p.weeks.length ? (
-            <WeeklyLineChart weeks={weekLabels} accuracy={accuracy} fluency={fluency} />
+            <>
+              <WeeklyLineChart weeks={weekLabels} accuracy={accuracy} fluency={fluency} />
+              {accuracy.filter((v) => v != null).length < 2 && (
+                <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{t("progress.weekly.needTwo")}</p>
+              )}
+            </>
           ) : (
             <Empty>{t("progress.weekly.empty", { n: WEEKS_SHOWN })}</Empty>
           )}

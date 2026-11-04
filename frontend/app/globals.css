@@ -80,10 +80,10 @@
   --ds-danger-border: #f2b8ae;
 
   /* IELTS criteria as Hogwarts houses (bars, eyebrow labels) */
-  --ds-house-fc: #a4161a; /* Gryffindor: Fluency & Coherence */
-  --ds-house-lr: #1f4e9c; /* Ravenclaw: Lexical Resource */
-  --ds-house-gra: #1a6b3c; /* Slytherin: Grammatical Range & Accuracy */
-  --ds-house-pron: #7d5f00; /* Hufflepuff: Pronunciation */
+  --ds-crit-fc: #a4161a; /* Fluency & Coherence */
+  --ds-crit-lr: #1f4e9c; /* Lexical Resource */
+  --ds-crit-gra: #1a6b3c; /* Grammatical Range & Accuracy */
+  --ds-crit-pron: #7d5f00; /* Pronunciation */
 
   --ds-focus: #846e15;
   --ds-focus-ring: 0 0 0 3px #f2c94c;
@@ -173,10 +173,10 @@
   --ds-danger-bg: #40232a;
   --ds-danger-border: #7a3a44;
 
-  --ds-house-fc: #ff7a7a;
-  --ds-house-lr: #8bb8ff;
-  --ds-house-gra: #50fa7b;
-  --ds-house-pron: #f1fa8c;
+  --ds-crit-fc: #ff7a7a;
+  --ds-crit-lr: #8bb8ff;
+  --ds-crit-gra: #50fa7b;
+  --ds-crit-pron: #f1fa8c;
 
   --ds-focus: #f1fa8c;
   --ds-focus-ring: 0 0 0 3px #f1fa8c;

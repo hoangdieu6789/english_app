@@ -26,6 +26,7 @@ export const progress: Record<keyof typeof source, string> = {
   "progress.goals.title": "Band goal",
   "progress.weekly.title": "Accuracy & fluency by week",
   "progress.weekly.subtitle": "Average Azure score (0–100), last {n} weeks, weeks start on Monday",
+  "progress.weekly.needTwo": "Only one week of practice so far. From next week a line shows how you are improving.",
   "progress.weekly.empty": "No practice in the last {n} weeks.",
   "progress.criteria.title": "IELTS band by criterion",
   "progress.criteria.subtitle": "90-day average, rubric v2 grading only (0–9)",

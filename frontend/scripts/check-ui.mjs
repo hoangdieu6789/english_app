@@ -35,7 +35,7 @@ function ratio(a, b) {
 
 // [text, background, minimum]: every text color on every surface it is used on.
 const SURFACES = ["--ds-surface", "--ds-surface-subtle", "--ds-surface-muted"];
-const TEXTS = ["--ds-text", "--ds-text-secondary", "--ds-text-muted", "--ds-primary", "--ds-success", "--ds-warning", "--ds-danger", "--ds-info", "--ds-bolt", "--ds-house-fc", "--ds-house-lr", "--ds-house-gra", "--ds-house-pron"];
+const TEXTS = ["--ds-text", "--ds-text-secondary", "--ds-text-muted", "--ds-primary", "--ds-success", "--ds-warning", "--ds-danger", "--ds-info", "--ds-bolt", "--ds-crit-fc", "--ds-crit-lr", "--ds-crit-gra", "--ds-crit-pron"];
 const PAIRS = [];
 for (const t of TEXTS) for (const s of SURFACES) PAIRS.push([t, s, 4.5]);
 PAIRS.push(
