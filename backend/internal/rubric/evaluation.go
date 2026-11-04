@@ -186,12 +186,9 @@ func (c *Config) Assemble(taskType string, llm *Evaluation, pron *PronunciationR
 
 // pronunciationSummary is the learner-facing summary when no LLM result is available.
 func (c *Config) pronunciationSummary(pron *PronunciationResult) string {
-	vi := c.Feedback.Language != "en"
+	m := summaryText(c.Feedback.Language)
 	if pron == nil || !pron.Assessed {
-		if vi {
-			return "Chưa đủ dữ liệu để chấm. Hãy nói trọn câu, rõ ràng, rồi thử lại."
-		}
-		return "Not enough data to score. Speak in full sentences, clearly, and try again."
+		return m["no_data"]
 	}
 	var weakest *ItemResult
 	for i := range pron.Items {
@@ -201,13 +198,9 @@ func (c *Config) pronunciationSummary(pron *PronunciationResult) string {
 		}
 	}
 	var b strings.Builder
-	if vi {
-		fmt.Fprintf(&b, "Pronunciation: band %d (đo được %s đặc điểm).", pron.Band, pron.Coverage)
-	} else {
-		fmt.Fprintf(&b, "Pronunciation: band %d (%s features measured).", pron.Band, pron.Coverage)
-	}
+	fmt.Fprintf(&b, m["band"], pron.Band, pron.Coverage)
 	if weakest != nil && weakest.Band < 9 {
-		if tip := pronunciationTip(weakest.Code, vi); tip != "" {
+		if tip := m[weakest.Code]; tip != "" {
 			b.WriteString(" ")
 			b.WriteString(tip)
 		}
@@ -215,25 +208,32 @@ func (c *Config) pronunciationSummary(pron *PronunciationResult) string {
 	return b.String()
 }
 
-func pronunciationTip(code string, vi bool) string {
-	tips := map[string][2]string{
-		"P-01": {"Luyện lại các từ bị phát âm sai, chú ý âm cuối (-s, -ed, -t, -k) và nguyên âm dài/ngắn.",
-			"Practise the mispronounced words, especially final sounds (-s, -ed, -t, -k) and long/short vowels."},
-		"P-02": {"Ngắt hơi ở ranh giới cụm từ và ở dấu câu, tránh ngắt giữa một cụm.",
-			"Pause at phrase boundaries and at punctuation, not inside a phrase."},
-		"P-03": {"Nhấn rõ từ chính (danh từ, động từ, tính từ) và đọc nhẹ các từ phụ như a, the, to, of để có nhịp tự nhiên.",
-			"Stress the content words and keep small words like a, the, to, of weak to get a natural rhythm."},
-		"P-04": {"Thay đổi cao độ để làm nổi bật từ quan trọng; hạ giọng cuối câu kể, lên giọng cuối câu hỏi Yes/No.",
-			"Vary your pitch to highlight key words; fall at the end of statements, rise at the end of yes-no questions."},
-		"P-06": {"Nói chậm lại một chút và phát âm rõ từng từ để người nghe hiểu dễ hơn.",
-			"Slow down a little and articulate each word so you are easier to understand."},
+// summaryMessages: the code-written summary per language (keys: no_data, band, and a tip
+// per Pronunciation feature). A language without an entry gets English.
+var summaryMessages = map[string]map[string]string{
+	"vi": {
+		"no_data": "Chưa đủ dữ liệu để chấm. Hãy nói trọn câu, rõ ràng, rồi thử lại.",
+		"band":    "Pronunciation: band %d (đo được %s đặc điểm).",
+		"P-01":    "Luyện lại các từ bị phát âm sai, chú ý âm cuối (-s, -ed, -t, -k) và nguyên âm dài/ngắn.",
+		"P-02":    "Ngắt hơi ở ranh giới cụm từ và ở dấu câu, tránh ngắt giữa một cụm.",
+		"P-03":    "Nhấn rõ từ chính (danh từ, động từ, tính từ) và đọc nhẹ các từ phụ như a, the, to, of để có nhịp tự nhiên.",
+		"P-04":    "Thay đổi cao độ để làm nổi bật từ quan trọng; hạ giọng cuối câu kể, lên giọng cuối câu hỏi Yes/No.",
+		"P-06":    "Nói chậm lại một chút và phát âm rõ từng từ để người nghe hiểu dễ hơn.",
+	},
+	"en": {
+		"no_data": "Not enough data to score. Speak in full sentences, clearly, and try again.",
+		"band":    "Pronunciation: band %d (%s features measured).",
+		"P-01":    "Practise the mispronounced words, especially final sounds (-s, -ed, -t, -k) and long/short vowels.",
+		"P-02":    "Pause at phrase boundaries and at punctuation, not inside a phrase.",
+		"P-03":    "Stress the content words and keep small words like a, the, to, of weak to get a natural rhythm.",
+		"P-04":    "Vary your pitch to highlight key words; fall at the end of statements, rise at the end of yes-no questions.",
+		"P-06":    "Slow down a little and articulate each word so you are easier to understand.",
+	},
+}
+
+func summaryText(lang string) map[string]string {
+	if m, ok := summaryMessages[lang]; ok {
+		return m
 	}
-	t, ok := tips[code]
-	if !ok {
-		return ""
-	}
-	if vi {
-		return t[0]
-	}
-	return t[1]
+	return summaryMessages["en"]
 }

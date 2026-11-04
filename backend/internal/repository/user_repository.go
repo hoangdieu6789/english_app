@@ -30,7 +30,7 @@ type UserRepository interface {
 	UpdatePassword(ctx context.Context, id uuid.UUID, passwordHash string) error
 	// UpdateGoals sets the self-estimated and target bands (nil clears).
 	UpdateGoals(ctx context.Context, id uuid.UUID, selfBand, targetBand *float32) error
-	UpdateFeedbackLang(ctx context.Context, id uuid.UUID, lang string) error
+	UpdateLang(ctx context.Context, id uuid.UUID, lang string) error
 }
 
 type userRepository struct {
@@ -75,8 +75,8 @@ func (r *userRepository) UpdatePassword(ctx context.Context, id uuid.UUID, passw
 	return r.q.UpdateUserPassword(ctx, sqlcgen.UpdateUserPasswordParams{ID: id, PasswordHash: passwordHash})
 }
 
-func (r *userRepository) UpdateFeedbackLang(ctx context.Context, id uuid.UUID, lang string) error {
-	return r.q.UpdateUserFeedbackLang(ctx, sqlcgen.UpdateUserFeedbackLangParams{ID: id, FeedbackLang: lang})
+func (r *userRepository) UpdateLang(ctx context.Context, id uuid.UUID, lang string) error {
+	return r.q.UpdateUserLang(ctx, sqlcgen.UpdateUserLangParams{ID: id, Lang: lang})
 }
 
 func (r *userRepository) UpdateGoals(ctx context.Context, id uuid.UUID, selfBand, targetBand *float32) error {
@@ -109,6 +109,6 @@ func toDomainUser(row sqlcgen.User) *domain.User {
 	if row.TargetBand.Valid {
 		u.TargetBand = &row.TargetBand.Float32
 	}
-	u.FeedbackLang = row.FeedbackLang
+	u.Lang = row.Lang
 	return u
 }

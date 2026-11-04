@@ -234,7 +234,7 @@ type fakeSentenceGen struct {
 	delay time.Duration // simulates a slow LLM
 }
 
-func (g *fakeSentenceGen) GenerateBatch(_ context.Context, _ []string, n, _ int) ([]GeneratedSentence, error) {
+func (g *fakeSentenceGen) GenerateBatch(_ context.Context, _ []string, n, _ int, _ string) ([]GeneratedSentence, error) {
 	time.Sleep(g.delay)
 	g.mu.Lock()
 	defer g.mu.Unlock()
@@ -256,10 +256,10 @@ type memSentenceRepo struct {
 	all   []string
 }
 
-func (r *memSentenceRepo) Create(_ context.Context, uid uuid.UUID, text, ph, gl string) (*domain.PracticeSentence, error) {
+func (r *memSentenceRepo) Create(_ context.Context, uid uuid.UUID, text, ph, gl, glLang string) (*domain.PracticeSentence, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	s := &domain.PracticeSentence{ID: uuid.New(), UserID: uid, Text: text, Phonetic: ph, Gloss: gl}
+	s := &domain.PracticeSentence{ID: uuid.New(), UserID: uid, Text: text, Phonetic: ph, Gloss: gl, GlossLang: glLang}
 	r.queue = append(r.queue, s)
 	r.all = append(r.all, text)
 	return s, nil
@@ -294,7 +294,7 @@ func TestPracticeSentencesAreBatched(t *testing.T) {
 	uid := uuid.New()
 	seen := map[string]bool{}
 	for i := 0; i < 25; i++ {
-		s, err := svc.NextSentence(context.Background(), uid)
+		s, err := svc.NextSentence(context.Background(), uid, "vi")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -320,7 +320,7 @@ func TestEmptyQueueWaitsForRunningRefill(t *testing.T) {
 	ctx := context.Background()
 	next := func() {
 		t.Helper()
-		if _, err := svc.NextSentence(ctx, uid); err != nil {
+		if _, err := svc.NextSentence(ctx, uid, "vi"); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -414,7 +414,7 @@ func TestNewLearnerGetsStarterSentencesWithoutLLM(t *testing.T) {
 		}
 	}
 	start := time.Now()
-	s, err := svc.NextSentence(context.Background(), uuid.New())
+	s, err := svc.NextSentence(context.Background(), uuid.New(), "vi")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -427,10 +427,25 @@ func TestNewLearnerGetsStarterSentencesWithoutLLM(t *testing.T) {
 	}
 	// Once the learner has had sentences, an empty queue uses the LLM again.
 	repo.queue = nil
-	if _, err := svc.NextSentence(context.Background(), uuid.New()); err != nil {
+	if _, err := svc.NextSentence(context.Background(), uuid.New(), "vi"); err != nil {
 		t.Fatal(err)
 	}
 	if gen.calls != 1 {
 		t.Errorf("LLM calls = %d, want 1 after the starters", gen.calls)
+	}
+}
+
+// A sentence queued in English shows no gloss in another language, except a starter, whose
+// Vietnamese gloss is built in.
+func TestPracticeSentenceGlossFollowsLanguage(t *testing.T) {
+	svc := NewPracticeSentenceService(&fakeSentenceGen{}, &memSentenceRepo{}, 10)
+	uid := uuid.New()
+	first, err := svc.NextSentence(context.Background(), uid, "en")
+	if err != nil || first.Gloss != "" {
+		t.Fatalf("en: %+v %v", first, err)
+	}
+	second, err := svc.NextSentence(context.Background(), uid, "vi")
+	if err != nil || second.Gloss == "" {
+		t.Fatalf("vi starter must keep its gloss: %+v %v", second, err)
 	}
 }

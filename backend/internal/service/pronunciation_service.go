@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 
 	"englishapp/backend/internal/domain"
+	"englishapp/backend/internal/i18n"
 	"englishapp/backend/internal/repository"
 	"englishapp/backend/internal/rubric"
 	"englishapp/backend/internal/storage"
@@ -144,7 +145,7 @@ func (s *PronunciationService) SubmitAttempt(ctx context.Context, userID uuid.UU
 	if task.Prompt != "" {
 		attempt.TaskPrompt = &task.Prompt
 	}
-	if task.FeedbackLang == "vi" || task.FeedbackLang == "en" {
+	if i18n.Supported(task.FeedbackLang) {
 		attempt.FeedbackLang = &task.FeedbackLang
 	}
 

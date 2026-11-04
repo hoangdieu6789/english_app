@@ -63,12 +63,12 @@ func (m *memUsers) UpdateGoals(_ context.Context, id uuid.UUID, self, target *fl
 	return nil
 }
 
-func (m *memUsers) UpdateFeedbackLang(_ context.Context, id uuid.UUID, lang string) error {
+func (m *memUsers) UpdateLang(_ context.Context, id uuid.UUID, lang string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for _, u := range m.users {
 		if u.ID == id {
-			u.FeedbackLang = lang
+			u.Lang = lang
 			return nil
 		}
 	}

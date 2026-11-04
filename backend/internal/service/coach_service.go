@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"englishapp/backend/internal/i18n"
 	"englishapp/backend/internal/repository"
 )
 
@@ -66,12 +67,7 @@ func NewCoachService(llm LLMCompleter, repo repository.CoachRepository, attempts
 
 func isIELTSTask(t string) bool { return t == "part1" || t == "part2" || t == "part3" }
 
-func coachLang(lang string) string {
-	if lang == "en" {
-		return "en"
-	}
-	return "vi"
-}
+func coachLang(lang string) string { return i18n.Normalize(lang) }
 
 // targetBand: the learner's target band, else current + 1; in half bands, 5.0-9.0.
 func (s *CoachService) targetBand(ctx context.Context, userID uuid.UUID) (float32, error) {
@@ -200,12 +196,7 @@ var answerLength = map[string]string{
 	"part3": "90-140 words: a clear opinion, a reason, an example, and a contrast or consequence",
 }
 
-func langName(lang string) string {
-	if lang == "en" {
-		return "English"
-	}
-	return "Vietnamese"
-}
+func langName(lang string) string { return i18n.Name(lang) }
 
 func buildSamplePrompt(taskType, question string, band float32, lang string) string {
 	var sb strings.Builder

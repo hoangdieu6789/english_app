@@ -38,22 +38,31 @@ func diff(a, b float32) bool { return a-b > 0.001 || b-a > 0.001 }
 
 func TestParseVocabInfo(t *testing.T) {
 	reply := `Here you go: {"words": [
-	 {"word": "atmosphere", "pos": "noun", "ipa": "/ˈætməsfɪr/", "meaning_vi": "bầu không khí", "example_en": "I love the relaxed atmosphere of small cafés.", "example_vi": "Tôi thích bầu không khí thư thái của quán nhỏ."},
-	 {"word": "Analyse", "pos": "verb", "ipa": "/ˈænəlaɪz/", "meaning_vi": "phân tích", "example_en": "Scientists analysed the data carefully last year.", "example_vi": "Các nhà khoa học đã phân tích dữ liệu."},
-	 {"word": "budget", "pos": "noun", "ipa": "ˈbʌdʒɪt", "meaning_vi": "ngân sách", "example_en": "We set a budget for the trip.", "example_vi": "Chúng tôi đặt ngân sách."},
-	 {"word": "cottage", "pos": "noun", "ipa": "/ˈkɑːtɪdʒ/", "meaning_vi": "nhà tranh", "example_en": "My grandparents live in the countryside.", "example_vi": "Ông bà tôi sống ở quê."},
-	 {"word": "extra", "pos": "adj", "ipa": "/ˈekstrə/", "meaning_vi": "thêm", "example_en": "I need extra time.", "example_vi": "Tôi cần thêm thời gian."}
+	 {"word": "atmosphere", "pos": "noun", "ipa": "/ˈætməsfɪr/", "meaning": "bầu không khí", "example_en": "I love the relaxed atmosphere of small cafés.", "example_translation": "Tôi thích bầu không khí thư thái của quán nhỏ."},
+	 {"word": "Analyse", "pos": "verb", "ipa": "/ˈænəlaɪz/", "meaning": "phân tích", "example_en": "Scientists analysed the data carefully last year.", "example_translation": "Các nhà khoa học đã phân tích dữ liệu."},
+	 {"word": "budget", "pos": "noun", "ipa": "ˈbʌdʒɪt", "meaning": "ngân sách", "example_en": "We set a budget for the trip.", "example_translation": "Chúng tôi đặt ngân sách."},
+	 {"word": "cottage", "pos": "noun", "ipa": "/ˈkɑːtɪdʒ/", "meaning": "nhà tranh", "example_en": "My grandparents live in the countryside.", "example_translation": "Ông bà tôi sống ở quê."},
+	 {"word": "extra", "pos": "adj", "ipa": "/ˈekstrə/", "meaning": "thêm", "example_en": "I need extra time.", "example_translation": "Tôi cần thêm thời gian."}
 	]} thanks`
-	got, err := parseVocabInfo(reply, []string{"atmosphere", "analyse", "budget", "cottage"})
+	got, err := parseVocabInfo(reply, []string{"atmosphere", "analyse", "budget", "cottage"}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// budget: IPA without slashes; cottage: example does not use the word; extra: not requested.
-	if len(got) != 2 || got["atmosphere"].MeaningVI != "bầu không khí" || got["analyse"].POS != "verb" {
+	if len(got) != 2 || got["atmosphere"].Meaning != "bầu không khí" || got["analyse"].POS != "verb" {
 		t.Fatalf("got %+v", got)
 	}
-	if _, err := parseVocabInfo(`{"words": []}`, []string{"a"}); err == nil {
+	if _, err := parseVocabInfo(`{"words": []}`, []string{"a"}, false); err == nil {
 		t.Error("no usable card must be an error")
+	}
+	// English learners: a definition and no translation is a usable card.
+	en := `{"words": [{"word": "budget", "pos": "noun", "ipa": "/ˈbʌdʒɪt/", "meaning": "money you plan to spend", "example_en": "We set a budget for the trip.", "example_translation": "x"}]}`
+	got, err = parseVocabInfo(en, []string{"budget"}, true)
+	if err != nil || got["budget"].Meaning != "money you plan to spend" || got["budget"].ExampleTranslation != "" {
+		t.Fatalf("english card: %+v %v", got, err)
+	}
+	if !strings.Contains(buildVocabPrompt([]string{"budget"}, map[string]string{"budget": "We set a budget."}, "en"), "(example: We set a budget.)") {
+		t.Error("an existing example must be passed to the LLM")
 	}
 }
 
@@ -62,13 +71,14 @@ func TestParseVocabInfo(t *testing.T) {
 type memVocab struct {
 	mu       sync.Mutex
 	words    []*domain.VocabWord
-	cards    map[uuid.UUID]map[uuid.UUID]bool // user -> vocab word ids
+	tr       map[uuid.UUID]map[string]domain.VocabInfo // word -> lang -> meaning
+	cards    map[uuid.UUID]map[uuid.UUID]bool          // user -> vocab word ids
 	spoken   []string
 	measured float32
 }
 
 func newMemVocab() *memVocab {
-	m := &memVocab{cards: map[uuid.UUID]map[uuid.UUID]bool{}}
+	m := &memVocab{cards: map[uuid.UUID]map[uuid.UUID]bool{}, tr: map[uuid.UUID]map[string]domain.VocabInfo{}}
 	for _, w := range vocab.Words() {
 		m.words = append(m.words, &domain.VocabWord{ID: uuid.New(), Word: w.Word, Source: w.Source, Rank: w.Rank, Band: w.Band})
 	}
@@ -100,13 +110,32 @@ func (m *memVocab) pick(uid uuid.UUID, from, to float32, known []string, limit i
 	return out
 }
 
-func (m *memVocab) PickNew(_ context.Context, uid uuid.UUID, from, to float32, known []string, limit int) ([]*domain.VocabWord, error) {
+func (m *memVocab) withLang(w *domain.VocabWord, lang string) *domain.VocabWord {
+	c := *w
+	if t, ok := m.tr[w.ID][lang]; ok {
+		c.Info.Meaning, c.Info.ExampleTranslation, c.Translated = t.Meaning, t.ExampleTranslation, true
+	}
+	return &c
+}
+
+func (m *memVocab) PickNew(_ context.Context, uid uuid.UUID, lang string, from, to float32, known []string, limit int) ([]*domain.VocabWord, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	var out []*domain.VocabWord
 	for _, w := range m.pick(uid, from, to, known, limit) {
-		c := *w
-		out = append(out, &c)
+		out = append(out, m.withLang(w, lang))
+	}
+	return out, nil
+}
+
+func (m *memVocab) Untranslated(_ context.Context, uid uuid.UUID, lang string, limit int) ([]*domain.VocabWord, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var out []*domain.VocabWord
+	for _, w := range m.words {
+		if _, ok := m.tr[w.ID][lang]; m.cards[uid][w.ID] && !ok && len(out) < limit {
+			out = append(out, m.withLang(w, lang))
+		}
 	}
 	return out, nil
 }
@@ -117,14 +146,18 @@ func (m *memVocab) CountNew(_ context.Context, uid uuid.UUID, from, to float32, 
 	return len(m.pick(uid, from, to, known, 0)), nil
 }
 
-func (m *memVocab) SaveEnrichment(_ context.Context, w *domain.VocabWord) error {
+func (m *memVocab) SaveEnrichment(_ context.Context, w *domain.VocabWord, lang string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for _, v := range m.words {
-		if v.ID == w.ID {
-			v.Info, v.Enriched = w.Info, true
+		if v.ID == w.ID && !v.Enriched {
+			v.Info.POS, v.Info.IPA, v.Info.ExampleEN, v.Info.Band, v.Enriched = w.Info.POS, w.Info.IPA, w.Info.ExampleEN, w.Info.Band, true
 		}
 	}
+	if m.tr[w.ID] == nil {
+		m.tr[w.ID] = map[string]domain.VocabInfo{}
+	}
+	m.tr[w.ID][lang] = w.Info
 	return nil
 }
 
@@ -143,21 +176,23 @@ func (m *memVocab) SpokenWords(context.Context, uuid.UUID) ([]string, error) { r
 func (m *memVocab) MeasuredBand(context.Context, uuid.UUID) (float32, error) { return m.measured, nil }
 
 type fakeEnricher struct {
-	mu    sync.Mutex
-	calls [][]string
-	fail  bool
+	mu       sync.Mutex
+	calls    [][]string
+	langs    []string
+	examples []map[string]string
+	fail     bool
 }
 
-func (f *fakeEnricher) Enrich(_ context.Context, words []string) (map[string]domain.VocabInfo, error) {
+func (f *fakeEnricher) Enrich(_ context.Context, words []string, examples map[string]string, lang string) (map[string]domain.VocabInfo, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.calls = append(f.calls, words)
+	f.calls, f.langs, f.examples = append(f.calls, words), append(f.langs, lang), append(f.examples, examples)
 	if f.fail {
 		return nil, errors.New("llm down")
 	}
 	out := map[string]domain.VocabInfo{}
 	for _, w := range words {
-		out[w] = domain.VocabInfo{POS: "noun", IPA: "/x/", MeaningVI: "nghĩa " + w, ExampleEN: "I use " + w + ".", ExampleVI: "Tôi dùng."}
+		out[w] = domain.VocabInfo{POS: "noun", IPA: "/x/", Meaning: lang + ":" + w, ExampleEN: "I use " + w + " (" + lang + ").", ExampleTranslation: lang + " example"}
 	}
 	return out, nil
 }
@@ -189,7 +224,7 @@ func TestVocabGoalsAndNewWords(t *testing.T) {
 		t.Fatalf("goals: %+v %v", g, err)
 	}
 
-	added, err := svc.AddNewWords(ctx, u.ID, 10)
+	added, err := svc.AddNewWords(ctx, u.ID, "vi", 10)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -198,7 +233,7 @@ func TestVocabGoalsAndNewWords(t *testing.T) {
 		t.Fatalf("added %d", len(added))
 	}
 	for _, w := range added {
-		if w.Band <= 6.2 || w.Band > 7.5 || !w.Enriched || !strings.HasPrefix(w.Info.MeaningVI, "nghĩa ") {
+		if w.Band <= 6.2 || w.Band > 7.5 || !w.Enriched || !strings.HasPrefix(w.Info.Meaning, "vi:") {
 			t.Errorf("word %+v", w)
 		}
 	}
@@ -210,7 +245,7 @@ func TestVocabGoalsAndNewWords(t *testing.T) {
 		t.Fatalf("enrich calls = %v", len(enricher.calls))
 	}
 	// The next request uses the prepared words: no new LLM call.
-	if _, err := svc.AddNewWords(ctx, u.ID, 10); err != nil {
+	if _, err := svc.AddNewWords(ctx, u.ID, "vi", 10); err != nil {
 		t.Fatal(err)
 	}
 	if len(enricher.calls) < 2 || len(enricher.calls[2-1]) == 0 {
@@ -223,7 +258,49 @@ func TestVocabGoalsAndNewWords(t *testing.T) {
 
 	enricher.fail = true
 	fresh := NewVocabService(newMemVocab(), users, enricher)
-	if _, err := fresh.AddNewWords(ctx, u.ID, 5); !errors.Is(err, ErrVocabUnenriched) {
+	if _, err := fresh.AddNewWords(ctx, u.ID, "vi", 5); !errors.Is(err, ErrVocabUnenriched) {
 		t.Fatalf("LLM down: %v", err)
+	}
+}
+
+// Changing language writes the meanings of the learner's cards in the new language, keeping
+// the shared example; the vi meanings stay.
+func TestVocabLanguageChange(t *testing.T) {
+	users := &memUsers{}
+	u, _ := users.Create(context.Background(), "l@example.com", "x")
+	repo, enricher := newMemVocab(), &fakeEnricher{}
+	svc := NewVocabService(repo, users, enricher)
+	ctx := context.Background()
+	added, err := svc.AddNewWords(ctx, u.ID, "vi", 3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc.Wait()
+	if err := svc.SetLang(ctx, u.ID, "fr"); !errors.Is(err, ErrInvalidLang) {
+		t.Fatalf("fr: %v", err)
+	}
+	if err := svc.SetLang(ctx, u.ID, "en"); err != nil {
+		t.Fatal(err)
+	}
+	svc.Wait()
+	if g, _ := svc.Goals(ctx, u.ID); g.Lang != "en" {
+		t.Fatalf("lang %q", g.Lang)
+	}
+	last := len(enricher.calls) - 1
+	if enricher.langs[last] != "en" || len(enricher.calls[last]) != 3 || enricher.examples[last][added[0].Word] != "I use "+added[0].Word+" (vi)." {
+		t.Fatalf("translate call: %v %v %v", enricher.langs, enricher.calls[last], enricher.examples[last])
+	}
+	en, _ := repo.Untranslated(ctx, u.ID, "en", 10)
+	w := repo.withLang(repo.words[0], "en")
+	for _, v := range repo.words {
+		if v.Word == added[0].Word {
+			w = repo.withLang(v, "en")
+		}
+	}
+	if len(en) != 0 || w.Info.Meaning != "en:"+added[0].Word || w.Info.ExampleEN != "I use "+added[0].Word+" (vi)." {
+		t.Fatalf("after change: untranslated=%d word=%+v", len(en), w)
+	}
+	if err := svc.TranslateCards(ctx, u.ID, "en", 20); err != nil || len(enricher.calls) != last+1 {
+		t.Fatalf("nothing left to translate: %v calls=%d", err, len(enricher.calls))
 	}
 }

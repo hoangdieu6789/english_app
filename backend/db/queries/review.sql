@@ -15,20 +15,22 @@ SET last_score = EXCLUDED.last_score,
     due_at = LEAST(review_words.due_at, now());
 
 -- name: ListDueReviewWords :many
-SELECT r.*, v.pos, v.ipa, v.meaning_vi, v.example_en, v.example_vi, v.band
+SELECT r.*, v.pos, v.ipa, v.example_en, v.band, t.meaning, t.example_translation
 FROM review_words r LEFT JOIN vocab_words v ON v.id = r.vocab_word_id
-WHERE r.user_id = $1 AND r.due_at <= now()
+LEFT JOIN vocab_translations t ON t.vocab_word_id = v.id AND t.lang = sqlc.arg(lang)::text
+WHERE r.user_id = sqlc.arg(user_id) AND r.due_at <= now()
   AND (r.kind = 'vocab' OR r.misses >= 2 OR r.min_score < 40)
 ORDER BY r.due_at, r.word
-LIMIT $2;
+LIMIT sqlc.arg(max_rows);
 
 -- name: ListUpcomingReviewWords :many
-SELECT r.*, v.pos, v.ipa, v.meaning_vi, v.example_en, v.example_vi, v.band
+SELECT r.*, v.pos, v.ipa, v.example_en, v.band, t.meaning, t.example_translation
 FROM review_words r LEFT JOIN vocab_words v ON v.id = r.vocab_word_id
-WHERE r.user_id = $1 AND r.due_at > now()
+LEFT JOIN vocab_translations t ON t.vocab_word_id = v.id AND t.lang = sqlc.arg(lang)::text
+WHERE r.user_id = sqlc.arg(user_id) AND r.due_at > now()
   AND (r.kind = 'vocab' OR r.misses >= 2 OR r.min_score < 40)
 ORDER BY r.due_at, r.word
-LIMIT $2;
+LIMIT sqlc.arg(max_rows);
 
 -- name: CountReviewWords :one
 SELECT count(*) FILTER (WHERE due_at <= now())::int AS due,
@@ -37,9 +39,10 @@ FROM review_words
 WHERE user_id = $1 AND (kind = 'vocab' OR misses >= 2 OR min_score < 40);
 
 -- name: GetReviewWord :one
-SELECT r.*, v.pos, v.ipa, v.meaning_vi, v.example_en, v.example_vi, v.band
+SELECT r.*, v.pos, v.ipa, v.example_en, v.band, t.meaning, t.example_translation
 FROM review_words r LEFT JOIN vocab_words v ON v.id = r.vocab_word_id
-WHERE r.id = $1 AND r.user_id = $2;
+LEFT JOIN vocab_translations t ON t.vocab_word_id = v.id AND t.lang = sqlc.arg(lang)::text
+WHERE r.id = sqlc.arg(id) AND r.user_id = sqlc.arg(user_id);
 
 -- name: UpdateReviewWordSchedule :exec
 UPDATE review_words
@@ -67,8 +70,10 @@ WHERE (vocab_words.source, vocab_words.rank, vocab_words.band) IS DISTINCT FROM 
 
 -- name: PickNewVocabWords :many
 -- The next words for a learner: band in (band_from, band_to], not yet in their review list
--- and not words they already use, easiest band first, most frequent first.
-SELECT v.* FROM vocab_words v
+-- and not words they already use, easiest band first, most frequent first; with the
+-- meaning in the learner's language when written.
+SELECT v.*, t.meaning, t.example_translation FROM vocab_words v
+LEFT JOIN vocab_translations t ON t.vocab_word_id = v.id AND t.lang = sqlc.arg(lang)::text
 WHERE v.band > sqlc.arg(band_from)::real AND v.band <= sqlc.arg(band_to)::real
   AND NOT v.word = ANY(sqlc.arg(known)::text[])
   AND NOT EXISTS (
@@ -86,9 +91,24 @@ WHERE v.band > sqlc.arg(band_from)::real AND v.band <= sqlc.arg(band_to)::real
     WHERE r.user_id = sqlc.arg(user_id) AND r.kind = 'vocab' AND r.vocab_word_id = v.id);
 
 -- name: UpdateVocabEnrichment :exec
+-- The language-neutral details, written once (the first language's call writes them).
 UPDATE vocab_words
-SET pos = $2, ipa = $3, meaning_vi = $4, example_en = $5, example_vi = $6, enriched_at = now()
-WHERE id = $1;
+SET pos = $2, ipa = $3, example_en = $4, enriched_at = now()
+WHERE id = $1 AND enriched_at IS NULL;
+
+-- name: UpsertVocabTranslation :exec
+INSERT INTO vocab_translations (vocab_word_id, lang, meaning, example_translation)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (vocab_word_id, lang) DO UPDATE
+SET meaning = EXCLUDED.meaning, example_translation = EXCLUDED.example_translation;
+
+-- name: ListUntranslatedVocabCards :many
+-- A learner's vocab cards without a meaning in lang (after changing language).
+SELECT v.* FROM review_words r JOIN vocab_words v ON v.id = r.vocab_word_id
+WHERE r.user_id = sqlc.arg(user_id) AND r.kind = 'vocab'
+  AND NOT EXISTS (SELECT 1 FROM vocab_translations t WHERE t.vocab_word_id = v.id AND t.lang = sqlc.arg(lang)::text)
+ORDER BY r.due_at
+LIMIT sqlc.arg(max_rows);
 
 -- name: AddVocabReviewWord :exec
 INSERT INTO review_words (user_id, word, last_score, min_score, kind, vocab_word_id, misses)
@@ -111,5 +131,5 @@ WHERE user_id = $1 AND task_type <> 'shadowing' AND rubric_score IS NOT NULL
 -- name: UpdateUserGoals :exec
 UPDATE users SET self_band = $2, target_band = $3 WHERE id = $1;
 
--- name: UpdateUserFeedbackLang :exec
-UPDATE users SET feedback_lang = $2 WHERE id = $1;
+-- name: UpdateUserLang :exec
+UPDATE users SET lang = $2 WHERE id = $1;

@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 
 	"englishapp/backend/internal/domain"
+	"englishapp/backend/internal/i18n"
 	"englishapp/backend/internal/repository"
 )
 
@@ -29,6 +30,9 @@ const (
 // shows at once instead of after a ~17 s LLM batch. The LLM refills the queue in the
 // background when it runs low.
 //
+// starterGlossLang is the language of the glosses in practice_sentence_starters.json.
+const starterGlossLang = "vi"
+
 //go:embed practice_sentence_starters.json
 var starterSentencesJSON []byte
 
@@ -64,14 +68,17 @@ func NewPracticeSentenceService(generator SentenceGenerator, repo repository.Pra
 // NextSentence returns the next queued sentence. Only an empty queue (first use) waits for
 // the LLM; otherwise the sentence comes from the database and the queue is topped up in the
 // background.
-func (s *PracticeSentenceService) NextSentence(ctx context.Context, userID uuid.UUID) (*domain.PracticeSentence, error) {
+// The gloss is returned only when it is in lang (sentences queued before the learner changed
+// language keep their old gloss, which is hidden).
+func (s *PracticeSentenceService) NextSentence(ctx context.Context, userID uuid.UUID, lang string) (*domain.PracticeSentence, error) {
+	lang = i18n.Normalize(lang)
 	sentence, err := s.repo.ClaimNext(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("claim queued sentence: %w", err)
 	}
 	if sentence == nil {
 		// Waits for a background refill that is already running instead of paying for a second batch.
-		if err := s.fillBelow(ctx, userID, 1); err != nil {
+		if err := s.fillBelow(ctx, userID, 1, lang); err != nil {
 			return nil, err
 		}
 		if sentence, err = s.repo.ClaimNext(ctx, userID); err != nil {
@@ -83,12 +90,15 @@ func (s *PracticeSentenceService) NextSentence(ctx context.Context, userID uuid.
 	}
 
 	if n, err := s.repo.CountQueued(ctx, userID); err == nil && n < sentenceRefillBelow {
-		s.refillAsync(userID)
+		s.refillAsync(userID, lang)
+	}
+	if sentence.GlossLang != lang {
+		sentence.Gloss = s.starterGloss(sentence.Text, lang) // "" unless a starter glossed in lang
 	}
 	return sentence, nil
 }
 
-func (s *PracticeSentenceService) refillAsync(userID uuid.UUID) {
+func (s *PracticeSentenceService) refillAsync(userID uuid.UUID, lang string) {
 	if _, busy := s.refilling.LoadOrStore(userID, struct{}{}); busy {
 		return
 	}
@@ -98,7 +108,7 @@ func (s *PracticeSentenceService) refillAsync(userID uuid.UUID) {
 		defer s.refilling.Delete(userID)
 		ctx, cancel := context.WithTimeout(context.Background(), sentenceRefillTTL)
 		defer cancel()
-		if err := s.fillBelow(ctx, userID, sentenceRefillBelow); err != nil {
+		if err := s.fillBelow(ctx, userID, sentenceRefillBelow, lang); err != nil {
 			log.Printf("practice sentences: background refill: %v", err)
 		}
 	}()
@@ -106,7 +116,7 @@ func (s *PracticeSentenceService) refillAsync(userID uuid.UUID) {
 
 // fillBelow generates one batch if fewer than min sentences are queued. Calls for the same
 // user run one at a time, and each re-checks the queue after waiting.
-func (s *PracticeSentenceService) fillBelow(ctx context.Context, userID uuid.UUID, min int) error {
+func (s *PracticeSentenceService) fillBelow(ctx context.Context, userID uuid.UUID, min int, lang string) error {
 	l, _ := s.fillLocks.LoadOrStore(userID, &sync.Mutex{})
 	mu := l.(*sync.Mutex)
 	mu.Lock()
@@ -126,18 +136,22 @@ func (s *PracticeSentenceService) fillBelow(ctx context.Context, userID uuid.UUI
 	if len(recent) == 0 && len(s.starters) > 0 {
 		// A new learner: the fixed starter list, no LLM wait.
 		for _, g := range s.starters {
-			if _, err := s.repo.Create(ctx, userID, g.Text, g.Phonetic, g.Gloss); err != nil {
+			gloss := g.Gloss // the starters are glossed in Vietnamese only
+			if lang != starterGlossLang {
+				gloss = ""
+			}
+			if _, err := s.repo.Create(ctx, userID, g.Text, g.Phonetic, gloss, lang); err != nil {
 				return fmt.Errorf("save starter sentence: %w", err)
 			}
 		}
 		return nil
 	}
-	batch, err := s.generator.GenerateBatch(ctx, recent, sentenceBatchSize, s.minWords)
+	batch, err := s.generator.GenerateBatch(ctx, recent, sentenceBatchSize, s.minWords, lang)
 	if err != nil {
 		return fmt.Errorf("generate sentences: %w", err)
 	}
 	for _, g := range batch {
-		if _, err := s.repo.Create(ctx, userID, g.Text, g.Phonetic, g.Gloss); err != nil {
+		if _, err := s.repo.Create(ctx, userID, g.Text, g.Phonetic, g.Gloss, lang); err != nil {
 			return fmt.Errorf("save generated sentence: %w", err)
 		}
 	}
@@ -145,3 +159,17 @@ func (s *PracticeSentenceService) fillBelow(ctx context.Context, userID uuid.UUI
 }
 
 func countWords(s string) int { return len(strings.Fields(s)) }
+
+// starterGloss returns the built-in gloss of a starter sentence when lang is the starters'
+// gloss language, else "".
+func (s *PracticeSentenceService) starterGloss(text, lang string) string {
+	if lang != starterGlossLang {
+		return ""
+	}
+	for _, g := range s.starters {
+		if g.Text == text {
+			return g.Gloss
+		}
+	}
+	return ""
+}

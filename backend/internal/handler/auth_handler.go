@@ -7,6 +7,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 
+	"englishapp/backend/internal/i18n"
 	"englishapp/backend/internal/service"
 	"englishapp/backend/pkg/config"
 )
@@ -129,11 +130,11 @@ func (h *AuthHandler) Me(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, map[string]any{
-		"id":           user.ID,
-		"email":        user.Email,
-		"selfBand":     user.SelfBand,
-		"targetBand":   user.TargetBand,
-		"feedbackLang": user.FeedbackLang,
+		"id":         user.ID,
+		"email":      user.Email,
+		"selfBand":   user.SelfBand,
+		"targetBand": user.TargetBand,
+		"lang":       i18n.Normalize(user.Lang),
 	})
 }
 

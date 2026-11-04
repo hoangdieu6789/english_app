@@ -120,11 +120,11 @@ func (m *memReviews) list(uid uuid.UUID, due bool) []*domain.ReviewWord {
 	return out
 }
 
-func (m *memReviews) ListDue(_ context.Context, uid uuid.UUID, _ int) ([]*domain.ReviewWord, error) {
+func (m *memReviews) ListDue(_ context.Context, uid uuid.UUID, _ string, _ int) ([]*domain.ReviewWord, error) {
 	return m.list(uid, true), nil
 }
 
-func (m *memReviews) ListUpcoming(_ context.Context, uid uuid.UUID, _ int) ([]*domain.ReviewWord, error) {
+func (m *memReviews) ListUpcoming(_ context.Context, uid uuid.UUID, _ string, _ int) ([]*domain.ReviewWord, error) {
 	return m.list(uid, false), nil
 }
 
@@ -133,7 +133,7 @@ func (m *memReviews) Count(_ context.Context, uid uuid.UUID) (int, int, error) {
 	return due, due + len(m.list(uid, false)), nil
 }
 
-func (m *memReviews) Get(_ context.Context, id, uid uuid.UUID) (*domain.ReviewWord, error) {
+func (m *memReviews) Get(_ context.Context, id, uid uuid.UUID, _ string) (*domain.ReviewWord, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if w, ok := m.words[id]; ok && w.UserID == uid {
@@ -189,29 +189,29 @@ func TestReviewFlow(t *testing.T) {
 		{Word: "photographer", AccuracyScore: 7, ErrorType: "mispronunciation"},
 		{Word: "city", AccuracyScore: 95, ErrorType: "none"},
 	})
-	q, err := svc.Queue(ctx, uid)
+	q, err := svc.Queue(ctx, uid, "vi")
 	if err != nil || q.DueCount != 1 || q.Total != 1 || q.Due[0].Word != "photographer" {
 		t.Fatalf("queue: %+v err=%v", q, err)
 	}
 	id := q.Due[0].ID
 
-	if _, err := svc.Review(ctx, other, id, []byte("RIFF")); err != repository.ErrNotFound {
+	if _, err := svc.Review(ctx, other, id, []byte("RIFF"), "vi"); err != repository.ErrNotFound {
 		t.Fatalf("another user's word: %v", err)
 	}
 	scorer.score = 88
-	res, err := svc.Review(ctx, uid, id, []byte("RIFF"))
+	res, err := svc.Review(ctx, uid, id, []byte("RIFF"), "vi")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if scorer.refs[0] != "photographer" || res.Score != 88 || res.Quality != 5 || res.Word.IntervalDays != 1 {
 		t.Fatalf("review: %+v refs=%v", res, scorer.refs)
 	}
-	if q, _ := svc.Queue(ctx, uid); q.DueCount != 0 || len(q.Upcoming) != 1 {
+	if q, _ := svc.Queue(ctx, uid, "vi"); q.DueCount != 0 || len(q.Upcoming) != 1 {
 		t.Fatalf("after a pass the word must wait: %+v", q)
 	}
 	// Said wrongly again in practice: due again.
 	svc.AddFromAttempt(ctx, uid, []domain.WordScore{{Word: "Photographer.", AccuracyScore: 20, ErrorType: "none"}})
-	if q, _ := svc.Queue(ctx, uid); q.DueCount != 1 || q.Total != 1 {
+	if q, _ := svc.Queue(ctx, uid, "vi"); q.DueCount != 1 || q.Total != 1 {
 		t.Fatalf("weak again: %+v", q)
 	}
 	if ok, _ := svc.Remove(ctx, other, id); ok {
@@ -271,23 +271,23 @@ func TestVocabCardsAreGradedNotScheduledByAzure(t *testing.T) {
 	scorer := &wordScorer{score: 95}
 	svc := NewReviewService(repo, scorer)
 
-	res, err := svc.Review(context.Background(), uid, id, []byte("RIFF"))
+	res, err := svc.Review(context.Background(), uid, id, []byte("RIFF"), "vi")
 	if err != nil || res.Score != 95 {
 		t.Fatalf("review: %+v %v", res, err)
 	}
-	if w, _ := repo.Get(context.Background(), id, uid); w.Reps != 0 || w.IntervalDays != 0 {
+	if w, _ := repo.Get(context.Background(), id, uid, "vi"); w.Reps != 0 || w.IntervalDays != 0 {
 		t.Fatalf("a pronunciation score must not schedule a vocab card: %+v", w)
 	}
-	w, err := svc.Grade(context.Background(), uid, id, 4)
+	w, err := svc.Grade(context.Background(), uid, id, 4, "vi")
 	if err != nil || w.Reps != 1 || w.IntervalDays != 1 {
 		t.Fatalf("grade: %+v %v", w, err)
 	}
-	if w, err := svc.Grade(context.Background(), uid, id, 1); err != nil || w.Reps != 0 || w.Lapses != 1 {
+	if w, err := svc.Grade(context.Background(), uid, id, 1, "vi"); err != nil || w.Reps != 0 || w.Lapses != 1 {
 		t.Fatalf("forgot: %+v %v", w, err)
 	}
 	pid := uuid.New()
 	repo.words[pid] = &domain.ReviewWord{ID: pid, UserID: uid, Word: "hectic", Kind: domain.ReviewPronunciation, Ease: 2.5}
-	if _, err := svc.Grade(context.Background(), uid, pid, 5); err != ErrNotVocabCard {
+	if _, err := svc.Grade(context.Background(), uid, pid, 5, "vi"); err != ErrNotVocabCard {
 		t.Fatalf("pronunciation card rated: %v", err)
 	}
 }

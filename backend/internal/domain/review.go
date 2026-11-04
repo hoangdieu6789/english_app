@@ -12,25 +12,28 @@ const (
 	ReviewVocab         = "vocab"         // a new word for the learner's band
 )
 
-// VocabInfo is the dictionary side of a vocab card (written by the LLM, shared).
+// VocabInfo is the dictionary side of a vocab card (written by the LLM, shared). POS, IPA
+// and ExampleEN are the same for every language; Meaning and ExampleTranslation are in the
+// learner's language (for English: a simple definition and no translation).
 type VocabInfo struct {
-	POS       string
-	IPA       string
-	MeaningVI string
-	ExampleEN string
-	ExampleVI string
-	Band      float32
+	POS                string
+	IPA                string
+	ExampleEN          string
+	Meaning            string
+	ExampleTranslation string
+	Band               float32
 }
 
 // VocabWord is an NGSL/NAWL headword with its band estimate and LLM-written details.
 type VocabWord struct {
-	ID       uuid.UUID
-	Word     string
-	Source   string
-	Rank     int
-	Band     float32
-	Info     VocabInfo
-	Enriched bool
+	ID         uuid.UUID
+	Word       string
+	Source     string
+	Rank       int
+	Band       float32
+	Info       VocabInfo
+	Enriched   bool // POS, IPA and example written
+	Translated bool // Meaning written in the requested language
 }
 
 // ReviewWord is a review card on a spaced-repetition schedule.
@@ -46,8 +49,9 @@ type ReviewWord struct {
 	DueAt          time.Time
 	LastReviewedAt *time.Time
 	CreatedAt      time.Time
-	Kind           string // ReviewPronunciation | ReviewVocab
-	Misses         int    // pronunciation: attempts in which it was said wrongly
+	VocabWordID    *uuid.UUID // vocab cards
+	Kind           string     // ReviewPronunciation | ReviewVocab
+	Misses         int        // pronunciation: attempts in which it was said wrongly
 	MinScore       float32
 	Vocab          *VocabInfo // vocab cards only
 }

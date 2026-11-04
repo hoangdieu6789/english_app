@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 	"unicode"
+
+	"englishapp/backend/internal/i18n"
 )
 
 // LLMSentenceGenerator asks an LLM for a batch of practice sentences in one call, so a
@@ -20,26 +22,36 @@ func NewLLMSentenceGenerator(llm LLMCompleter) *LLMSentenceGenerator {
 
 var _ SentenceGenerator = (*LLMSentenceGenerator)(nil)
 
-func (g *LLMSentenceGenerator) GenerateBatch(ctx context.Context, avoidRecent []string, n, minWords int) ([]GeneratedSentence, error) {
-	reply, err := g.llm.Complete(ctx, "", buildSentencePrompt(avoidRecent, n, minWords))
+func (g *LLMSentenceGenerator) GenerateBatch(ctx context.Context, avoidRecent []string, n, minWords int, lang string) ([]GeneratedSentence, error) {
+	reply, err := g.llm.Complete(ctx, "", buildSentencePrompt(avoidRecent, n, minWords, lang))
 	if err != nil {
 		return nil, err
 	}
-	return parseGeneratedSentences(reply, avoidRecent, minWords)
+	out, err := parseGeneratedSentences(reply, avoidRecent, minWords)
+	if i18n.IsEnglish(lang) {
+		for i := range out {
+			out[i].Gloss = "" // English learners need no translation
+		}
+	}
+	return out, err
 }
 
 // lengthExample shows the model the target length. Asking for a word count alone gave 7–10
 // word sentences (3 of 10 usable); asking for two joined clauses gave 10 of 10.
 const lengthExample = "I usually take the bus to work because it is cheaper than driving."
 
-func buildSentencePrompt(avoidRecent []string, n, minWords int) string {
+func buildSentencePrompt(avoidRecent []string, n, minWords int, lang string) string {
 	var sb strings.Builder
-	fmt.Fprintf(&sb, "You generate %d different English practice sentences for a Vietnamese-speaking English learner doing shadowing/pronunciation practice.\n", n)
+	learner, gloss := i18n.Name(lang)+"-speaking English learner", i18n.Name(lang)+" translation"
+	if i18n.IsEnglish(lang) {
+		learner, gloss = "English learner", "empty string"
+	}
+	fmt.Fprintf(&sb, "You generate %d different English practice sentences for a %s doing shadowing/pronunciation practice.\n", n, learner)
 	fmt.Fprintf(&sb, "Requirements: natural everyday conversational English for intermediate learners. Every sentence has TWO parts joined by a word like because, but, when, if, so, and, before or after, and is %d to %d words long (sentences under %d words are thrown away).\n", minWords+2, minWords+8, minWords)
 	fmt.Fprintf(&sb, "Example of the right length (do not reuse it): %q\n", lengthExample)
 	sb.WriteString("Mix statements, wh-questions and yes-no questions, and vary the topics.\n")
 	sb.WriteString("Respond with ONLY a JSON object, no markdown, no explanation, in this exact shape:\n")
-	sb.WriteString(`{"sentences": [{"text": "...", "phonetic": "IPA transcription", "gloss": "Vietnamese translation"}]}` + "\n")
+	sb.WriteString(`{"sentences": [{"text": "...", "phonetic": "IPA transcription", "gloss": "` + gloss + `"}]}` + "\n")
 	if len(avoidRecent) > 0 {
 		sb.WriteString("Do not repeat or closely resemble any of these previously used sentences:\n")
 		for _, s := range avoidRecent {

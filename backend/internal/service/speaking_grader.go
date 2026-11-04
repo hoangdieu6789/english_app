@@ -27,7 +27,7 @@ type SpeakingTask struct {
 	Prompt string `json:"questions,omitempty"` // the question(s) or cue card the learner answered
 	// QuestionSetID is the IELTS question set answered (stored with the attempt, not sent to the LLM).
 	QuestionSetID *uuid.UUID `json:"-"`
-	// FeedbackLang is the language of the learner-facing feedback (vi | en; "" = rubric default).
+	// FeedbackLang is the language of the learner-facing feedback (internal/i18n; "" = rubric default).
 	FeedbackLang string `json:"-"`
 }
 

@@ -11,6 +11,7 @@ import (
 	"math"
 	"strings"
 
+	"englishapp/backend/internal/i18n"
 	"gopkg.in/yaml.v3"
 )
 
@@ -76,10 +77,10 @@ func (c *Config) LLMCriteria() []Criterion {
 	return out
 }
 
-// WithLanguage returns a copy of the config whose learner-facing feedback is in lang (vi | en);
-// other values keep the configured language.
+// WithLanguage returns a copy of the config whose learner-facing feedback is in lang (a
+// supported language, internal/i18n); other values keep the configured language.
 func (c *Config) WithLanguage(lang string) *Config {
-	if lang != "vi" && lang != "en" || lang == c.Feedback.Language {
+	if !i18n.Supported(lang) || lang == c.Feedback.Language {
 		return c
 	}
 	cp := *c
@@ -203,11 +204,8 @@ func RoundHalf(v float64, mode string) float64 {
 
 // languageName turns the feedback language code into the name used in the prompt.
 func languageName(code string) string {
-	switch code {
-	case "en":
-		return "English"
-	case "vi":
-		return "Vietnamese"
+	if i18n.Supported(code) {
+		return i18n.Name(code)
 	}
 	return code
 }

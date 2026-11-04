@@ -16,6 +16,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"englishapp/backend/internal/domain"
+	"englishapp/backend/internal/i18n"
 	"englishapp/backend/internal/repository"
 	"englishapp/backend/pkg/config"
 )
@@ -100,14 +101,12 @@ func (s *AuthService) RequestPasswordReset(ctx context.Context, email string) er
 		return fmt.Errorf("store reset token: %w", err)
 	}
 	link := strings.TrimRight(s.cfg.FrontendOrigin, "/") + "/reset-password?token=" + raw
-	body := "Xin chào,\n\n" +
-		"Bạn (hoặc ai đó) vừa yêu cầu đặt lại mật khẩu SpeakUp cho " + user.Email + ".\n" +
-		"Mở link sau trong 30 phút để đặt mật khẩu mới:\n\n" + link + "\n\n" +
-		"Nếu bạn không yêu cầu, hãy bỏ qua email này; mật khẩu cũ vẫn dùng được.\n"
+	body := fmt.Sprintf(i18n.T(user.Lang, i18n.MsgResetBody), user.Email, link)
+	subject := i18n.T(user.Lang, i18n.MsgResetSubject)
 	go func(to string) {
 		sendCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		if err := s.mailer.Send(sendCtx, to, "SpeakUp: đặt lại mật khẩu", body); err != nil {
+		if err := s.mailer.Send(sendCtx, to, subject, body); err != nil {
 			log.Printf("auth: send password reset e-mail: %v", err)
 		}
 	}(user.Email)

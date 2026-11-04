@@ -29,7 +29,7 @@ func RegisterCoachRoutes(api *echo.Group, h *CoachHandler, jwtAuth *middleware.J
 type sampleRequest struct {
 	TaskType string `json:"taskType"`
 	Question string `json:"question"` // the question, or the cue card text for Part 2
-	Lang     string `json:"lang"`     // vi | en: language of the phrase meanings and tips
+	Lang     string `json:"lang"`     // language of the phrase meanings and tips (internal/i18n)
 }
 
 func coachError(err error) error {

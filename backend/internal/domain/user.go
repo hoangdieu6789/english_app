@@ -14,7 +14,7 @@ type User struct {
 	TargetGoal   *string
 	SelfBand     *float32 // learner's own estimate of their band (until measured)
 	TargetBand   *float32
-	FeedbackLang string // vi | en: language of the AI feedback
+	Lang         string // the learner's language (internal/i18n): UI, AI feedback, meanings
 	CreatedAt    time.Time
 }
 

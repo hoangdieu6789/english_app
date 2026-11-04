@@ -16,11 +16,12 @@ import (
 
 type ReviewRepository interface {
 	Upsert(ctx context.Context, userID uuid.UUID, word string, score float32) error
-	ListDue(ctx context.Context, userID uuid.UUID, limit int) ([]*domain.ReviewWord, error)
-	ListUpcoming(ctx context.Context, userID uuid.UUID, limit int) ([]*domain.ReviewWord, error)
+	// ListDue / ListUpcoming / Get return vocab meanings in lang ("" when not written yet).
+	ListDue(ctx context.Context, userID uuid.UUID, lang string, limit int) ([]*domain.ReviewWord, error)
+	ListUpcoming(ctx context.Context, userID uuid.UUID, lang string, limit int) ([]*domain.ReviewWord, error)
 	Count(ctx context.Context, userID uuid.UUID) (due, total int, err error)
 	// Get returns ErrNotFound when the word does not exist or belongs to another user.
-	Get(ctx context.Context, id, userID uuid.UUID) (*domain.ReviewWord, error)
+	Get(ctx context.Context, id, userID uuid.UUID, lang string) (*domain.ReviewWord, error)
 	UpdateSchedule(ctx context.Context, w *domain.ReviewWord) error
 	// Delete reports false when nothing was deleted.
 	Delete(ctx context.Context, id, userID uuid.UUID) (bool, error)
@@ -34,9 +35,12 @@ type VocabRepository interface {
 	Seed(ctx context.Context, words []vocab.Word) error
 	// PickNew returns up to limit words with band in (from, to] the learner has no card for
 	// and that are not in known, easiest band and most frequent first.
-	PickNew(ctx context.Context, userID uuid.UUID, from, to float32, known []string, limit int) ([]*domain.VocabWord, error)
+	PickNew(ctx context.Context, userID uuid.UUID, lang string, from, to float32, known []string, limit int) ([]*domain.VocabWord, error)
 	CountNew(ctx context.Context, userID uuid.UUID, from, to float32, known []string) (int, error)
-	SaveEnrichment(ctx context.Context, w *domain.VocabWord) error
+	// SaveEnrichment saves the shared details (first time only) and the meaning in lang.
+	SaveEnrichment(ctx context.Context, w *domain.VocabWord, lang string) error
+	// Untranslated returns the learner's vocab cards with no meaning in lang.
+	Untranslated(ctx context.Context, userID uuid.UUID, lang string, limit int) ([]*domain.VocabWord, error)
 	AddCard(ctx context.Context, userID uuid.UUID, w *domain.VocabWord) error
 	// SpokenWords returns the words the learner said well in their own free speech.
 	SpokenWords(ctx context.Context, userID uuid.UUID) ([]string, error)
@@ -60,8 +64,8 @@ func (r *reviewRepository) Upsert(ctx context.Context, userID uuid.UUID, word st
 	return r.q.UpsertReviewWord(ctx, sqlcgen.UpsertReviewWordParams{UserID: userID, Word: word, LastScore: score})
 }
 
-func (r *reviewRepository) ListDue(ctx context.Context, userID uuid.UUID, limit int) ([]*domain.ReviewWord, error) {
-	rows, err := r.q.ListDueReviewWords(ctx, sqlcgen.ListDueReviewWordsParams{UserID: userID, Limit: int32(limit)})
+func (r *reviewRepository) ListDue(ctx context.Context, userID uuid.UUID, lang string, limit int) ([]*domain.ReviewWord, error) {
+	rows, err := r.q.ListDueReviewWords(ctx, sqlcgen.ListDueReviewWordsParams{UserID: userID, Lang: lang, MaxRows: int32(limit)})
 	out := make([]*domain.ReviewWord, 0, len(rows))
 	for _, row := range rows {
 		out = append(out, toDomainReviewWord(row))
@@ -69,8 +73,8 @@ func (r *reviewRepository) ListDue(ctx context.Context, userID uuid.UUID, limit 
 	return out, err
 }
 
-func (r *reviewRepository) ListUpcoming(ctx context.Context, userID uuid.UUID, limit int) ([]*domain.ReviewWord, error) {
-	rows, err := r.q.ListUpcomingReviewWords(ctx, sqlcgen.ListUpcomingReviewWordsParams{UserID: userID, Limit: int32(limit)})
+func (r *reviewRepository) ListUpcoming(ctx context.Context, userID uuid.UUID, lang string, limit int) ([]*domain.ReviewWord, error) {
+	rows, err := r.q.ListUpcomingReviewWords(ctx, sqlcgen.ListUpcomingReviewWordsParams{UserID: userID, Lang: lang, MaxRows: int32(limit)})
 	out := make([]*domain.ReviewWord, 0, len(rows))
 	for _, row := range rows {
 		out = append(out, toDomainReviewWord(sqlcgen.ListDueReviewWordsRow(row)))
@@ -83,8 +87,8 @@ func (r *reviewRepository) Count(ctx context.Context, userID uuid.UUID) (int, in
 	return int(row.Due), int(row.Total), err
 }
 
-func (r *reviewRepository) Get(ctx context.Context, id, userID uuid.UUID) (*domain.ReviewWord, error) {
-	row, err := r.q.GetReviewWord(ctx, sqlcgen.GetReviewWordParams{ID: id, UserID: userID})
+func (r *reviewRepository) Get(ctx context.Context, id, userID uuid.UUID, lang string) (*domain.ReviewWord, error) {
+	row, err := r.q.GetReviewWord(ctx, sqlcgen.GetReviewWordParams{ID: id, UserID: userID, Lang: lang})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -138,10 +142,28 @@ func (r *reviewRepository) Seed(ctx context.Context, words []vocab.Word) error {
 	return r.q.SeedVocabWords(ctx, p)
 }
 
-func (r *reviewRepository) PickNew(ctx context.Context, userID uuid.UUID, from, to float32, known []string, limit int) ([]*domain.VocabWord, error) {
+func (r *reviewRepository) PickNew(ctx context.Context, userID uuid.UUID, lang string, from, to float32, known []string, limit int) ([]*domain.VocabWord, error) {
 	rows, err := r.q.PickNewVocabWords(ctx, sqlcgen.PickNewVocabWordsParams{
-		BandFrom: from, BandTo: to, Known: nonNil(known), UserID: userID, MaxRows: int32(limit),
+		Lang: lang, BandFrom: from, BandTo: to, Known: nonNil(known), UserID: userID, MaxRows: int32(limit),
 	})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*domain.VocabWord, 0, len(rows))
+	for _, row := range rows {
+		w := toDomainVocabWord(sqlcgen.VocabWord{
+			ID: row.ID, Word: row.Word, Source: row.Source, Rank: row.Rank, Band: row.Band,
+			Pos: row.Pos, Ipa: row.Ipa, ExampleEn: row.ExampleEn, EnrichedAt: row.EnrichedAt,
+		})
+		w.Info.Meaning, w.Info.ExampleTranslation = row.Meaning.String, row.ExampleTranslation.String
+		w.Translated = row.Meaning.Valid && row.Meaning.String != ""
+		out = append(out, w)
+	}
+	return out, nil
+}
+
+func (r *reviewRepository) Untranslated(ctx context.Context, userID uuid.UUID, lang string, limit int) ([]*domain.VocabWord, error) {
+	rows, err := r.q.ListUntranslatedVocabCards(ctx, sqlcgen.ListUntranslatedVocabCardsParams{UserID: userID, Lang: lang, MaxRows: int32(limit)})
 	if err != nil {
 		return nil, err
 	}
@@ -157,14 +179,17 @@ func (r *reviewRepository) CountNew(ctx context.Context, userID uuid.UUID, from,
 	return int(n), err
 }
 
-func (r *reviewRepository) SaveEnrichment(ctx context.Context, w *domain.VocabWord) error {
-	return r.q.UpdateVocabEnrichment(ctx, sqlcgen.UpdateVocabEnrichmentParams{
+func (r *reviewRepository) SaveEnrichment(ctx context.Context, w *domain.VocabWord, lang string) error {
+	if err := r.q.UpdateVocabEnrichment(ctx, sqlcgen.UpdateVocabEnrichmentParams{
 		ID:        w.ID,
 		Pos:       text(w.Info.POS),
 		Ipa:       text(w.Info.IPA),
-		MeaningVi: text(w.Info.MeaningVI),
 		ExampleEn: text(w.Info.ExampleEN),
-		ExampleVi: text(w.Info.ExampleVI),
+	}); err != nil {
+		return err
+	}
+	return r.q.UpsertVocabTranslation(ctx, sqlcgen.UpsertVocabTranslationParams{
+		VocabWordID: w.ID, Lang: lang, Meaning: w.Info.Meaning, ExampleTranslation: w.Info.ExampleTranslation,
 	})
 }
 
@@ -192,10 +217,9 @@ func toDomainVocabWord(row sqlcgen.VocabWord) *domain.VocabWord {
 		Rank:   int(row.Rank),
 		Band:   row.Band,
 		Info: domain.VocabInfo{
-			POS: row.Pos.String, IPA: row.Ipa.String, MeaningVI: row.MeaningVi.String,
-			ExampleEN: row.ExampleEn.String, ExampleVI: row.ExampleVi.String, Band: row.Band,
+			POS: row.Pos.String, IPA: row.Ipa.String, ExampleEN: row.ExampleEn.String, Band: row.Band,
 		},
-		Enriched: row.EnrichedAt.Valid && row.MeaningVi.Valid,
+		Enriched: row.EnrichedAt.Valid && row.ExampleEn.Valid,
 	}
 }
 
@@ -218,10 +242,14 @@ func toDomainReviewWord(row sqlcgen.ListDueReviewWordsRow) *domain.ReviewWord {
 	if row.LastReviewedAt.Valid {
 		w.LastReviewedAt = &row.LastReviewedAt.Time
 	}
+	if row.VocabWordID.Valid {
+		id := uuid.UUID(row.VocabWordID.Bytes)
+		w.VocabWordID = &id
+	}
 	if row.Kind == domain.ReviewVocab {
 		w.Vocab = &domain.VocabInfo{
-			POS: row.Pos.String, IPA: row.Ipa.String, MeaningVI: row.MeaningVi.String,
-			ExampleEN: row.ExampleEn.String, ExampleVI: row.ExampleVi.String, Band: row.Band.Float32,
+			POS: row.Pos.String, IPA: row.Ipa.String, ExampleEN: row.ExampleEn.String, Band: row.Band.Float32,
+			Meaning: row.Meaning.String, ExampleTranslation: row.ExampleTranslation.String,
 		}
 	}
 	return w

@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"englishapp/backend/internal/domain"
+	"englishapp/backend/internal/i18n"
 	"englishapp/backend/internal/service"
 )
 
@@ -82,18 +84,17 @@ func (h *PronunciationHandler) SubmitAttempt(c echo.Context) error {
 		Type:          taskType,
 		Prompt:        c.FormValue("taskPrompt"),
 		QuestionSetID: questionSetID,
-		FeedbackLang:  c.FormValue("lang"), // vi | en; anything else = rubric default
+		FeedbackLang:  attemptLang(c),
 	}
 	attempt, err := h.svc.SubmitAttempt(c.Request().Context(), uid, audioBytes, referenceText, task)
 	if err != nil {
 		log.Printf("submit attempt: user=%s task=%s: %v", uid, taskType, err)
 		var noSpeech *service.NoSpeechError
 		if errors.As(err, &noSpeech) {
-			// Learner-facing text stays in Vietnamese.
 			return echo.NewHTTPError(http.StatusUnprocessableEntity,
-				"Không nhận ra lời nói trong bản ghi (Azure: "+noSpeech.Status+"). Kiểm tra micro, nói to và rõ hơn rồi thử lại.")
+				fmt.Sprintf(i18n.T(i18n.FromRequest(c), i18n.MsgNoSpeechStatus), noSpeech.Status))
 		}
-		return echo.NewHTTPError(http.StatusInternalServerError, "Chấm điểm thất bại. Thử lại sau ít phút.")
+		return echo.NewHTTPError(http.StatusInternalServerError, i18n.T(i18n.FromRequest(c), i18n.MsgScoringFailed))
 	}
 
 	return c.JSON(http.StatusCreated, attemptJSON(attempt))
@@ -270,10 +271,10 @@ func (h *PronunciationHandler) ScoreWord(c echo.Context) error {
 	if err != nil {
 		var noSpeech *service.NoSpeechError
 		if errors.As(err, &noSpeech) {
-			return echo.NewHTTPError(http.StatusUnprocessableEntity, "Không nhận ra lời nói trong bản ghi. Nói to và rõ hơn rồi thử lại.")
+			return echo.NewHTTPError(http.StatusUnprocessableEntity, i18n.T(i18n.FromRequest(c), i18n.MsgNoSpeech))
 		}
 		log.Printf("score word: %v", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Chấm điểm thất bại. Thử lại sau ít phút.")
+		return echo.NewHTTPError(http.StatusInternalServerError, i18n.T(i18n.FromRequest(c), i18n.MsgScoringFailed))
 	}
 	score, phonemes := res.OverallScore, res.PhonemeScores
 	if len(res.WordScores) > 0 {
@@ -286,4 +287,12 @@ func (h *PronunciationHandler) ScoreWord(c echo.Context) error {
 		phonemes = []domain.PhonemeScore{}
 	}
 	return c.JSON(http.StatusOK, map[string]any{"word": word, "score": score, "heard": res.RecognizedText, "phonemes": phonemes})
+}
+
+// attemptLang: the "lang" form field, else the request language header.
+func attemptLang(c echo.Context) string {
+	if l := c.FormValue("lang"); i18n.Supported(l) {
+		return i18n.Normalize(l)
+	}
+	return i18n.FromRequest(c)
 }

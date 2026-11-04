@@ -148,12 +148,13 @@ type ReviewQueue struct {
 	Total    int
 }
 
-func (s *ReviewService) Queue(ctx context.Context, userID uuid.UUID) (*ReviewQueue, error) {
-	due, err := s.repo.ListDue(ctx, userID, 20)
+// Queue returns the due and upcoming cards with vocab meanings in lang.
+func (s *ReviewService) Queue(ctx context.Context, userID uuid.UUID, lang string) (*ReviewQueue, error) {
+	due, err := s.repo.ListDue(ctx, userID, lang, 20)
 	if err != nil {
 		return nil, fmt.Errorf("list due words: %w", err)
 	}
-	upcoming, err := s.repo.ListUpcoming(ctx, userID, 10)
+	upcoming, err := s.repo.ListUpcoming(ctx, userID, lang, 10)
 	if err != nil {
 		return nil, fmt.Errorf("list upcoming words: %w", err)
 	}
@@ -196,8 +197,8 @@ var ErrNotVocabCard = errors.New("only vocab cards are rated by the learner")
 
 // Grade schedules a vocab card from the learner's own rating: 1 forgot, 3 hard, 4 good,
 // 5 easy.
-func (s *ReviewService) Grade(ctx context.Context, userID, wordID uuid.UUID, quality int) (*domain.ReviewWord, error) {
-	w, err := s.repo.Get(ctx, wordID, userID)
+func (s *ReviewService) Grade(ctx context.Context, userID, wordID uuid.UUID, quality int, lang string) (*domain.ReviewWord, error) {
+	w, err := s.repo.Get(ctx, wordID, userID, lang)
 	if err != nil {
 		return nil, err
 	}
@@ -214,8 +215,8 @@ func (s *ReviewService) Grade(ctx context.Context, userID, wordID uuid.UUID, qua
 // Review scores the learner saying the word (Azure, the word as reference text). A
 // pronunciation card moves on the schedule; a vocab card is only scored (it is scheduled by
 // the learner's rating, Grade).
-func (s *ReviewService) Review(ctx context.Context, userID, wordID uuid.UUID, audioWAV []byte) (*ReviewResult, error) {
-	w, err := s.repo.Get(ctx, wordID, userID)
+func (s *ReviewService) Review(ctx context.Context, userID, wordID uuid.UUID, audioWAV []byte, lang string) (*ReviewResult, error) {
+	w, err := s.repo.Get(ctx, wordID, userID, lang)
 	if err != nil {
 		return nil, err
 	}

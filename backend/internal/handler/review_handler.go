@@ -10,6 +10,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"englishapp/backend/internal/domain"
+	"englishapp/backend/internal/i18n"
 	"englishapp/backend/internal/middleware"
 	"englishapp/backend/internal/repository"
 	"englishapp/backend/internal/service"
@@ -33,7 +34,7 @@ func RegisterReviewRoutes(api *echo.Group, h *ReviewHandler, jwtAuth *middleware
 	r.POST("/vocab", h.AddVocab, jwtAuth.RequireAuth)
 	api.GET("/goals", h.Goals, jwtAuth.RequireAuth)
 	api.PUT("/goals", h.SetGoals, jwtAuth.RequireAuth)
-	api.PUT("/settings/feedback-lang", h.SetFeedbackLang, jwtAuth.RequireAuth)
+	api.PUT("/settings/lang", h.SetLang, jwtAuth.RequireAuth)
 }
 
 func reviewWordJSON(w *domain.ReviewWord) map[string]any {
@@ -57,8 +58,8 @@ func reviewWordJSON(w *domain.ReviewWord) map[string]any {
 
 func vocabInfoJSON(v domain.VocabInfo) map[string]any {
 	return map[string]any{
-		"pos": v.POS, "ipa": v.IPA, "meaningVi": v.MeaningVI,
-		"exampleEn": v.ExampleEN, "exampleVi": v.ExampleVI, "band": v.Band,
+		"pos": v.POS, "ipa": v.IPA, "meaning": v.Meaning,
+		"exampleEn": v.ExampleEN, "exampleTranslation": v.ExampleTranslation, "band": v.Band,
 	}
 }
 
@@ -76,7 +77,7 @@ func (h *ReviewHandler) Grade(c echo.Context) error {
 	if err := c.Bind(&req); err != nil || req.Quality < 0 || req.Quality > 5 {
 		return echo.NewHTTPError(http.StatusBadRequest, "quality must be 0-5")
 	}
-	w, err := h.svc.Grade(c.Request().Context(), uid, id, req.Quality)
+	w, err := h.svc.Grade(c.Request().Context(), uid, id, req.Quality, i18n.FromRequest(c))
 	switch {
 	case errors.Is(err, repository.ErrNotFound):
 		return echo.NewHTTPError(http.StatusNotFound, "word not found")
@@ -94,7 +95,7 @@ func goalsJSON(g *service.Goals) map[string]any {
 		"measuredBand": g.MeasuredBand,
 		"selfBand":     g.SelfBand,
 		"targetBand":   g.TargetBand,
-		"feedbackLang": g.FeedbackLang,
+		"lang":         g.Lang,
 		"currentBand":  g.CurrentBand,
 		"bandFrom":     g.BandFrom,
 		"bandTo":       g.BandTo,
@@ -157,12 +158,13 @@ func (h *ReviewHandler) AddVocab(c echo.Context) error {
 	}
 	var req addVocabRequest
 	_ = c.Bind(&req)
-	words, err := h.vocab.AddNewWords(c.Request().Context(), uid, req.Count)
+	lang := i18n.FromRequest(c)
+	words, err := h.vocab.AddNewWords(c.Request().Context(), uid, lang, req.Count)
 	switch {
 	case errors.Is(err, service.ErrNoWordsLeft):
-		return echo.NewHTTPError(http.StatusConflict, "Đã hết từ mới trong khoảng band này. Hãy nâng band mục tiêu.")
+		return echo.NewHTTPError(http.StatusConflict, i18n.T(lang, i18n.MsgNoWordsLeft))
 	case errors.Is(err, service.ErrVocabUnenriched):
-		return echo.NewHTTPError(http.StatusServiceUnavailable, "AI chưa soạn được nghĩa cho từ mới. Thử lại sau ít phút.")
+		return echo.NewHTTPError(http.StatusServiceUnavailable, i18n.T(lang, i18n.MsgVocabUnenriched))
 	case err != nil:
 		log.Printf("add vocab: %v", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to add new words")
@@ -188,7 +190,13 @@ func (h *ReviewHandler) Queue(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	q, err := h.svc.Queue(c.Request().Context(), uid)
+	ctx, lang := c.Request().Context(), i18n.FromRequest(c)
+	// Cards added in another language get their meaning in this one first (one LLM call,
+	// only after a language change).
+	if err := h.vocab.TranslateCards(ctx, uid, lang, 20); err != nil {
+		log.Printf("review queue: translate cards: %v", err)
+	}
+	q, err := h.svc.Queue(ctx, uid, lang)
 	if err != nil {
 		log.Printf("review queue: %v", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to load review words")
@@ -236,18 +244,18 @@ func (h *ReviewHandler) Attempt(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to read audio file")
 	}
 
-	res, err := h.svc.Review(c.Request().Context(), uid, id, audio)
+	lang := i18n.FromRequest(c)
+	res, err := h.svc.Review(c.Request().Context(), uid, id, audio, lang)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return echo.NewHTTPError(http.StatusNotFound, "word not found")
 		}
 		var noSpeech *service.NoSpeechError
 		if errors.As(err, &noSpeech) {
-			return echo.NewHTTPError(http.StatusUnprocessableEntity,
-				"Không nhận ra lời nói trong bản ghi. Kiểm tra micro, nói to và rõ hơn rồi thử lại.")
+			return echo.NewHTTPError(http.StatusUnprocessableEntity, i18n.T(lang, i18n.MsgNoSpeech))
 		}
 		log.Printf("review attempt: user=%s word=%s: %v", uid, id, err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Chấm điểm thất bại. Thử lại sau ít phút.")
+		return echo.NewHTTPError(http.StatusInternalServerError, i18n.T(lang, i18n.MsgScoringFailed))
 	}
 	phonemes := make([]map[string]any, 0, len(res.Phonemes))
 	for _, p := range res.Phonemes {
@@ -279,8 +287,8 @@ func (h *ReviewHandler) Remove(c echo.Context) error {
 	return c.NoContent(http.StatusNoContent)
 }
 
-// SetFeedbackLang saves the language of the AI feedback: {"lang": "vi" | "en"}.
-func (h *ReviewHandler) SetFeedbackLang(c echo.Context) error {
+// SetLang saves the learner's language: {"lang": "<code>"} (internal/i18n).
+func (h *ReviewHandler) SetLang(c echo.Context) error {
 	uid, err := requireUserID(c)
 	if err != nil {
 		return err
@@ -291,11 +299,11 @@ func (h *ReviewHandler) SetFeedbackLang(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
 	}
-	if err := h.vocab.SetFeedbackLang(c.Request().Context(), uid, req.Lang); err != nil {
+	if err := h.vocab.SetLang(c.Request().Context(), uid, req.Lang); err != nil {
 		if errors.Is(err, service.ErrInvalidLang) {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to save the setting")
 	}
-	return c.JSON(http.StatusOK, map[string]string{"feedbackLang": req.Lang})
+	return c.JSON(http.StatusOK, map[string]string{"lang": i18n.Normalize(req.Lang)})
 }

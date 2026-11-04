@@ -2,6 +2,7 @@ package rubric
 
 import (
 	"encoding/json"
+	"englishapp/backend/internal/i18n"
 	"os"
 	"strings"
 	"testing"
@@ -235,5 +236,20 @@ func TestWithLanguage(t *testing.T) {
 	}
 	if s := en.pronunciationSummary(nil); !strings.HasPrefix(s, "Not enough data") {
 		t.Fatalf("summary %q", s)
+	}
+}
+
+// Every supported language has the code-written summary texts.
+func TestSummaryMessagesComplete(t *testing.T) {
+	for _, code := range i18n.Codes() {
+		m, ok := summaryMessages[code]
+		if !ok {
+			t.Fatalf("no summary messages for %s", code)
+		}
+		for key := range summaryMessages["en"] {
+			if m[key] == "" {
+				t.Errorf("%s: missing %s", code, key)
+			}
+		}
 	}
 }

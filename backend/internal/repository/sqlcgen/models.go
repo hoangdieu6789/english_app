@@ -37,6 +37,7 @@ type PracticeSentence struct {
 	Gloss     string             `json:"gloss"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	ServedAt  pgtype.Timestamptz `json:"served_at"`
+	GlossLang string             `json:"gloss_lang"`
 }
 
 type ProgressSnapshot struct {
@@ -136,7 +137,7 @@ type User struct {
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 	SelfBand     pgtype.Float4      `json:"self_band"`
 	TargetBand   pgtype.Float4      `json:"target_band"`
-	FeedbackLang string             `json:"feedback_lang"`
+	Lang         string             `json:"lang"`
 }
 
 type VocabGap struct {
@@ -151,6 +152,14 @@ type VocabGap struct {
 	FirstSeenAt     pgtype.Timestamptz `json:"first_seen_at"`
 }
 
+type VocabTranslation struct {
+	VocabWordID        uuid.UUID          `json:"vocab_word_id"`
+	Lang               string             `json:"lang"`
+	Meaning            string             `json:"meaning"`
+	ExampleTranslation string             `json:"example_translation"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+}
+
 type VocabWord struct {
 	ID         uuid.UUID          `json:"id"`
 	Word       string             `json:"word"`
@@ -159,8 +168,6 @@ type VocabWord struct {
 	Band       float32            `json:"band"`
 	Pos        pgtype.Text        `json:"pos"`
 	Ipa        pgtype.Text        `json:"ipa"`
-	MeaningVi  pgtype.Text        `json:"meaning_vi"`
 	ExampleEn  pgtype.Text        `json:"example_en"`
-	ExampleVi  pgtype.Text        `json:"example_vi"`
 	EnrichedAt pgtype.Timestamptz `json:"enriched_at"`
 }

@@ -12,6 +12,7 @@ type GeneratedSentence struct {
 // sentences, so swapping OpenRouter for another provider later only means
 // writing a new implementation of this interface.
 type SentenceGenerator interface {
-	// GenerateBatch returns up to n new sentences of at least minWords words each.
-	GenerateBatch(ctx context.Context, avoidRecent []string, n, minWords int) ([]GeneratedSentence, error)
+	// GenerateBatch returns up to n new sentences of at least minWords words each, with the
+	// gloss (translation) in lang (internal/i18n; empty for English).
+	GenerateBatch(ctx context.Context, avoidRecent []string, n, minWords int, lang string) ([]GeneratedSentence, error)
 }

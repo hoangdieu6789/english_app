@@ -50,7 +50,7 @@ type PronunciationAttempt struct {
 	GraderModel       *string         // model id reported by that provider
 	GradingStatus     string          // pending (LLM step running), done, failed; see migration 000007
 	TranscriptSource  *string         // azure (its own recognition) or whisper; nil for attempts before migration 000009
-	FeedbackLang      *string         // vi | en; nil = the rubric default (vi)
+	FeedbackLang      *string         // internal/i18n code; nil = the rubric default (vi)
 	ImprovedAnswer    json.RawMessage // the learner's answer rewritten by the LLM (on request); see migration 000014
 	CreatedAt         time.Time
 }
