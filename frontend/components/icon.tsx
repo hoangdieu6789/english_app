@@ -1,4 +1,5 @@
 import {
+  ArrowBigUp,
   ArrowLeft,
   ArrowRight,
   BookOpen,
@@ -8,6 +9,8 @@ import {
   ChevronUp,
   CircleCheck,
   CircleStop,
+  Eye,
+  EyeOff,
   Globe,
   History,
   House,
@@ -62,6 +65,9 @@ export const ICONS = {
   chevronDown: ChevronDown,
   chevronUp: ChevronUp,
   close: X,
+  show: Eye,
+  hide: EyeOff,
+  capsLock: ArrowBigUp,
   // actions and states
   record: Mic,
   stop: CircleStop,

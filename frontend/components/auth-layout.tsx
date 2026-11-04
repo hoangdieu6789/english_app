@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { BoltMark } from "@/components/brand";
 import { Icon, type IconName } from "@/components/icon";
@@ -40,8 +41,12 @@ export function AuthLayout({
 
       <div className="auth-card fade">
         <aside className="auth-hero">
-          <Link href="/login" aria-label={APP_NAME} style={{ display: "inline-flex", alignItems: "center", gap: 12, color: "inherit" }}>
-            <BoltMark size={44} />
+          <span className="auth-storm" aria-hidden />
+          <span className="auth-flash" aria-hidden />
+          <Link href="/login" aria-label={APP_NAME} className="auth-logo" style={{ display: "inline-flex", alignItems: "center", gap: 12, color: "inherit" }}>
+            <span className="auth-strike">
+              <BoltMark size={44} />
+            </span>
             <span style={{ font: "700 var(--text-2xl)/1 var(--font-logo)" }}>{APP_NAME}</span>
           </Link>
           <div className="auth-hero-body">
@@ -72,13 +77,22 @@ export function AuthLayout({
   );
 }
 
-/** A labelled input row (label above, optional link on the right of the label). */
+/**
+ * A labelled input row (label above, optional link on the right of the label).
+ * Password fields get a show/hide button and a Caps Lock warning.
+ */
 export function AuthField({
   id,
   label,
   aside,
+  type,
   ...input
 }: { id: string; label: string; aside?: React.ReactNode } & React.InputHTMLAttributes<HTMLInputElement>) {
+  const { t } = useI18n();
+  const [shown, setShown] = useState(false);
+  const [caps, setCaps] = useState(false);
+  const isPassword = type === "password";
+  const onKey = (e: React.KeyboardEvent<HTMLInputElement>) => setCaps(e.getModifierState("CapsLock"));
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
@@ -87,7 +101,39 @@ export function AuthField({
         </label>
         {aside}
       </div>
-      <input id={id} className="ds-input" {...input} />
+      {isPassword ? (
+        <div className="auth-pw">
+          <input
+            id={id}
+            className="ds-input"
+            type={shown ? "text" : "password"}
+            onKeyDown={onKey}
+            onKeyUp={onKey}
+            onBlur={() => setCaps(false)}
+            aria-describedby={caps ? `${id}-caps` : undefined}
+            {...input}
+          />
+          <button
+            type="button"
+            className="auth-pw-toggle"
+            onClick={() => setShown((v) => !v)}
+            aria-pressed={shown}
+            aria-controls={id}
+            aria-label={shown ? t("auth.field.hidePassword") : t("auth.field.showPassword")}
+            title={shown ? t("auth.field.hidePassword") : t("auth.field.showPassword")}
+          >
+            <Icon name={shown ? "hide" : "show"} size="md" />
+          </button>
+        </div>
+      ) : (
+        <input id={id} className="ds-input" type={type} {...input} />
+      )}
+      {isPassword && caps && (
+        <span id={`${id}-caps`} role="status" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--ds-warning)" }}>
+          <Icon name="capsLock" />
+          {t("auth.field.capsLock")}
+        </span>
+      )}
     </div>
   );
 }
