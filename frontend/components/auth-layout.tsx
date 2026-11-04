@@ -77,9 +77,11 @@ export function AuthLayout({
   );
 }
 
-// Password reveal: one big gold bolt sweeps across the field from left to right; the text is
-// uncovered right behind it (hide: the dots come back behind it). Matches the CSS (pw-*).
-const SWEEP_MS = 750;
+// Password reveal: a big bolt strikes the field from above, the field shakes, a glowing crack
+// runs left and right from the impact and opens to show the password (hide: the crack closes
+// over it). The input keeps its dots underneath; an overlay with the text is clipped. Matches
+// the CSS (pw-*).
+const SWEEP_MS = 950;
 const MAX_FX_CHARS = 32; // longer values would scroll inside the input: plain toggle
 
 /**
@@ -146,12 +148,27 @@ export function AuthField({
             {...input}
           />
           {fx && (
-            <span key={run} className="auth-pw-sweep" aria-hidden>
+            <span key={run} className="auth-pw-fx" aria-hidden>
               <span className="auth-pw-text">{value}</span>
-              <svg className="auth-pw-bolt" viewBox="0 0 400 40" preserveAspectRatio="none" focusable="false">
-                <path className="auth-pw-bolt-glow" d={BOLT_PATH} pathLength={1} />
-                <path className="auth-pw-bolt-core" d={BOLT_PATH} pathLength={1} />
+              {fx === "show" && <span className="auth-pw-impact" />}
+              <svg className="auth-pw-crack" viewBox="0 0 400 48" preserveAspectRatio="none" focusable="false">
+                {CRACK_PATHS.map((d, i) => (
+                  <g key={i}>
+                    <path className="pw-crack-glow" d={d} pathLength={1} />
+                    <path className="pw-crack-core" d={d} pathLength={1} />
+                  </g>
+                ))}
               </svg>
+              {fx === "show" && (
+                <svg className="auth-pw-bolt" viewBox="0 0 40 100" focusable="false">
+                  {BOLT_PATHS.map((d, i) => (
+                    <g key={i}>
+                      <path className="pw-bolt-glow" d={d} pathLength={1} />
+                      <path className="pw-bolt-core" d={d} pathLength={1} />
+                    </g>
+                  ))}
+                </svg>
+              )}
             </span>
           )}
           <button
@@ -182,8 +199,16 @@ export function AuthField({
   );
 }
 
-// A jagged horizontal bolt across the field (viewBox 400 x 40, stretched to the input).
-const BOLT_PATH = "M0 21 L28 16 L36 24 L74 13 L83 22 L118 18 L124 27 L163 15 L178 21 L214 11 L223 23 L262 17 L271 26 L311 14 L322 21 L356 17 L364 24 L400 20";
+// The bolt (viewBox 40 x 100): it lands at the bottom centre = the impact point on the field.
+const BOLT_PATHS = ["M26 0 L15 36 L27 39 L12 70 L23 72 L20 100", "M15 36 L5 50 L8 58", "M12 70 L3 80"];
+// The crack (viewBox 400 x 48, stretched to the field) runs from the impact (x 120) both ways.
+const CRACK_PATHS = [
+  "M120 24 L104 21 L92 28 L70 22 L55 27 L30 21 L12 26 L0 23",
+  "M120 24 L138 28 L152 20 L180 27 L205 21 L236 28 L262 22 L290 27 L318 21 L345 26 L372 22 L400 24",
+  "M152 20 L160 10",
+  "M70 22 L63 13",
+  "M236 28 L243 38",
+];
 
 /** Centered line under the submit button ("No account yet? Sign up"). */
 export function AuthSwitch({ text, href, link }: { text: string; href: string; link: string }) {

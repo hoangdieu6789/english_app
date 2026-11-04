@@ -833,33 +833,37 @@ a:hover {
   transform: none;
 }
 
-/* Password reveal (components/auth-layout.tsx AuthField): one big gold bolt is drawn across the
-   field from left to right in 0.65 s, and an overlay with the text is uncovered right behind its
-   tip (hide: the overlay is wiped away and the dots come back behind the tip). The field glows
-   while the bolt crosses. Reduced motion: plain toggle (the component skips the effect). */
+/* Password reveal (components/auth-layout.tsx AuthField): a big bolt strikes the field from
+   above (0-220 ms), the field flashes and shakes, a glowing crack runs out from the impact
+   (220-480 ms) and opens to show the password (300-800 ms), then the crack cools and fades.
+   Hide: the crack appears and closes over the text, the dots come back. Reduced motion: plain
+   toggle (the component skips all of it). */
 .auth-pw {
-  --pw-sweep: 750ms;
-  --pw-curve: cubic-bezier(0.65, 0, 0.35, 1);
+  --pw-hit: 220ms;
+  --pw-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 .auth-pw-toggle {
   z-index: 4;
 }
-.auth-pw[data-fx] .ds-input {
-  animation: pw-field var(--pw-sweep) ease-out both;
+.auth-pw[data-fx="show"] {
+  animation: pw-shake 0.32s ease-out var(--pw-hit) both;
 }
-.auth-pw-sweep {
+.auth-pw[data-fx="show"] .ds-input {
+  animation: pw-field 0.9s ease-out var(--pw-hit) both;
+}
+.auth-pw-fx {
   position: absolute;
-  inset: 1px 1px 1px 1px;
-  z-index: 2;
+  inset: 0;
+  z-index: 3;
   pointer-events: none;
 }
 /* Same padding and font as .ds-input: the overlay text sits exactly on the real text. */
 .auth-pw-text {
   position: absolute;
-  inset: 0;
+  inset: 1px;
   display: flex;
   align-items: center;
-  padding: 0 52px 0 14px;
+  padding: 0 51px 0 13px;
   border-radius: calc(var(--ds-radius-lg) - 1px);
   background: var(--ds-surface);
   font: 450 var(--text-sm) var(--font-sans);
@@ -868,64 +872,127 @@ a:hover {
   overflow: hidden;
 }
 .auth-pw[data-fx="show"] .auth-pw-text {
-  animation: pw-uncover var(--pw-sweep) var(--pw-curve) both;
+  animation: pw-open 0.5s var(--pw-ease) 300ms both;
 }
 .auth-pw[data-fx="hide"] .auth-pw-text {
-  animation: pw-cover-off var(--pw-sweep) var(--pw-curve) both;
+  animation: pw-close 0.45s cubic-bezier(0.64, 0, 0.78, 0) 150ms both;
 }
-.auth-pw-bolt {
+.auth-pw-impact {
   position: absolute;
-  left: -2px;
-  right: -2px;
-  top: 2px;
-  bottom: 2px;
-  width: calc(100% + 4px);
-  height: calc(100% - 4px);
-  overflow: visible;
-  animation: pw-bolt-out var(--pw-sweep) ease-out both;
+  left: 30%;
+  top: 50%;
+  width: 180px;
+  height: 90px;
+  margin: -45px 0 0 -90px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--ds-hero-flash), var(--ds-bolt-glow) 45%, transparent);
+  opacity: 0;
+  animation: pw-impact 0.6s ease-out var(--pw-hit) both;
 }
+.auth-pw-crack {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.auth-pw-crack path,
 .auth-pw-bolt path {
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
-  animation: pw-grow var(--pw-sweep) var(--pw-curve) both;
 }
-.auth-pw-bolt-glow {
+.pw-crack-glow {
   stroke: var(--ds-bolt-glow);
-  stroke-width: 10;
+  stroke-width: 8;
+  filter: blur(2px);
+}
+.pw-crack-core {
+  stroke: var(--ds-bolt-fill);
+  stroke-width: 2.5;
+}
+.auth-pw[data-fx="show"] .auth-pw-crack path {
+  animation: pw-draw 0.26s cubic-bezier(0.3, 0.7, 0.4, 1) var(--pw-hit) both;
+}
+.auth-pw[data-fx="show"] .auth-pw-crack {
+  animation: pw-cool 0.95s linear both;
+}
+.auth-pw[data-fx="hide"] .auth-pw-crack path {
+  animation: pw-draw 0.18s ease-out both;
+}
+.auth-pw[data-fx="hide"] .auth-pw-crack {
+  animation: pw-cool-hide 0.95s linear both;
+}
+.auth-pw-bolt {
+  position: absolute;
+  left: 30%;
+  top: calc(50% - 110px);
+  width: 44px;
+  height: 110px;
+  margin-left: -22px;
+  overflow: visible;
+  animation: pw-bolt 0.62s linear both;
+}
+.pw-bolt-glow {
+  stroke: var(--ds-bolt-glow);
+  stroke-width: 9;
   filter: blur(3px);
 }
-.auth-pw-bolt-core {
+.pw-bolt-core {
   stroke: var(--ds-bolt-fill);
-  stroke-width: 3;
+  stroke-width: 3.5;
+}
+.auth-pw[data-fx="show"] .auth-pw-bolt path {
+  animation: pw-draw var(--pw-hit) cubic-bezier(0.55, 0, 1, 0.45) both;
 }
 
-/* The bolt grows from the left edge to the right edge, then flashes and fades. */
-@keyframes pw-grow {
-  from { stroke-dashoffset: 1; }
+@keyframes pw-draw {
   to { stroke-dashoffset: 0; }
 }
-@keyframes pw-bolt-out {
-  0%, 62% { opacity: 1; }
-  70% { opacity: 0.35; }
-  77% { opacity: 1; }
+@keyframes pw-bolt {
+  0%, 40% { opacity: 1; }
+  48% { opacity: 0.3; }
+  56% { opacity: 1; }
   100% { opacity: 0; }
 }
-@keyframes pw-uncover {
-  from { clip-path: inset(0 100% 0 0); }
-  to { clip-path: inset(0 0 0 0); }
+@keyframes pw-impact {
+  0% { opacity: 0; transform: scale(0.3); }
+  15% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.5); }
 }
-@keyframes pw-cover-off {
-  from { clip-path: inset(0 0 0 0); }
-  to { clip-path: inset(0 0 0 100%); }
+@keyframes pw-shake {
+  0%, 100% { transform: none; }
+  20% { transform: translate(-3px, 2px); }
+  40% { transform: translate(3px, -1px); }
+  60% { transform: translate(-2px, 1px); }
+  80% { transform: translate(1px, 0); }
 }
 @keyframes pw-field {
   0% { box-shadow: 0 0 0 0 transparent; }
-  30% { box-shadow: 0 0 0 4px var(--ds-bolt-glow), 0 0 26px var(--ds-bolt-glow); border-color: var(--ds-bolt-fill); }
+  15% { box-shadow: 0 0 0 4px var(--ds-bolt-glow), 0 0 30px var(--ds-bolt-glow); border-color: var(--ds-bolt-fill); }
   100% { box-shadow: 0 0 0 0 transparent; }
 }
+/* The crack opens from its centre line: the text is clipped to a band that grows. */
+@keyframes pw-open {
+  0% { clip-path: inset(50% 0 50% 0); text-shadow: 0 0 12px var(--ds-bolt-glow); color: var(--ds-bolt); }
+  60% { clip-path: inset(0 0 0 0); color: var(--ds-bolt); text-shadow: 0 0 10px var(--ds-bolt-glow); }
+  100% { clip-path: inset(0 0 0 0); color: var(--ds-text); text-shadow: none; }
+}
+@keyframes pw-close {
+  from { clip-path: inset(0 0 0 0); }
+  to { clip-path: inset(50% 0 50% 0); }
+}
+@keyframes pw-cool {
+  0%, 55% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes pw-cool-hide {
+  0%, 60% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 
 
 
