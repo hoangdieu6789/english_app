@@ -42,8 +42,8 @@
 
   /* Text */
   --ds-text: #3a3846;
-  --ds-text-secondary: #504c63;
-  --ds-text-muted: #5c5870;
+  --ds-text-secondary: #4d4a44; /* warm neutral, no purple cast */
+  --ds-text-muted: #605b53;
   --ds-text-disabled: #8a8599;
   --ds-text-on-primary: #ffffff;
 
@@ -57,8 +57,8 @@
   --ds-primary-hover: #533ab0;
   --ds-primary-active: #452f96;
   --ds-primary-edge: #3e2a8c; /* 3D edge under buttons */
-  --ds-primary-50: #f1ecfd;
-  --ds-primary-100: #e3dbfa;
+  --ds-primary-50: #f4f1ea; /* selected / tinted surfaces: warm, not purple */
+  --ds-primary-100: #ece6d6;
   --ds-primary-contrast: #ffffff;
   --ds-bolt: #7a6510; /* bolt as text / stroke on parchment */
   --ds-bolt-fill: #f2c94c; /* bolt shape fill (decoration) */
@@ -89,11 +89,12 @@
   --ds-focus-ring: 0 0 0 3px #f2c94c;
 
   /* Hero panels: a night-sky purple card with a gold bolt, in both themes */
-  --ds-hero-bg: linear-gradient(150deg, #3e2a8c 0%, #644ac9 100%);
-  --ds-hero-text: #ffffff;
-  --ds-hero-text-muted: rgba(255, 255, 255, 0.88);
-  --ds-hero-chip: rgba(255, 255, 255, 0.16);
-  --ds-hero-track: rgba(255, 255, 255, 0.25);
+  /* Hero panels: a light parchment wash; purple is kept for the main button only. */
+  --ds-hero-bg: linear-gradient(150deg, #fbf3d9 0%, #f3eefb 100%);
+  --ds-hero-text: #3a3846;
+  --ds-hero-text-muted: #605b53;
+  --ds-hero-chip: rgba(58, 56, 70, 0.06);
+  --ds-hero-track: rgba(58, 56, 70, 0.12);
   --ds-hero-storm: rgba(242, 201, 76, 0.28);
   --ds-hero-flash: rgba(255, 255, 255, 0.9);
   --ds-pw-flash: #fff3bf;
@@ -138,8 +139,8 @@
   --ds-surface-inverse: #f8f8f2;
 
   --ds-text: #e2e2ea;
-  --ds-text-secondary: #c3c8e0;
-  --ds-text-muted: #aab1d3;
+  --ds-text-secondary: #d0d0d6;
+  --ds-text-muted: #b4b4bd;
   --ds-text-disabled: #6e7598;
   --ds-text-on-primary: #21222c;
 
@@ -151,8 +152,8 @@
   --ds-primary-hover: #cdaafb;
   --ds-primary-active: #d9bdfc;
   --ds-primary-edge: #5b3f9e;
-  --ds-primary-50: #2f2a45;
-  --ds-primary-100: #3b2e5a;
+  --ds-primary-50: #2e303c;
+  --ds-primary-100: #3a3c4a;
   --ds-primary-contrast: #21222c;
   --ds-bolt: #f1fa8c;
   --ds-bolt-fill: #f1fa8c;
@@ -180,11 +181,11 @@
   --ds-focus: #f1fa8c;
   --ds-focus-ring: 0 0 0 3px #f1fa8c;
 
-  --ds-hero-bg: linear-gradient(150deg, #2f2a45 0%, #4a3a7a 100%);
+  --ds-hero-bg: linear-gradient(150deg, #30323f 0%, #2a2c38 100%);
   --ds-hero-text: #f8f8f2;
-  --ds-hero-text-muted: rgba(248, 248, 242, 0.86);
+  --ds-hero-text-muted: #c9c9d1;
   --ds-hero-chip: rgba(248, 248, 242, 0.12);
-  --ds-hero-track: rgba(248, 248, 242, 0.22);
+  --ds-hero-track: rgba(248, 248, 242, 0.14);
   --ds-hero-storm: rgba(241, 250, 140, 0.16);
   --ds-hero-flash: rgba(248, 248, 242, 0.7);
   --ds-pw-flash: #4a4a3a;
@@ -485,9 +486,12 @@ a:hover {
   color: var(--ds-text);
 }
 .navitem[aria-current="page"] {
-  background: var(--ds-primary-50);
-  color: var(--ds-primary);
+  background: var(--ds-surface-muted);
+  color: var(--ds-text);
   font-weight: 800;
+}
+.navitem[aria-current="page"] .ds-icon {
+  color: var(--ds-primary);
 }
 
 /* Square icon button in the header (theme toggle, account on phones). */
@@ -583,7 +587,8 @@ a:hover {
   border-radius: var(--ds-radius-2xl);
   background: var(--ds-hero-bg);
   color: var(--ds-hero-text);
-  box-shadow: 0 var(--ds-depth) 0 var(--ds-primary-edge);
+  border: 1px solid var(--ds-border);
+  box-shadow: 0 var(--ds-depth) 0 var(--ds-border);
 }
 .dash-hero-text {
   grid-area: text;
@@ -707,8 +712,11 @@ a:hover {
     position: relative;
   }
   .app-bottomnav a[aria-current="page"] {
+    color: var(--ds-text);
+    background: var(--ds-surface-muted);
+  }
+  .app-bottomnav a[aria-current="page"] .ds-icon {
     color: var(--ds-primary);
-    background: var(--ds-primary-50);
   }
   .app-bottomnav i {
     font-size: 20px;
@@ -741,6 +749,7 @@ a:hover {
   overflow: hidden;
 }
 .auth-hero {
+  border-right: 1px solid var(--ds-border);
   padding: 40px;
   display: flex;
   flex-direction: column;
@@ -1090,6 +1099,8 @@ a:hover {
   }
   /* Phones: logo + headline only; the form follows right away. */
   .auth-hero {
+    border-right: none;
+    border-bottom: 1px solid var(--ds-border);
     padding: 22px 20px;
     gap: 14px;
   }

@@ -166,7 +166,7 @@ export default function DashboardPage() {
             <button
               onClick={() => router.push("/practice")}
               className="ds-btn"
-              style={{ marginTop: 16, background: "var(--ds-surface)", color: "var(--ds-primary)", borderColor: "var(--ds-surface)", boxShadow: "0 4px 0 var(--ds-primary-edge)" }}
+              style={{ marginTop: 16 }}
             >
               <Icon name="record" />
               <span>{t("dashboard.hero.start")}</span>

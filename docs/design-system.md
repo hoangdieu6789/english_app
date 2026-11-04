@@ -37,6 +37,13 @@ IELTS criteria are Hogwarts houses (bar color + small eyebrow label; the criteri
 label): Fluency = Gryffindor `--ds-house-fc`, Vocabulary = Ravenclaw `--ds-house-lr`,
 Grammar = Slytherin `--ds-house-gra`, Pronunciation = Hufflepuff `--ds-house-pron`.
 
+### Using purple
+
+Purple is the accent only: primary buttons, links, the active nav icon, the focus of a choice.
+Big surfaces never use it: hero panels are a light parchment wash (light) or charcoal (dark),
+selected items use a warm neutral background, and grey text is a warm neutral (no purple cast).
+`npm run check-ui` checks text on both ends of the hero gradient.
+
 ## Type
 
 | Use | Font | Token sizes |

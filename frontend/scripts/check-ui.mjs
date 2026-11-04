@@ -48,7 +48,6 @@ PAIRS.push(
   ["--ds-warning", "--ds-warning-bg", 4.5],
   ["--ds-danger", "--ds-danger-bg", 4.5],
   ["--ds-info", "--ds-info-bg", 4.5],
-  ["--ds-hero-text", "--ds-logo-tile", 4.5],
   ["--ds-logo-bolt-from", "--ds-logo-tile", 3], // logo bolt (graphic, 3:1)
   ["--ds-logo-bolt-to", "--ds-logo-tile", 3],
   ["--ds-focus", "--ds-surface", 3], // focus ring (non-text, 3:1)
@@ -57,6 +56,23 @@ PAIRS.push(
 );
 
 let failed = 0;
+// Hero panels: text on both ends of the --ds-hero-bg gradient.
+for (const [name, theme] of [["light", light], ["dark", dark]]) {
+  const stops = (theme["--ds-hero-bg"] || "").match(/#[0-9a-f]{6}/gi) || [];
+  if (stops.length < 2) {
+    failed++;
+    console.log(`FAIL ${name}: --ds-hero-bg needs two hex stops`);
+  }
+  for (const stop of stops) {
+    for (const [fg, min] of [["--ds-hero-text", 4.5], ["--ds-hero-text-muted", 4.5], ["--ds-primary", 3]]) {
+      const r = ratio(hex(theme, fg), stop);
+      if (r < min) {
+        failed++;
+        console.log(`FAIL contrast ${name}: ${fg} on hero ${stop} = ${r.toFixed(2)} (min ${min})`);
+      }
+    }
+  }
+}
 for (const [name, theme] of [["light", light], ["dark", dark]]) {
   for (const [fg, bg, min] of PAIRS) {
     const r = ratio(hex(theme, fg), hex(theme, bg));
