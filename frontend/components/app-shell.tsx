@@ -11,17 +11,18 @@ import { authApi } from "@/lib/auth-api";
 import { useSessionStore } from "@/lib/session-store";
 import { useLogout } from "@/lib/use-logout";
 import { setThemeMode, useResolvedDark } from "@/lib/theme";
-import { Brand, BoltMark } from "@/components/brand";
+import { Brand } from "@/components/brand";
+import { Icon, type IconName } from "@/components/icon";
 import { isLang, useI18n } from "@/lib/i18n";
 
 type PageKey = "dashboard" | "practice" | "history" | "review" | "progress" | "settings";
 
-const NAV_ITEMS: { key: PageKey; href: string; icon: string }[] = [
-  { key: "dashboard", href: "/dashboard", icon: "pi pi-home" },
-  { key: "practice", href: "/practice", icon: "pi pi-microphone" },
-  { key: "history", href: "/history", icon: "pi pi-history" },
-  { key: "review", href: "/review", icon: "pi pi-book" },
-  { key: "progress", href: "/progress", icon: "pi pi-chart-line" },
+const NAV_ITEMS: { key: PageKey; href: string; icon: IconName }[] = [
+  { key: "dashboard", href: "/dashboard", icon: "home" },
+  { key: "practice", href: "/practice", icon: "practice" },
+  { key: "history", href: "/history", icon: "history" },
+  { key: "review", href: "/review", icon: "review" },
+  { key: "progress", href: "/progress", icon: "progress" },
 ];
 // Pages reached from the account menu, not from the main nav.
 const OTHER_PAGES: { key: PageKey; href: string }[] = [{ key: "settings", href: "/settings" }];
@@ -103,11 +104,11 @@ function AccountMenu({ placement, onClose }: { placement: "up" | "down"; onClose
   return (
     <div id={`account-menu-${placement}`} role="menu" className={`app-menu app-menu-${placement}`}>
       <Link href="/settings" role="menuitem" className="navitem" onClick={onClose}>
-        <i className="pi pi-cog" aria-hidden style={{ width: 20 }} />
+        <Icon name="settings" size="md" />
         <span>{t("nav.settings")}</span>
       </Link>
       <button type="button" role="menuitem" className="navitem" onClick={logout}>
-        <i className="pi pi-sign-out" aria-hidden style={{ width: 20 }} />
+        <Icon name="logout" size="md" />
         <span>{t("nav.logout")}</span>
       </button>
     </div>
@@ -121,7 +122,7 @@ function ThemeToggle() {
   const label = dark ? t("nav.toLight") : t("nav.toDark");
   return (
     <button type="button" className="app-iconbtn" onClick={() => setThemeMode(dark ? "light" : "dark")} aria-label={label} title={label}>
-      <i className={dark ? "pi pi-sun" : "pi pi-moon"} aria-hidden />
+      <Icon name={dark ? "light" : "dark"} size="md" />
     </button>
   );
 }
@@ -196,8 +197,8 @@ export function AppShell({ children, width = 1120 }: { children: React.ReactNode
         whiteSpace: "nowrap",
       }}
     >
-      <span style={streak > 0 ? { animation: "bolt-flicker 1.2s ease-out 1", display: "inline-flex" } : { display: "inline-flex" }}>
-        <BoltMark size={18} tile={false} />
+      <span style={{ display: "inline-flex", color: streak > 0 ? "var(--ds-bolt)" : "inherit", animation: streak > 0 ? "bolt-flicker 1.2s ease-out 1" : undefined }}>
+        <Icon name="streak" />
       </span>
       <span className="app-desktop-only" aria-hidden>
         {streakLabel}
@@ -227,7 +228,7 @@ export function AppShell({ children, width = 1120 }: { children: React.ReactNode
             const active = item.key === page;
             return (
               <Link key={item.key} href={item.href} className="navitem" aria-current={active ? "page" : undefined}>
-                <i className={item.icon} aria-hidden style={{ fontSize: 18, width: 20 }} />
+                <Icon name={item.icon} size="md" />
                 <span>{t(`nav.${item.key}`)}</span>
                 {item.key === "review" && reviewDue > 0 && <Badge n={reviewDue} />}
               </Link>
@@ -255,7 +256,7 @@ export function AppShell({ children, width = 1120 }: { children: React.ReactNode
                 {band > 0 ? t("nav.band30", { band: band.toFixed(1) }) : t("nav.noBand")}
               </span>
             </span>
-            <i className={menu === "up" ? "pi pi-angle-down" : "pi pi-angle-up"} aria-hidden style={{ color: "var(--ds-text-muted)" }} />
+            <Icon name={menu === "up" ? "chevronDown" : "chevronUp"} style={{ color: "var(--ds-text-muted)" }} />
           </button>
         </div>
       </aside>
@@ -281,7 +282,7 @@ export function AppShell({ children, width = 1120 }: { children: React.ReactNode
                 aria-label={t("nav.account")}
                 onClick={() => setMenu(menu === "down" ? "" : "down")}
               >
-                <i className={menu === "down" ? "pi pi-times" : "pi pi-user"} aria-hidden />
+                <Icon name={menu === "down" ? "close" : "user"} size="md" />
               </button>
               {menu === "down" && <AccountMenu placement="down" onClose={closeMenu} />}
             </div>
@@ -306,7 +307,7 @@ export function AppShell({ children, width = 1120 }: { children: React.ReactNode
           const active = item.key === page;
           return (
             <Link key={item.key} href={item.href} aria-current={active ? "page" : undefined}>
-              <i className={item.icon} aria-hidden />
+              <Icon name={item.icon} size="md" />
               <span>{t(`nav.${item.key}`)}</span>
               {item.key === "review" && reviewDue > 0 && <Badge n={reviewDue} small />}
             </Link>

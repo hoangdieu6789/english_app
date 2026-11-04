@@ -34,7 +34,11 @@
   --ds-surface-muted: #f3efda;
   --ds-surface-hover: #ede7cf;
   --ds-surface-inverse: #282a36;
-  --ds-logo-tile: #282a36;
+  /* Logo = the studio tab icon (app/icon.svg), same in both themes. */
+  --ds-logo-tile: #44475a;
+  --ds-logo-edge: #282a36;
+  --ds-logo-bolt-from: #f1fa8c;
+  --ds-logo-bolt-to: #ffb86c;
 
   /* Text */
   --ds-text: #3a3846;
@@ -129,7 +133,6 @@
   --ds-surface-muted: #343746;
   --ds-surface-hover: #3b3e51;
   --ds-surface-inverse: #f8f8f2;
-  --ds-logo-tile: #3b2e5a;
 
   --ds-text: #e2e2ea;
   --ds-text-secondary: #c3c8e0;
@@ -204,6 +207,15 @@
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: none; }
 }
+/* Line icons (components/icon.tsx) sit on the text line. */
+.ds-icon {
+  flex: none;
+  vertical-align: -0.15em;
+}
+.ds-spin {
+  animation: spin 1s linear infinite;
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }

@@ -11,6 +11,7 @@ import { fetchPronunciationAttempt, resolveAudioUrl } from "@/lib/pronunciation-
 import { scoreColor } from "@/lib/score-color";
 import { useI18n } from "@/lib/i18n";
 import { formatDateTime, taskLabel } from "@/lib/task-labels";
+import { Icon } from "@/components/icon";
 
 const IELTS = ["part1", "part2", "part3"];
 
@@ -31,7 +32,7 @@ export default function AttemptPage() {
     <AppShell width={860}>
       <div className="fade" style={{ maxWidth: 860, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
         <Link href="/history" style={{ fontSize: "var(--text-sm)", color: "var(--ds-primary)", fontWeight: 600, textDecoration: "none" }}>
-          <i className="pi pi-arrow-left" style={{ fontSize: "var(--text-xs)", marginRight: 6 }} />
+          <Icon name="back" style={{ marginRight: 6 }} />
           {t("history.back")}
         </Link>
         {q.isLoading && <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{t("common.loading")}</div>}

@@ -53,8 +53,15 @@ component: use `var(--text-*)`.
 - Cards: 16px radius, thick bottom edge `--ds-depth` (6px), crisp in light mode.
 - Buttons: 48px tall (44px small), edge `--ds-primary-edge`, press down on click.
 - Phones (< 900px): bottom tab bar, account menu in the top bar, grids become one column.
-- Bolt motif: logo (`components/brand.tsx`), streak chip (flickers once), recording glow, daily
-  goal ring, empty states. Our own SVGs only. Not on nav items or buttons.
+- Logo and tab icon: the David Studio bolt (the same `favicon.ico`, `icon.svg`, `apple-icon.png`,
+  `icon-192/512.png` as the hub and vim-practice; copy them from `david_studio/apps/hub`, never
+  redraw). `BoltMark` in `components/brand.tsx` draws the same mark from `--ds-logo-*` tokens, the
+  same in light and dark. It is the only filled mark in the UI.
+- Icons: Lucide line icons only, through `components/icon.tsx` (`<Icon name=... />`, one meaning =
+  one icon, sizes sm 16 / md 20 / lg 24; `IconTile` for stat icons). `npm run check-ui` fails on
+  icon fonts or direct `lucide-react` imports.
+- Bolt motif elsewhere: streak icon (flickers once), recording glow, daily goal ring, empty states.
+  Not on nav items or buttons.
 
 ## Layout
 

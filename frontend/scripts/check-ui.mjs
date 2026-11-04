@@ -48,9 +48,11 @@ PAIRS.push(
   ["--ds-danger", "--ds-danger-bg", 4.5],
   ["--ds-info", "--ds-info-bg", 4.5],
   ["--ds-hero-text", "--ds-logo-tile", 4.5],
-  ["--ds-bolt-fill", "--ds-logo-tile", 3], // logo bolt (graphic, 3:1)
+  ["--ds-logo-bolt-from", "--ds-logo-tile", 3], // logo bolt (graphic, 3:1)
+  ["--ds-logo-bolt-to", "--ds-logo-tile", 3],
   ["--ds-focus", "--ds-surface", 3], // focus ring (non-text, 3:1)
   ["--ds-border-strong", "--ds-surface", 1.5],
+  ["--ds-bolt", "--ds-primary-50", 3], // streak icon on the streak chip (graphic, 3:1)
 );
 
 let failed = 0;
@@ -83,6 +85,15 @@ for (const dir of ["app", "components"]) {
           failed++;
           console.log(`FAIL raw color ${rel}:${i + 1}: ${line.trim().slice(0, 100)}`);
         }
+        // Icons: one set, one registry (components/icon.tsx).
+        if (/\bpi pi-|<i className=/.test(line)) {
+          failed++;
+          console.log(`FAIL icon font ${rel}:${i + 1}: use <Icon name=... /> from components/icon.tsx`);
+        }
+        if (/from "lucide-react"/.test(line) && rel !== "components/icon.tsx") {
+          failed++;
+          console.log(`FAIL direct lucide import ${rel}:${i + 1}: add the icon to ICONS in components/icon.tsx`);
+        }
         const px = line.match(/fontSize: (\d+(?:\.\d+)?)\b|font: ["`]\d{3} (\d+(?:\.\d+)?)px/);
         if (px && !ALLOW_PX_FONT.has(rel)) {
           const v = Number(px[1] ?? px[2]);
@@ -102,5 +113,5 @@ if (!reduced) {
   console.log("FAIL no prefers-reduced-motion rule in globals.css");
 }
 
-console.log(failed ? `\n${failed} problem(s)` : `check-ui: OK (${PAIRS.length} color pairs x 2 themes, no raw colors or px fonts)`);
+console.log(failed ? `\n${failed} problem(s)` : `check-ui: OK (${PAIRS.length} color pairs x 2 themes, no raw colors, px fonts or stray icons)`);
 process.exit(failed ? 1 : 0);

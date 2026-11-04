@@ -7,6 +7,7 @@ import { hasMessage, useI18n, type MessageKey } from "@/lib/i18n";
 import { phonemeToIpa } from "@/lib/phonemes";
 import { progressQuery, type ProgressSummary } from "@/lib/progress-api";
 import { scoreColor } from "@/lib/score-color";
+import { IconTile, type IconName, type IconTone } from "@/components/icon";
 
 // All numbers come from the learner's own attempts (GET /api/progress/summary).
 
@@ -72,24 +73,24 @@ function StatCards({ p }: { p: ProgressSummary }) {
   const cards = [
     {
       label: t("progress.stat.streak"),
-      icon: "pi pi-bolt",
-      color: "var(--ds-warning)",
+      icon: "streak" as IconName,
+      tone: "warning" as IconTone,
       value: String(p.streak),
       unit: t("progress.stat.days"),
       note: t("progress.stat.activeDays", { n: p.activeDays }),
     },
     {
       label: t("progress.stat.attempts"),
-      icon: "pi pi-microphone",
-      color: "var(--ds-info)",
+      icon: "practice" as IconName,
+      tone: "info" as IconTone,
       value: String(p.attempts),
       unit: "",
       note: t("progress.stat.today", { n: p.attemptsToday }),
     },
     {
       label: t("progress.stat.accuracy30"),
-      icon: "pi pi-chart-line",
-      color: "var(--ds-primary)",
+      icon: "accuracy" as IconName,
+      tone: "primary" as IconTone,
       value: p.last30Days.attempts ? String(Math.round(p.last30Days.accuracy)) : "—",
       unit: p.last30Days.attempts ? "/100" : "",
       note: p.last30Days.attempts
@@ -98,8 +99,8 @@ function StatCards({ p }: { p: ProgressSummary }) {
     },
     {
       label: t("progress.stat.band30"),
-      icon: "pi pi-star",
-      color: "var(--ds-success)",
+      icon: "band" as IconName,
+      tone: "success" as IconTone,
       value: p.last30Days.banded ? formatBand(p.last30Days.band) : "—",
       unit: "",
       note: p.last30Days.banded ? t("progress.stat.bandedCount", { n: p.last30Days.banded }) : t("progress.stat.noBanded"),
@@ -109,8 +110,8 @@ function StatCards({ p }: { p: ProgressSummary }) {
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
       {cards.map((s) => (
         <div key={s.label} className="ds-card" style={{ padding: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, color: s.color }}>
-            <i className={s.icon} />
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <IconTile name={s.icon} tone={s.tone} />
             <span style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{s.label}</span>
           </div>
           <div style={{ font: "700 var(--text-3xl)/1.3 var(--font-display)", marginTop: 6 }}>

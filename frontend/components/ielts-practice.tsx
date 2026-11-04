@@ -24,6 +24,7 @@ import { scoreColor } from "@/lib/score-color";
 import { speakEnglish } from "@/lib/text-to-speech";
 import { MAX_ANSWER_SECONDS, formatSecs, useRecorder } from "@/lib/use-recorder";
 import { useI18n } from "@/lib/i18n";
+import { Icon } from "@/components/icon";
 
 const PREP_SECONDS = 60; // Part 2 preparation time, as in the real test
 
@@ -202,13 +203,13 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
           <>
             <div style={{ color: "var(--ds-danger)", marginBottom: 12 }}>{t("ielts.loadFailed", { error: next.error.message })}</div>
             <button onClick={() => next.refetch()} className="ds-btn ds-btn-outline ds-btn-sm">
-              <i className="pi pi-refresh" />
+              <Icon name="refresh" />
               <span>{t("common.retry")}</span>
             </button>
           </>
         ) : (
           <span>
-            <i className="pi pi-spinner" style={{ animation: "spin 1s linear infinite", marginRight: 8 }} />
+            <Icon name="loading" spin style={{ marginRight: 8 }} />
             {t("ielts.loadingSet")}
           </span>
         )}
@@ -253,12 +254,12 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
           </div>
           <div style={{ display: "flex", gap: 4 }}>
             <button onClick={() => setShowDone((v) => !v)} disabled={busy} className="ds-btn ds-btn-text ds-btn-sm" aria-expanded={showDone}>
-              <i className="pi pi-history" />
+              <Icon name="history" />
               <span>{t("ielts.doneSets")}</span>
             </button>
             <button onClick={newSet} disabled={busy} className="ds-btn ds-btn-text ds-btn-sm">
               <span>{t("ielts.otherTopic")}</span>
-              <i className="pi pi-refresh" />
+              <Icon name="refresh" />
             </button>
           </div>
         </div>
@@ -327,7 +328,7 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
           )}
           <div>
             <button onClick={() => speakEnglish(question)} className="ds-btn ds-btn-outline ds-btn-sm" style={{ marginTop: 14 }}>
-              <i className="pi pi-volume-up" />
+              <Icon name="listen" />
               <span>{t("ielts.listenQuestion")}</span>
             </button>
           </div>
@@ -380,12 +381,12 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
               <div style={{ display: "flex", gap: 10 }}>
                 {part === "part2" && (
                   <button onClick={startPrep} className="ds-btn ds-btn-outline ds-btn-lg" style={{ borderRadius: "var(--ds-radius-full)", height: 56 }}>
-                    <i className="pi pi-clock" />
+                    <Icon name="timer" />
                     <span>{t("ielts.prepOneMinute")}</span>
                   </button>
                 )}
                 <button onClick={startRecording} className="ds-btn ds-btn-lg" style={{ borderRadius: "var(--ds-radius-full)", padding: "0 30px", height: 56 }}>
-                  <i className="pi pi-microphone" style={{ fontSize: "var(--text-lg)" }} />
+                  <Icon name="record" size="lg" />
                   <span>{t("ielts.tapToAnswer")}</span>
                 </button>
               </div>
@@ -398,7 +399,7 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
           )}
           {phase === "prep" && (
             <button onClick={startRecording} className="ds-btn ds-btn-lg" style={{ borderRadius: "var(--ds-radius-full)", padding: "0 30px", height: 56 }}>
-              <i className="pi pi-microphone" style={{ fontSize: "var(--text-lg)" }} />
+              <Icon name="record" size="lg" />
               <span>{prepLeft > 0 ? t("ielts.startNow") : t("ielts.start")}</span>
             </button>
           )}
@@ -409,7 +410,7 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
                 className="ds-btn ds-btn-lg"
                 style={{ borderRadius: "var(--ds-radius-full)", padding: "0 30px", height: 56, animation: "recpulse 1.6s infinite" }}
               >
-                <i className="pi pi-stop-circle" style={{ fontSize: "var(--text-lg)" }} />
+                <Icon name="stop" size="lg" />
                 <span>{t("ielts.recordingStop", { time: formatSecs(recorder.secs), max: formatSecs(MAX_ANSWER_SECONDS) })}</span>
               </button>
               <div style={{ width: 220, height: 6, borderRadius: 99, background: "var(--ds-surface-muted)", overflow: "hidden" }} title={t("ielts.micLevel")}>
@@ -436,7 +437,7 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
           {phase === "processing" && (
             <>
               <button disabled className="ds-btn ds-btn-lg" style={{ borderRadius: "var(--ds-radius-full)", padding: "0 30px", height: 56 }}>
-                <i className="pi pi-spinner" style={{ fontSize: "var(--text-lg)", animation: "spin 1s linear infinite" }} />
+                <Icon name="loading" size="lg" spin />
                 <span>{t("ielts.scoringSecs", { s: waitSecs })}</span>
               </button>
               <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>
@@ -482,12 +483,12 @@ export function IeltsPractice({ part }: { part: IeltsPart }) {
 
           <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
             <button onClick={reset} className="ds-btn ds-btn-outline">
-              <i className="pi pi-refresh" />
+              <Icon name="refresh" />
               <span>{t("ielts.answerAgain")}</span>
             </button>
             <button onClick={nextQuestion} className="ds-btn">
               <span>{part === "part2" || qIndex + 1 >= set.questions.length ? t("ielts.nextSet") : t("ielts.nextQuestion")}</span>
-              <i className="pi pi-arrow-right" />
+              <Icon name="next" />
             </button>
           </div>
         </div>

@@ -15,6 +15,7 @@ import { WavRecorder } from "@/lib/wav-recorder";
 import { scoreColor, scoreColorSoft } from "@/lib/score-color";
 import { speakEnglish } from "@/lib/text-to-speech";
 import { getLang, translate, useI18n, type MessageKey } from "@/lib/i18n";
+import { Icon } from "@/components/icon";
 
 type RecState = "idle" | "recording" | "processing" | "result" | "error";
 type Mode = "shadowing" | IeltsPart;
@@ -205,21 +206,21 @@ export default function PracticePage() {
                       color: "var(--ds-info)",
                     }}
                   >
-                    <i className="pi pi-sparkles" style={{ fontSize: "var(--text-xs)" }} />
+                    <Icon name="ai" />
                     {t("practice.aiSentence")}
                   </span>
                   <span style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{t("practice.topicDaily")}</span>
                 </div>
                 <button onClick={nextSentence} disabled={sentenceLoading} className="ds-btn ds-btn-text ds-btn-sm">
                   <span>{t("practice.otherSentence")}</span>
-                  <i className="pi pi-refresh" />
+                  <Icon name="refresh" />
                 </button>
               </div>
 
               <div style={{ textAlign: "center", padding: "8px 0 4px" }}>
                 {sentenceLoading && (
                   <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)", padding: "20px 0" }}>
-                    <i className="pi pi-spinner" style={{ animation: "spin 1s linear infinite", marginRight: 8 }} />
+                    <Icon name="loading" spin style={{ marginRight: 8 }} />
                     {t("practice.generating")}
                   </div>
                 )}
@@ -237,7 +238,7 @@ export default function PracticePage() {
                       </div>
                     )}
                     <button onClick={() => speakEnglish(sentence.text)} className="ds-btn ds-btn-outline ds-btn-sm" style={{ marginTop: 14 }}>
-                      <i className="pi pi-volume-up" />
+                      <Icon name="listen" />
                       <span>{t("common.listenSample")}</span>
                     </button>
                   </>
@@ -267,7 +268,7 @@ export default function PracticePage() {
                       className="ds-btn ds-btn-lg"
                       style={{ borderRadius: "var(--ds-radius-full)", padding: "0 30px", height: 56 }}
                     >
-                      <i className="pi pi-microphone" style={{ fontSize: "var(--text-lg)" }} />
+                      <Icon name="record" size="lg" />
                       <span>{t("practice.tapToSpeak")}</span>
                     </button>
                     {error ? (
@@ -286,7 +287,7 @@ export default function PracticePage() {
                       className="ds-btn ds-btn-lg"
                       style={{ borderRadius: "var(--ds-radius-full)", padding: "0 30px", height: 56, animation: "recpulse 1.6s infinite" }}
                     >
-                      <i className="pi pi-stop-circle" style={{ fontSize: "var(--text-lg)" }} />
+                      <Icon name="stop" size="lg" />
                       <span>{t("practice.recordingStop", { time: `0:${String(recSecs).padStart(2, "0")}` })}</span>
                     </button>
                     <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-primary)", fontWeight: 600 }}>{t("practice.listening")}</div>
@@ -299,7 +300,7 @@ export default function PracticePage() {
                       className="ds-btn ds-btn-lg"
                       style={{ borderRadius: "var(--ds-radius-full)", padding: "0 30px", height: 56 }}
                     >
-                      <i className="pi pi-spinner" style={{ fontSize: "var(--text-lg)", animation: "spin 1s linear infinite" }} />
+                      <Icon name="loading" size="lg" spin />
                       <span>{t("practice.scoring")}</span>
                     </button>
                     <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{t("practice.sendingAzure")}</div>
@@ -353,7 +354,7 @@ export default function PracticePage() {
                     color: "var(--ds-success)",
                   }}
                 >
-                  <i className="pi pi-check-circle" style={{ fontSize: "var(--text-lg)" }} />
+                  <Icon name="done" size="lg" />
                   <span style={{ fontSize: "var(--text-sm)", color: "var(--ds-text)", flex: 1 }}>
                     {t("practice.youSaidLabel")} <b>{result.recognizedText ?? t("common.notRecognized")}</b>
                   </span>
@@ -506,12 +507,12 @@ export default function PracticePage() {
 
                 <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
                   <button onClick={retryRecord} className="ds-btn ds-btn-outline">
-                    <i className="pi pi-refresh" />
+                    <Icon name="refresh" />
                     <span>{t("common.retry")}</span>
                   </button>
                   <button onClick={nextSentence} className="ds-btn">
                     <span>{t("practice.nextSentence")}</span>
-                    <i className="pi pi-arrow-right" />
+                    <Icon name="next" />
                   </button>
                 </div>
               </div>

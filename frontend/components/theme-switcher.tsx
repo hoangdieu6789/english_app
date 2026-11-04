@@ -2,12 +2,13 @@
 
 import { useI18n } from "@/lib/i18n";
 import { setThemeMode, sunToday, useGeoState, useThemeMode, type ThemeMode } from "@/lib/theme";
+import { Icon, type IconName } from "@/components/icon";
 
-const MODES: { mode: ThemeMode; icon: string }[] = [
-  { mode: "system", icon: "pi pi-desktop" },
-  { mode: "light", icon: "pi pi-sun" },
-  { mode: "dark", icon: "pi pi-moon" },
-  { mode: "time", icon: "pi pi-clock" },
+const MODES: { mode: ThemeMode; icon: IconName }[] = [
+  { mode: "system", icon: "system" },
+  { mode: "light", icon: "light" },
+  { mode: "dark", icon: "dark" },
+  { mode: "time", icon: "sun" },
 ];
 
 /**
@@ -65,7 +66,7 @@ export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
                 boxShadow: active ? "0 2px 0 var(--ds-border)" : "none",
               }}
             >
-              <i className={m.icon} aria-hidden />
+              <Icon name={m.icon} size="md" />
               {!compact && <span>{label}</span>}
             </button>
           );

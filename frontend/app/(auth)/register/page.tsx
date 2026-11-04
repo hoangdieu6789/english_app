@@ -10,6 +10,7 @@ import { useSessionStore } from "@/lib/session-store";
 import { useRedirectIfSignedIn } from "@/lib/use-redirect-if-signed-in";
 import { saveLang, useI18n } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { Icon } from "@/components/icon";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -107,15 +108,15 @@ export default function RegisterPage() {
             }}
           >
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-              <i className="pi pi-check-circle" />
+              <Icon name="done" />
               <span>{t("auth.brand.feature1")}</span>
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-              <i className="pi pi-check-circle" />
+              <Icon name="done" />
               <span>{t("auth.brand.feature2")}</span>
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-              <i className="pi pi-check-circle" />
+              <Icon name="done" />
               <span>{t("auth.brand.feature3")}</span>
             </div>
           </div>
@@ -158,7 +159,7 @@ export default function RegisterPage() {
 
           <button type="submit" disabled={loading} className="ds-btn ds-btn-lg" style={{ width: "100%", marginTop: 4 }}>
             <span>{loading ? t("auth.register.submitting") : t("auth.register.submit")}</span>
-            <i className="pi pi-arrow-right" />
+            <Icon name="next" />
           </button>
 
           <div style={{ textAlign: "center", fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>

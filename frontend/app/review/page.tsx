@@ -21,6 +21,7 @@ import {
 import { scoreColor } from "@/lib/score-color";
 import { speakEnglish } from "@/lib/text-to-speech";
 import { useRecorder } from "@/lib/use-recorder";
+import { Icon } from "@/components/icon";
 
 // A word is a short recording; stop by itself after a few seconds.
 const MAX_WORD_SECONDS = 5;
@@ -227,7 +228,7 @@ export default function ReviewPage() {
                   : t("review.allDone.body", { when: data.upcoming[0] ? dueText(t, locale, data.upcoming[0].dueAt) : t("review.dueLater") })}
               </div>
               <button className="ds-btn" onClick={() => router.push("/practice")}>
-                <i className="pi pi-microphone" />
+                <Icon name="record" />
                 <span>{t("review.practice")}</span>
               </button>
             </div>
@@ -256,7 +257,7 @@ export default function ReviewPage() {
                 <div style={{ font: "700 var(--text-4xl)/1.3 var(--font-display)", color: "var(--ds-text)" }}>{current.word}</div>
                 {current.vocab?.ipa && <div style={{ fontSize: "var(--text-base)", color: "var(--ds-text-muted)" }}>{current.vocab.ipa}</div>}
                 <button className="ds-btn ds-btn-outline ds-btn-sm" onClick={() => speakEnglish(current.word)}>
-                  <i className="pi pi-volume-up" />
+                  <Icon name="listen" />
                   <span>{t("common.listenSample")}</span>
                 </button>
               </div>
@@ -278,7 +279,7 @@ export default function ReviewPage() {
                       aria-label={t("review.listenExample")}
                       style={{ border: "none", background: "none", cursor: "pointer", color: "var(--ds-primary)", padding: 0 }}
                     >
-                      <i className="pi pi-volume-up" />
+                      <Icon name="listen" />
                     </button>
                     <span>{current.vocab.exampleEn}</span>
                   </div>
@@ -295,7 +296,7 @@ export default function ReviewPage() {
                   className={isVocab ? "ds-btn ds-btn-outline" : "ds-btn ds-btn-lg"}
                   style={{ alignSelf: "center", borderRadius: "var(--ds-radius-full)", padding: "0 24px" }}
                 >
-                  <i className="pi pi-microphone" />
+                  <Icon name="record" />
                   <span>{isVocab ? t("review.sayToScore") : t("review.pressAndSay", { word: current.word })}</span>
                 </button>
               )}
@@ -305,7 +306,7 @@ export default function ReviewPage() {
                   className="ds-btn ds-btn-lg"
                   style={{ alignSelf: "center", borderRadius: "var(--ds-radius-full)", padding: "0 28px", animation: "recpulse 1.6s infinite" }}
                 >
-                  <i className="pi pi-stop-circle" />
+                  <Icon name="stop" />
                   <span>{t("review.stop", { n: MAX_WORD_SECONDS - recorder.secs })}</span>
                 </button>
               )}
@@ -314,7 +315,7 @@ export default function ReviewPage() {
               )}
               {phase === "scoring" && (
                 <div style={{ textAlign: "center", fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>
-                  <i className="pi pi-spinner" style={{ animation: "spin 1s linear infinite", marginRight: 6 }} />
+                  <Icon name="loading" spin style={{ marginRight: 6 }} />
                   {t("review.scoring")}
                 </div>
               )}
@@ -347,13 +348,13 @@ export default function ReviewPage() {
                   {!isVocab && <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{nextReviewText(t, result.word)}</div>}
                   <div style={{ display: "flex", gap: 10 }}>
                     <button className="ds-btn ds-btn-outline" onClick={() => setPhase("ready")}>
-                      <i className="pi pi-refresh" />
+                      <Icon name="refresh" />
                       <span>{t("review.again")}</span>
                     </button>
                     {!isVocab && (
                       <button className="ds-btn" onClick={next}>
                         <span>{t("review.nextCard")}</span>
-                        <i className="pi pi-arrow-right" />
+                        <Icon name="next" />
                       </button>
                     )}
                   </div>

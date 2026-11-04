@@ -9,6 +9,7 @@ import { useI18n } from "@/lib/i18n";
 import { goalsQuery } from "@/lib/review-api";
 import { useSessionStore } from "@/lib/session-store";
 import { useLogout } from "@/lib/use-logout";
+import { Icon } from "@/components/icon";
 
 const WIDTH = 760;
 
@@ -54,7 +55,7 @@ export default function SettingsPage() {
               <div style={{ fontSize: "var(--text-sm)", fontWeight: 700, overflowWrap: "anywhere" }}>{email}</div>
             </div>
             <button type="button" className="ds-btn ds-btn-outline" onClick={logout}>
-              <i className="pi pi-sign-out" aria-hidden />
+              <Icon name="logout" />
               <span>{t("nav.logout")}</span>
             </button>
           </div>

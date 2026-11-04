@@ -3,6 +3,7 @@
 import { hasMessage, useI18n, type MessageKey } from "@/lib/i18n";
 import type { PronunciationAttempt, RubricResult } from "@/lib/pronunciation-api";
 import { SCORE_AMBER, SCORE_GREEN, SCORE_RED } from "@/lib/score-color";
+import { Icon } from "@/components/icon";
 
 // Learner-facing names for the IELTS criteria and the Pronunciation features
 // (backend/internal/rubric/criteria/*.md), with a fallback to the raw id.
@@ -110,7 +111,7 @@ export function RubricPanel({
         </div>
         {pending ? (
           <div style={{ textAlign: "right", fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>
-            <i className="pi pi-spinner" style={{ animation: "spin 1s linear infinite", marginRight: 6 }} />
+            <Icon name="loading" spin style={{ marginRight: 6 }} />
             {t("rubric.pendingOverall")}
           </div>
         ) : scored ? (
@@ -158,7 +159,7 @@ export function RubricPanel({
                   <div style={{ width: "35%", height: "100%", background: "var(--ds-border-strong)", animation: "recpulse 1.6s infinite" }} />
                 </div>
                 <span style={{ fontSize: "var(--text-xs)", width: 30, textAlign: "right", color: "var(--ds-text-muted)" }}>
-                  <i className="pi pi-spinner" style={{ fontSize: "var(--text-xs)", animation: "spin 1s linear infinite" }} />
+                  <Icon name="loading" spin />
                 </span>
               </div>
             ) : (

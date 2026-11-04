@@ -2,6 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { LANGUAGES, useI18n, type Lang } from "@/lib/i18n";
+import { Icon } from "@/components/icon";
 
 /**
  * Picks the app language. sync: also save it on the server (signed-in pages), so AI feedback,
@@ -23,7 +24,7 @@ export function LanguageSwitcher({ sync = false, showHint = false, hideLabel = f
       <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>
         {!hideLabel && (
           <>
-            <i className="pi pi-globe" aria-hidden />
+            <Icon name="language" />
             <span>{t("common.language")}</span>
           </>
         )}
