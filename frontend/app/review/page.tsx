@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
@@ -22,6 +22,7 @@ import { scoreColor } from "@/lib/score-color";
 import { speakEnglish } from "@/lib/text-to-speech";
 import { useRecorder } from "@/lib/use-recorder";
 import { Icon } from "@/components/icon";
+import { NotebookView } from "@/components/notebook/notebook-view";
 
 // A word is a short recording; stop by itself after a few seconds.
 const MAX_WORD_SECONDS = 5;
@@ -57,7 +58,41 @@ function dueText(t: T, locale: string, iso: string): string {
 // - pronunciation: a word the learner said wrongly; Azure scores each try and schedules it.
 // - vocab: a new word for the learner's band range; the learner reveals the meaning and
 //   rates how well they remembered it (saying it aloud is scored but does not schedule it).
+// Two tabs: Due today (the spaced-repetition queue) and Notebook (every card, with the
+// learner's own sentences). /review#notebook opens the notebook.
 export default function ReviewPage() {
+  const { t } = useI18n();
+  const [tab, setTab] = useState<"due" | "notebook">("due");
+  useEffect(() => {
+    const read = () => setTab(window.location.hash === "#notebook" ? "notebook" : "due");
+    read();
+    window.addEventListener("hashchange", read);
+    return () => window.removeEventListener("hashchange", read);
+  }, []);
+  function pick(next: "due" | "notebook") {
+    setTab(next);
+    history.replaceState(null, "", next === "notebook" ? "#notebook" : window.location.pathname);
+  }
+  return (
+    <AppShell width={720}>
+      <div className="fade" style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", gap: 18 }}>
+        <div style={{ display: "flex", justifyContent: "safe center", minWidth: 0 }}>
+          <div role="tablist" aria-label={t("notebook.tabs")} className="ls-seg">
+            {(["due", "notebook"] as const).map((k) => (
+              <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => pick(k)}>
+                <Icon name={k === "due" ? "refresh" : "notebook"} size="sm" />
+                {t(k === "due" ? "notebook.tab.due" : "notebook.tab.all")}
+              </button>
+            ))}
+          </div>
+        </div>
+        {tab === "due" ? <DueReview /> : <NotebookView />}
+      </div>
+    </AppShell>
+  );
+}
+
+function DueReview() {
   const { t, locale } = useI18n();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -164,12 +199,12 @@ export default function ReviewPage() {
   }
 
   const word = result?.word ?? current;
-  const isVocab = current?.kind === "vocab";
+  const isVocab = current != null && current.kind !== "pronunciation"; // vocab and saved cards: self-rated
   const g = goals.data;
 
   return (
-    <AppShell width={720}>
-      <div className="fade" style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", gap: 18 }}>
+    <>
+      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
         {/* New words for the learner's band range */}
         <div className="ds-card" style={{ padding: 22, display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
@@ -246,7 +281,11 @@ export default function ReviewPage() {
                     color: isVocab ? "var(--ds-primary)" : "var(--ds-warning)",
                   }}
                 >
-                  {isVocab ? t("review.badge.vocab", { band: current.vocab?.band.toFixed(1) ?? "" }) : t("review.badge.pron", { n: current.misses })}
+                  {current.kind === "saved"
+                    ? t("review.badge.saved")
+                    : isVocab
+                      ? t("review.badge.vocab", { band: current.vocab?.band.toFixed(1) ?? "" })
+                      : t("review.badge.pron", { n: current.misses })}
                 </span>
                 <span>
                   {word.reps > 0 ? t("review.streak", { n: word.reps }) : word.lapses > 0 ? t("review.lapses", { n: word.lapses }) : t("review.newCard")}
@@ -395,13 +434,13 @@ export default function ReviewPage() {
                   {w.word}
                   {w.vocab && <span style={{ fontWeight: 400, color: "var(--ds-text-muted)" }}> · {w.vocab.meaning}</span>}
                 </span>
-                <span style={{ color: "var(--ds-text-muted)", fontSize: "var(--text-xs)" }}>{w.kind === "vocab" ? t("review.kind.vocab") : t("review.kind.pron")}</span>
+                <span style={{ color: "var(--ds-text-muted)", fontSize: "var(--text-xs)" }}>{w.kind === "vocab" ? t("review.kind.vocab") : w.kind === "saved" ? t("review.kind.saved") : t("review.kind.pron")}</span>
                 <span style={{ color: "var(--ds-text-muted)", minWidth: 110, textAlign: "right" }}>{dueText(t, locale, w.dueAt)}</span>
               </div>
             ))}
           </div>
         )}
       </div>
-    </AppShell>
+    </>
   );
 }

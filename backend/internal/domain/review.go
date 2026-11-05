@@ -10,6 +10,7 @@ import (
 const (
 	ReviewPronunciation = "pronunciation" // a word the learner said wrongly
 	ReviewVocab         = "vocab"         // a new word for the learner's band
+	ReviewSaved         = "saved"         // a word or phrase the learner saved (notebook)
 )
 
 // VocabInfo is the dictionary side of a vocab card (written by the LLM, shared). POS, IPA
@@ -22,6 +23,8 @@ type VocabInfo struct {
 	Meaning            string
 	ExampleTranslation string
 	Band               float32
+	ExampleMine        bool   // ExampleEN is the learner's own graded sentence
+	Context            string // saved cards: the lesson line it was saved from
 }
 
 // VocabWord is an NGSL/NAWL headword with its band estimate and LLM-written details.

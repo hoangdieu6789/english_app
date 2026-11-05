@@ -12,5 +12,7 @@ import { review } from "./review";
 import { history } from "./history";
 import { settings } from "./settings";
 import { games } from "./games";
+import { listen } from "./listen";
+import { notebook } from "./notebook";
 
-export const en = { ...common, ...nav, ...auth, ...dashboard, ...progress, ...practice, ...ielts, ...rubric, ...tips, ...coach, ...review, ...history, ...settings, ...games };
+export const en = { ...common, ...nav, ...auth, ...dashboard, ...progress, ...practice, ...ielts, ...rubric, ...tips, ...coach, ...review, ...history, ...settings, ...games, ...listen, ...notebook };

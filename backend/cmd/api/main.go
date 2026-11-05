@@ -177,6 +177,27 @@ func main() {
 	if cfg.VocabBackfill && vocabEnricher != nil {
 		go gameService.Backfill(context.Background(), time.Duration(cfg.VocabBackfillPause)*time.Second)
 	}
+	// Listening lessons, dictation and the word notebook (LISTEN-001). AI lessons need the LLM
+	// and Azure text to speech (the same key as pronunciation scoring).
+	var tts service.TTS
+	var ttsCache *service.TTSCache
+	if cfg.AzureSpeechKey != "" && cfg.AzureSpeechRegion != "" {
+		azureTTS := service.NewAzureTTS(cfg.AzureSpeechKey, cfg.AzureSpeechRegion, 2)
+		tts, ttsCache = azureTTS, service.NewTTSCache(azureTTS, cfg.AudioStorageDir)
+	}
+	var lessonLLM, notebookLLM service.LLMCompleter
+	if graderLLM != nil {
+		lessonLLM = newLLM(cfg.OpenRouterModel, 0.8, 180*time.Second)
+		notebookLLM = newLLM(cfg.OpenRouterModel, 0.2, 90*time.Second)
+	}
+	lessonService := service.NewLessonService(repository.NewListeningRepository(pool), lessonLLM, tts, cfg.AudioStorageDir)
+	if n, err := lessonService.ResumePending(context.Background()); err != nil {
+		log.Printf("lessons: resume pending: %v", err)
+	} else if n > 0 {
+		log.Printf("lessons: resumed %d pending AI lessons", n)
+	}
+	notebookService := service.NewNotebookService(repository.NewNotebookRepository(pool), notebookLLM, pronunciationScorer)
+	listeningHandler := handler.NewListeningHandler(lessonService, notebookService, ttsCache, cfg.AudioPublicURLPrefix)
 	// Model answers and improved answers at the learner's target band.
 	coachHandler := handler.NewCoachHandler(service.NewCoachService(graderLLM, repository.NewCoachRepository(pool), pronunciationRepo, vocabService))
 
@@ -199,6 +220,7 @@ func main() {
 	handler.RegisterReviewRoutes(api, reviewHandler, jwtAuth)
 	handler.RegisterCoachRoutes(api, coachHandler, jwtAuth)
 	handler.RegisterGameRoutes(api, gameHandler, jwtAuth)
+	handler.RegisterListeningRoutes(api, listeningHandler, jwtAuth)
 
 	e.GET("/healthz", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})

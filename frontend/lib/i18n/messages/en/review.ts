@@ -40,6 +40,7 @@ export const review: Record<keyof typeof source, string> = {
   "review.practice": "Practise speaking",
   "review.badge.vocab": "New word · band {band}",
   "review.badge.pron": "Pronunciation · wrong {n} times",
+  "review.badge.saved": "Notebook · saved",
   "review.streak": "Remembered {n} times in a row",
   "review.lapses": "Forgot {n} times",
   "review.newCard": "New card",
@@ -60,4 +61,5 @@ export const review: Record<keyof typeof source, string> = {
   "review.upcoming": "Coming up",
   "review.kind.vocab": "new word",
   "review.kind.pron": "pronunciation",
+  "review.kind.saved": "saved",
 };

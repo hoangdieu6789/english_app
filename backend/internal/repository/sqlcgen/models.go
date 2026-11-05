@@ -9,6 +9,16 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type DictationAttempt struct {
+	ID        uuid.UUID          `json:"id"`
+	UserID    uuid.UUID          `json:"user_id"`
+	LessonID  uuid.UUID          `json:"lesson_id"`
+	Segment   int32              `json:"segment"`
+	Typed     string             `json:"typed"`
+	Accuracy  float32            `json:"accuracy"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
 type GamePlay struct {
 	ID         uuid.UUID          `json:"id"`
 	UserID     uuid.UUID          `json:"user_id"`
@@ -40,6 +50,65 @@ type IeltsQuestionSet struct {
 	Questions []byte             `json:"questions"`
 	Source    string             `json:"source"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+type Lesson struct {
+	ID          uuid.UUID          `json:"id"`
+	OwnerID     pgtype.UUID        `json:"owner_id"`
+	Source      string             `json:"source"`
+	Kind        string             `json:"kind"`
+	Title       string             `json:"title"`
+	Topic       string             `json:"topic"`
+	Band        float32            `json:"band"`
+	Segments    []byte             `json:"segments"`
+	Speakers    []byte             `json:"speakers"`
+	Phrases     []byte             `json:"phrases"`
+	AudioPath   string             `json:"audio_path"`
+	AudioUrl    string             `json:"audio_url"`
+	VideoUrl    string             `json:"video_url"`
+	DurationSec float32            `json:"duration_sec"`
+	SourceUrl   string             `json:"source_url"`
+	Credit      string             `json:"credit"`
+	Status      string             `json:"status"`
+	Error       string             `json:"error"`
+	CreatedBy   pgtype.UUID        `json:"created_by"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
+type LessonProgress struct {
+	UserID        uuid.UUID          `json:"user_id"`
+	LessonID      uuid.UUID          `json:"lesson_id"`
+	PositionSec   float32            `json:"position_sec"`
+	ListenedAt    pgtype.Timestamptz `json:"listened_at"`
+	DictationBest pgtype.Float4      `json:"dictation_best"`
+	LinesDone     int32              `json:"lines_done"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+}
+
+type NotebookEntry struct {
+	ReviewWordID uuid.UUID     `json:"review_word_id"`
+	Lang         string        `json:"lang"`
+	Pos          string        `json:"pos"`
+	Ipa          string        `json:"ipa"`
+	Meaning      string        `json:"meaning"`
+	ExampleEn    string        `json:"example_en"`
+	ExampleMine  bool          `json:"example_mine"`
+	ExampleScore pgtype.Float4 `json:"example_score"`
+	Context      string        `json:"context"`
+	LessonID     pgtype.UUID   `json:"lesson_id"`
+	Band         float32       `json:"band"`
+}
+
+type NotebookSentence struct {
+	ID           uuid.UUID          `json:"id"`
+	ReviewWordID uuid.UUID          `json:"review_word_id"`
+	UserID       uuid.UUID          `json:"user_id"`
+	Text         string             `json:"text"`
+	Score        float32            `json:"score"`
+	Verdict      []byte             `json:"verdict"`
+	Accepted     bool               `json:"accepted"`
+	PronScore    pgtype.Float4      `json:"pron_score"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 }
 
 type PasswordResetToken struct {
