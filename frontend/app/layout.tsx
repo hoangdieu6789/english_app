@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import { Almendra, Baloo_2, Nunito } from "next/font/google";
-import "primeicons/primeicons.css";
 import "./globals.css";
 import { ReactQueryProvider } from "@/lib/react-query-provider";
 import { I18nProvider } from "@/lib/i18n";

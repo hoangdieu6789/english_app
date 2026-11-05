@@ -1,6 +1,6 @@
 # Speaking rubric config — IELTS Speaking Band Descriptors (public version, IELTS.org)
 # Code reads this file first, then loads the markdown files listed below into the grader prompt.
-version: 2.0.0
+version: 2.1.0
 source: "IELTS Speaking Band Descriptors — Academic and General Training"
 
 scale:
@@ -65,7 +65,7 @@ pronunciation:
     P-02: { method: rule, weight: 1,   signal: "UnexpectedBreak + MissingBreak per 10 words" }
     P-03: { method: rule, weight: 1,   signal: "ProsodyScore (duration-weighted)" }
     P-04: { method: rule, weight: 1,   signal: "non-monotone segments + correct final tone" }
-    P-05: { method: not_measured }
+    P-05: { method: rule, weight: 1,   signal: "consonant-vowel joins said without a pause (estimate from word timing)" }
     P-06: { method: rule, weight: 1.5, signal: "AccuracyScore (duration-weighted)" }
   # Cut points for bands 9,8,7,6,5,4,3,2 (anything beyond the last -> band 1).
   # Starting values only — calibrate with teacher-rated recordings.
@@ -76,6 +76,9 @@ pronunciation:
     prosody_score:       [95, 90, 82, 74, 65, 55, 45, 35]    # higher is better
     accuracy_score:      [95, 90, 84, 77, 68, 58, 45, 35]    # higher is better
     intonation_pct:      [95, 88, 78, 66, 55, 42, 30, 20]    # higher is better
+    linking_pct:         [95, 90, 84, 76, 66, 55, 42, 30]    # higher is better (% joins linked)
+    link_gap_seconds: 0.03     # Azure word gaps are 10 ms frames: joined 10-30 ms, a pause >= 90 ms
+    min_link_pairs: 3          # fewer consonant-vowel joins -> P-05 not measured
     min_tone_samples: 2
     min_words: 10
   pitch:

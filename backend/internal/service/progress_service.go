@@ -12,8 +12,11 @@ import (
 )
 
 const (
-	progressWeeks    = 6 // weeks on the chart, including the current one
-	progressListRows = 5 // hardest phonemes and weak words shown
+	// The chart adapts to how long the learner has practised: day by day for the first
+	// progressDays days, then week by week for at most progressWeeks weeks (the UI picks).
+	progressWeeks    = 10 // weeks fetched, including the current one
+	progressDays     = 14 // days fetched, including today
+	progressListRows = 5  // hardest phonemes and weak words shown
 )
 
 type ProgressService struct {
@@ -29,9 +32,10 @@ func NewProgressService(repo repository.ProgressRepository) *ProgressService {
 func (s *ProgressService) Summary(ctx context.Context, userID uuid.UUID, loc *time.Location) (*domain.ProgressSummary, error) {
 	today := dateIn(s.now(), loc)
 	monday := today.AddDate(0, 0, -((int(today.Weekday()) + 6) % 7))
-	since := monday.AddDate(0, 0, -7*(progressWeeks-1))
+	weeksSince := monday.AddDate(0, 0, -7*(progressWeeks-1))
+	daysSince := today.AddDate(0, 0, -(progressDays - 1))
 
-	sum, err := s.repo.Summary(ctx, userID, loc.String(), since, progressListRows)
+	sum, err := s.repo.Summary(ctx, userID, loc.String(), weeksSince, daysSince, progressListRows)
 	if err != nil {
 		return nil, fmt.Errorf("progress summary: %w", err)
 	}
@@ -40,6 +44,9 @@ func (s *ProgressService) Summary(ctx context.Context, userID uuid.UUID, loc *ti
 		return nil, fmt.Errorf("progress active days: %w", err)
 	}
 	sum.ActiveDays = len(days)
+	if len(days) > 0 {
+		sum.FirstDay = days[len(days)-1] // newest first; capped at 400 days, enough for the chart
+	}
 	sum.Streak = Streak(days, today)
 	return sum, nil
 }

@@ -17,7 +17,8 @@ import (
 // already validated by the caller.
 type ProgressRepository interface {
 	// Summary fills everything except Streak (computed by the service from ActiveDayList).
-	Summary(ctx context.Context, userID uuid.UUID, tz string, since time.Time, maxRows int) (*domain.ProgressSummary, error)
+	// weeksSince / daysSince: first local week (Monday) and first local day of the chart series.
+	Summary(ctx context.Context, userID uuid.UUID, tz string, weeksSince, daysSince time.Time, maxRows int) (*domain.ProgressSummary, error)
 	// ActiveDayList returns the local dates with at least one attempt, newest first.
 	ActiveDayList(ctx context.Context, userID uuid.UUID, tz string) ([]time.Time, error)
 }
@@ -44,7 +45,7 @@ func (r *progressRepository) ActiveDayList(ctx context.Context, userID uuid.UUID
 	return out, nil
 }
 
-func (r *progressRepository) Summary(ctx context.Context, userID uuid.UUID, tz string, since time.Time, maxRows int) (*domain.ProgressSummary, error) {
+func (r *progressRepository) Summary(ctx context.Context, userID uuid.UUID, tz string, weeksSince, daysSince time.Time, maxRows int) (*domain.ProgressSummary, error) {
 	totals, err := r.q.ProgressTotals(ctx, sqlcgen.ProgressTotalsParams{Tz: tz, UserID: userID})
 	if err != nil {
 		return nil, fmt.Errorf("totals: %w", err)
@@ -59,6 +60,7 @@ func (r *progressRepository) Summary(ctx context.Context, userID uuid.UUID, tz s
 			Band:     totals.Band30d,
 			Banded:   int(totals.Banded30d),
 		},
+		Days:         []domain.WeekStats{},
 		Weeks:        []domain.WeekStats{},
 		HardPhonemes: []domain.PhonemeStats{},
 		Criteria:     []domain.CriterionStats{},
@@ -68,10 +70,21 @@ func (r *progressRepository) Summary(ctx context.Context, userID uuid.UUID, tz s
 	}
 
 	weeks, err := r.q.ProgressWeekly(ctx, sqlcgen.ProgressWeeklyParams{
-		Tz: tz, UserID: userID, Since: pgtype.Date{Time: since, Valid: true},
+		Tz: tz, UserID: userID, Since: pgtype.Date{Time: weeksSince, Valid: true},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("weekly: %w", err)
+	}
+	daily, err := r.q.ProgressDaily(ctx, sqlcgen.ProgressDailyParams{
+		Tz: tz, UserID: userID, Since: pgtype.Date{Time: daysSince, Valid: true},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("daily: %w", err)
+	}
+	for _, d := range daily {
+		s.Days = append(s.Days, domain.WeekStats{
+			Start: d.Day.Time, Attempts: int(d.Attempts), Accuracy: d.Accuracy, Fluency: d.Fluency, Band: d.Band,
+		})
 	}
 	for _, w := range weeks {
 		s.Weeks = append(s.Weeks, domain.WeekStats{

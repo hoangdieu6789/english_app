@@ -8,6 +8,7 @@ import { scoreWord, type PhonemeScore, type WordScore } from "@/lib/pronunciatio
 import { scoreColor } from "@/lib/score-color";
 import { speakEnglish } from "@/lib/text-to-speech";
 import { useRecorder } from "@/lib/use-recorder";
+import { Icon } from "@/components/icon";
 
 const MAX_WORDS = 8;
 const WEAK = 60; // accuracy below this needs work
@@ -113,7 +114,7 @@ function WordTip({ w }: { w: WordScore }) {
               ? t("tips.soundsToFix", { sounds: weak.map((p) => phonemeToIpa(p.phoneme)).join(" ") })
               : `${Math.round(w.accuracyScore)}/100`}
         </span>
-        <i className={open ? "pi pi-chevron-up" : "pi pi-chevron-down"} style={{ fontSize: "var(--text-xs)", color: "var(--ds-text-muted)" }} />
+        <Icon name={open ? "chevronUp" : "chevronDown"} style={{ color: "var(--ds-text-muted)" }} />
       </button>
       {open && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "10px 0 4px" }}>
@@ -133,15 +134,15 @@ function WordTip({ w }: { w: WordScore }) {
           )}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             <button className="ds-btn ds-btn-outline ds-btn-sm" onClick={() => speakEnglish(w.word)}>
-              <i className="pi pi-volume-up" />
+              <Icon name="listen" />
               <span>{t("common.listenSample")}</span>
             </button>
             <button className="ds-btn ds-btn-outline ds-btn-sm" onClick={() => speakEnglish(w.word, 0.55)}>
-              <i className="pi pi-volume-down" />
+              <Icon name="listenSlow" />
               <span>{t("common.listenSlow")}</span>
             </button>
             <button className="ds-btn ds-btn-sm" onClick={toggleRecording} disabled={state === "scoring"}>
-              <i className={state === "recording" ? "pi pi-stop-circle" : state === "scoring" ? "pi pi-spinner" : "pi pi-microphone"} />
+              <Icon name={state === "recording" ? "stop" : state === "scoring" ? "loading" : "record"} spin={state === "scoring"} />
               <span>{state === "recording" ? t("tips.stop", { secs: MAX_WORD_SECONDS - recorder.secs }) : state === "scoring" ? t("tips.scoring") : t("tips.retry")}</span>
             </button>
             {tryResult && (

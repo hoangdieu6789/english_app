@@ -35,25 +35,44 @@ function ratio(a, b) {
 
 // [text, background, minimum]: every text color on every surface it is used on.
 const SURFACES = ["--ds-surface", "--ds-surface-subtle", "--ds-surface-muted"];
-const TEXTS = ["--ds-text", "--ds-text-secondary", "--ds-text-muted", "--ds-primary", "--ds-success", "--ds-warning", "--ds-danger", "--ds-info", "--ds-bolt", "--ds-house-fc", "--ds-house-lr", "--ds-house-gra", "--ds-house-pron"];
+const TEXTS = ["--ds-text", "--ds-text-secondary", "--ds-text-muted", "--ds-primary", "--ds-success", "--ds-warning", "--ds-danger", "--ds-info", "--ds-bolt", "--ds-crit-fc", "--ds-crit-lr", "--ds-crit-gra", "--ds-crit-pron"];
 const PAIRS = [];
 for (const t of TEXTS) for (const s of SURFACES) PAIRS.push([t, s, 4.5]);
 PAIRS.push(
   ["--ds-primary", "--ds-primary-50", 4.5], // active nav item
   ["--ds-text", "--ds-primary-50", 4.5], // streak chip
+  ["--ds-text", "--ds-pw-flash", 4.5], // password text during the reveal flash
   ["--ds-primary-contrast", "--ds-primary", 4.5], // button text
   ["--ds-primary", "--ds-primary-100", 4.5], // avatar initials
   ["--ds-success", "--ds-success-bg", 4.5],
   ["--ds-warning", "--ds-warning-bg", 4.5],
   ["--ds-danger", "--ds-danger-bg", 4.5],
   ["--ds-info", "--ds-info-bg", 4.5],
-  ["--ds-hero-text", "--ds-logo-tile", 4.5],
-  ["--ds-bolt-fill", "--ds-logo-tile", 3], // logo bolt (graphic, 3:1)
+  ["--ds-logo-bolt-from", "--ds-logo-tile", 3], // logo bolt (graphic, 3:1)
+  ["--ds-logo-bolt-to", "--ds-logo-tile", 3],
   ["--ds-focus", "--ds-surface", 3], // focus ring (non-text, 3:1)
   ["--ds-border-strong", "--ds-surface", 1.5],
+  ["--ds-bolt", "--ds-primary-50", 3], // streak icon on the streak chip (graphic, 3:1)
 );
 
 let failed = 0;
+// Hero panels: text on both ends of the --ds-hero-bg gradient.
+for (const [name, theme] of [["light", light], ["dark", dark]]) {
+  const stops = (theme["--ds-hero-bg"] || "").match(/#[0-9a-f]{6}/gi) || [];
+  if (stops.length < 2) {
+    failed++;
+    console.log(`FAIL ${name}: --ds-hero-bg needs two hex stops`);
+  }
+  for (const stop of stops) {
+    for (const [fg, min] of [["--ds-hero-text", 4.5], ["--ds-hero-text-muted", 4.5], ["--ds-primary", 3]]) {
+      const r = ratio(hex(theme, fg), stop);
+      if (r < min) {
+        failed++;
+        console.log(`FAIL contrast ${name}: ${fg} on hero ${stop} = ${r.toFixed(2)} (min ${min})`);
+      }
+    }
+  }
+}
 for (const [name, theme] of [["light", light], ["dark", dark]]) {
   for (const [fg, bg, min] of PAIRS) {
     const r = ratio(hex(theme, fg), hex(theme, bg));
@@ -83,6 +102,15 @@ for (const dir of ["app", "components"]) {
           failed++;
           console.log(`FAIL raw color ${rel}:${i + 1}: ${line.trim().slice(0, 100)}`);
         }
+        // Icons: one set, one registry (components/icon.tsx).
+        if (/\bpi pi-|<i className=/.test(line)) {
+          failed++;
+          console.log(`FAIL icon font ${rel}:${i + 1}: use <Icon name=... /> from components/icon.tsx`);
+        }
+        if (/from "lucide-react"/.test(line) && rel !== "components/icon.tsx") {
+          failed++;
+          console.log(`FAIL direct lucide import ${rel}:${i + 1}: add the icon to ICONS in components/icon.tsx`);
+        }
         const px = line.match(/fontSize: (\d+(?:\.\d+)?)\b|font: ["`]\d{3} (\d+(?:\.\d+)?)px/);
         if (px && !ALLOW_PX_FONT.has(rel)) {
           const v = Number(px[1] ?? px[2]);
@@ -102,5 +130,5 @@ if (!reduced) {
   console.log("FAIL no prefers-reduced-motion rule in globals.css");
 }
 
-console.log(failed ? `\n${failed} problem(s)` : `check-ui: OK (${PAIRS.length} color pairs x 2 themes, no raw colors or px fonts)`);
+console.log(failed ? `\n${failed} problem(s)` : `check-ui: OK (${PAIRS.length} color pairs x 2 themes, no raw colors, px fonts or stray icons)`);
 process.exit(failed ? 1 : 0);

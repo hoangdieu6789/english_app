@@ -9,6 +9,7 @@ import { fetchHistory, type HistoryItem } from "@/lib/pronunciation-api";
 import { scoreColor } from "@/lib/score-color";
 import { useI18n } from "@/lib/i18n";
 import { formatDateTime, taskLabel } from "@/lib/task-labels";
+import { Icon } from "@/components/icon";
 
 const FILTERS = ["", "part1", "part2", "part3", "shadowing"];
 
@@ -45,7 +46,7 @@ export default function HistoryPage() {
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
   return (
-    <AppShell>
+    <AppShell width={860}>
       <div className="fade" style={{ maxWidth: 860, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {FILTERS.map((f) => (
@@ -95,7 +96,7 @@ export default function HistoryPage() {
                 </div>
               </div>
               <Score a={a} />
-              <i className="pi pi-angle-right" style={{ color: "var(--ds-text-muted)" }} />
+              <Icon name="chevronRight" style={{ color: "var(--ds-text-muted)" }} />
             </Link>
           ))}
           {q.hasNextPage && (

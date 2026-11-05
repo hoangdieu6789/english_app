@@ -11,6 +11,8 @@ type ProgressSummary struct {
 	AttemptsToday        int
 	SpeakingSecondsToday int // sum over today's attempts of the end of the last word Azure heard
 	Last30Days           PeriodStats
+	FirstDay             time.Time   // first local day with practice; zero when none
+	Days                 []WeekStats // last days with practice (Start = the day), oldest first
 	Weeks                []WeekStats
 	HardPhonemes         []PhonemeStats
 	Criteria             []CriterionStats
@@ -28,7 +30,7 @@ type PeriodStats struct {
 }
 
 type WeekStats struct {
-	Start    time.Time // Monday, in the learner's time zone
+	Start    time.Time // Monday (or the day, in Days), in the learner's time zone
 	Attempts int
 	Accuracy float32
 	Fluency  float32

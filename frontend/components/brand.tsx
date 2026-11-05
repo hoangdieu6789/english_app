@@ -1,18 +1,23 @@
 // Boltspeak brand: our own lightning bolt drawing (not an official logo) and the wordmark.
+import { useId } from "react";
 import { APP_NAME } from "@/lib/brand";
 
-/** The bolt mark. size in px; the tile is drawn in CSS colors, so it follows the theme. */
-export function BoltMark({ size = 40, tile = true }: { size?: number; tile?: boolean }) {
+/**
+ * The David Studio bolt mark: the same drawing as the tab icon (app/icon.svg, shared with the hub
+ * and vim-practice). Colors come from tokens so the mark looks the same in both themes.
+ */
+export function BoltMark({ size = 40 }: { size?: number }) {
+  const id = `bolt-${useId().replace(/:/g, "")}`;
   return (
-    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden focusable="false" style={{ flex: "none", display: "block" }}>
-      {tile && <rect x="1" y="1" width="46" height="46" rx="13" fill="var(--ds-logo-tile)" />}
-      <path
-        d="M27.5 5 12 27.2h10.2L18.6 43 36 19.6H25.3L29.7 5z"
-        fill="var(--ds-bolt-fill)"
-        stroke={tile ? "var(--ds-logo-tile)" : "var(--ds-bolt)"}
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden focusable="false" style={{ flex: "none", display: "block" }}>
+      <defs>
+        <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" style={{ stopColor: "var(--ds-logo-bolt-from)" }} />
+          <stop offset="1" style={{ stopColor: "var(--ds-logo-bolt-to)" }} />
+        </linearGradient>
+      </defs>
+      <rect width="32" height="32" rx="8" fill="var(--ds-logo-tile)" />
+      <path d="M19 3 8 18h6.5L11 29l13-16h-7l2-10z" fill={`url(#${id})`} stroke="var(--ds-logo-edge)" strokeWidth="1.2" strokeLinejoin="round" />
     </svg>
   );
 }

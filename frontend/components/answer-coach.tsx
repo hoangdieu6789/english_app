@@ -4,12 +4,13 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { fetchSampleAnswer, improveAnswer, type ImprovedAnswer, type SampleAnswer } from "@/lib/pronunciation-api";
 import { speakEnglish } from "@/lib/text-to-speech";
+import { Icon } from "@/components/icon";
 
 function Listen({ text }: { text: string }) {
   const { t } = useI18n();
   return (
     <button className="ds-btn ds-btn-outline ds-btn-sm" onClick={() => speakEnglish(text)}>
-      <i className="pi pi-volume-up" />
+      <Icon name="listen" />
       <span>{t("common.listen")}</span>
     </button>
   );
@@ -40,7 +41,7 @@ export function SampleAnswerBox({ taskType, question }: { taskType: string; ques
   if (!open) {
     return (
       <button className="ds-btn ds-btn-outline ds-btn-sm" onClick={load}>
-        <i className="pi pi-lightbulb" />
+        <Icon name="tip" />
         <span>{t("coach.showSample")}</span>
       </button>
     );
@@ -59,7 +60,7 @@ export function SampleAnswerBox({ taskType, question }: { taskType: string; ques
       </div>
       {loading && (
         <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>
-          <i className="pi pi-spinner" style={{ animation: "spin 1s linear infinite", marginRight: 6 }} />
+          <Icon name="loading" spin style={{ marginRight: 6 }} />
           {t("coach.sampleLoading")}
         </div>
       )}
@@ -122,7 +123,7 @@ export function ImprovedAnswerBox({ attemptId, initial }: { attemptId: string; i
         </div>
         {!improved && (
           <button className="ds-btn ds-btn-sm" onClick={load} disabled={loading}>
-            <i className={loading ? "pi pi-spinner" : "pi pi-sparkles"} style={loading ? { animation: "spin 1s linear infinite" } : undefined} />
+            <Icon name={loading ? "loading" : "ai"} spin={loading} />
             <span>{loading ? t("coach.improving") : t("coach.improve")}</span>
           </button>
         )}

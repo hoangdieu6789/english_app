@@ -33,9 +33,15 @@ Checks: `npm run check-ui` (contrast in both themes, no raw colors, no px font s
 | `--ds-success` / `warning` / `danger` | `#14710A` / `#9A4510` / `#B42318` | `#50FA7B` / `#FFB86C` / `#FF7A7A` | scores (always with a number) |
 | `--ds-hero-bg` | purple night sky | darker purple | dashboard hero, sign-in panel |
 
-IELTS criteria are Hogwarts houses (bar color + small eyebrow label; the criterion name stays the
-label): Fluency = Gryffindor `--ds-house-fc`, Vocabulary = Ravenclaw `--ds-house-lr`,
-Grammar = Slytherin `--ds-house-gra`, Pronunciation = Hufflepuff `--ds-house-pron`.
+Each IELTS criterion has its own bar color (`--ds-crit-fc`, `--ds-crit-lr`, `--ds-crit-gra`,
+`--ds-crit-pron`); the label is the criterion name only (no Hogwarts house names).
+
+### Using purple
+
+Purple is the accent only: primary buttons, links, the active nav icon, the focus of a choice.
+Big surfaces never use it: hero panels are a light parchment wash (light) or charcoal (dark),
+selected items use a warm neutral background, and grey text is a warm neutral (no purple cast).
+`npm run check-ui` checks text on both ends of the hero gradient.
 
 ## Type
 
@@ -53,8 +59,27 @@ component: use `var(--text-*)`.
 - Cards: 16px radius, thick bottom edge `--ds-depth` (6px), crisp in light mode.
 - Buttons: 48px tall (44px small), edge `--ds-primary-edge`, press down on click.
 - Phones (< 900px): bottom tab bar, account menu in the top bar, grids become one column.
-- Bolt motif: logo (`components/brand.tsx`), active nav marker, streak chip (flickers once),
-  recording glow, daily goal ring, empty states. Our own SVGs only.
+- Logo and tab icon: the David Studio bolt (the same `favicon.ico`, `icon.svg`, `apple-icon.png`,
+  `icon-192/512.png` as the hub and vim-practice; copy them from `david_studio/apps/hub`, never
+  redraw). `BoltMark` in `components/brand.tsx` draws the same mark from `--ds-logo-*` tokens, the
+  same in light and dark. It is the only filled mark in the UI.
+- Icons: Lucide line icons only, through `components/icon.tsx` (`<Icon name=... />`, one meaning =
+  one icon, sizes sm 16 / md 20 / lg 24; `IconTile` for stat icons). `npm run check-ui` fails on
+  icon fonts or direct `lucide-react` imports.
+- Bolt motif elsewhere: streak icon (flickers once), recording glow, daily goal ring, empty states.
+  Not on nav items or buttons.
+
+## Layout
+
+- Sidebar (wide screens): logo + slogan, the five main pages, and an account card at the bottom
+  (email on one line, band) that opens a menu: Settings, Sign out.
+- Active nav item: light purple background, purple icon and text, bold. No extra marker.
+- Top bar: one line, the page title on the left; streak chip and a light/dark toggle on the right
+  (plus the account button on phones). The page subtitle is the first line of the content.
+- `AppShell width={n}`: the page's content width; the title and subtitle line up with it.
+- Settings page (`/settings`): theme (system / light / dark / sun), language, band goal, account.
+- Home: a full-width greeting panel (text and button left, daily ring right; on phones the small
+  ring sits next to the title), a row of three stat tiles, then two cards.
 - One looping animation per screen; `prefers-reduced-motion` stops everything.
 - Jokes (Platform 9¾, "Mischief managed", spells) only in taglines and empty states, never in buttons,
   always through i18n keys.

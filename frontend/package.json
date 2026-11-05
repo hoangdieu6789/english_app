@@ -8,12 +8,14 @@
     "start": "next start",
     "lint": "eslint",
     "check-ui": "node scripts/check-ui.mjs",
-    "test:theme": "node --experimental-strip-types --no-warnings --test scripts/theme.test.mjs"
+    "test:theme": "node --experimental-strip-types --no-warnings --test scripts/theme.test.mjs",
+    "test:progress": "node --experimental-strip-types --no-warnings --test scripts/progress-range.test.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.2",
+    "lottie-web": "^5.13.0",
+    "lucide-react": "^1.68.0",
     "next": "16.2.10",
-    "primeicons": "^7.0.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "zustand": "^5.0.14"

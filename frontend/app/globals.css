@@ -34,12 +34,16 @@
   --ds-surface-muted: #f3efda;
   --ds-surface-hover: #ede7cf;
   --ds-surface-inverse: #282a36;
-  --ds-logo-tile: #282a36;
+  /* Logo = the studio tab icon (app/icon.svg), same in both themes. */
+  --ds-logo-tile: #44475a;
+  --ds-logo-edge: #282a36;
+  --ds-logo-bolt-from: #f1fa8c;
+  --ds-logo-bolt-to: #ffb86c;
 
   /* Text */
   --ds-text: #3a3846;
-  --ds-text-secondary: #504c63;
-  --ds-text-muted: #5c5870;
+  --ds-text-secondary: #4d4a44; /* warm neutral, no purple cast */
+  --ds-text-muted: #605b53;
   --ds-text-disabled: #8a8599;
   --ds-text-on-primary: #ffffff;
 
@@ -53,8 +57,8 @@
   --ds-primary-hover: #533ab0;
   --ds-primary-active: #452f96;
   --ds-primary-edge: #3e2a8c; /* 3D edge under buttons */
-  --ds-primary-50: #f1ecfd;
-  --ds-primary-100: #e3dbfa;
+  --ds-primary-50: #f4f1ea; /* selected / tinted surfaces: warm, not purple */
+  --ds-primary-100: #ece6d6;
   --ds-primary-contrast: #ffffff;
   --ds-bolt: #7a6510; /* bolt as text / stroke on parchment */
   --ds-bolt-fill: #f2c94c; /* bolt shape fill (decoration) */
@@ -76,20 +80,26 @@
   --ds-danger-border: #f2b8ae;
 
   /* IELTS criteria as Hogwarts houses (bars, eyebrow labels) */
-  --ds-house-fc: #a4161a; /* Gryffindor: Fluency & Coherence */
-  --ds-house-lr: #1f4e9c; /* Ravenclaw: Lexical Resource */
-  --ds-house-gra: #1a6b3c; /* Slytherin: Grammatical Range & Accuracy */
-  --ds-house-pron: #7d5f00; /* Hufflepuff: Pronunciation */
+  --ds-crit-fc: #a4161a; /* Fluency & Coherence */
+  --ds-crit-lr: #1f4e9c; /* Lexical Resource */
+  --ds-crit-gra: #1a6b3c; /* Grammatical Range & Accuracy */
+  --ds-crit-pron: #7d5f00; /* Pronunciation */
 
   --ds-focus: #846e15;
   --ds-focus-ring: 0 0 0 3px #f2c94c;
 
   /* Hero panels: a night-sky purple card with a gold bolt, in both themes */
-  --ds-hero-bg: linear-gradient(150deg, #3e2a8c 0%, #644ac9 100%);
-  --ds-hero-text: #ffffff;
-  --ds-hero-text-muted: rgba(255, 255, 255, 0.88);
-  --ds-hero-chip: rgba(255, 255, 255, 0.16);
-  --ds-hero-track: rgba(255, 255, 255, 0.25);
+  /* Hero panels: a light parchment wash; purple is kept for the main button only. */
+  --ds-hero-bg: linear-gradient(150deg, #fbf3d9 0%, #f3eefb 100%);
+  --ds-hero-text: #3a3846;
+  --ds-hero-text-muted: #605b53;
+  --ds-hero-chip: rgba(58, 56, 70, 0.06);
+  --ds-hero-track: rgba(58, 56, 70, 0.12);
+  --ds-hero-storm: rgba(242, 201, 76, 0.28);
+  --ds-hero-flash: rgba(255, 255, 255, 0.9);
+  --ds-pw-flash: #fff3bf;
+  --ds-arc: #b8860b;
+  --ds-arc-glow: rgba(242, 201, 76, 0.95);
   --ds-auth-bg: linear-gradient(160deg, #fffbeb 0%, #f3efda 100%);
   --ds-auth-glow: radial-gradient(circle at 70% 70%, rgba(100, 74, 201, 0.12), transparent 60%);
 
@@ -129,11 +139,10 @@
   --ds-surface-muted: #343746;
   --ds-surface-hover: #3b3e51;
   --ds-surface-inverse: #f8f8f2;
-  --ds-logo-tile: #3b2e5a;
 
   --ds-text: #e2e2ea;
-  --ds-text-secondary: #c3c8e0;
-  --ds-text-muted: #aab1d3;
+  --ds-text-secondary: #d0d0d6;
+  --ds-text-muted: #b4b4bd;
   --ds-text-disabled: #6e7598;
   --ds-text-on-primary: #21222c;
 
@@ -145,8 +154,8 @@
   --ds-primary-hover: #cdaafb;
   --ds-primary-active: #d9bdfc;
   --ds-primary-edge: #5b3f9e;
-  --ds-primary-50: #2f2a45;
-  --ds-primary-100: #3b2e5a;
+  --ds-primary-50: #2e303c;
+  --ds-primary-100: #3a3c4a;
   --ds-primary-contrast: #21222c;
   --ds-bolt: #f1fa8c;
   --ds-bolt-fill: #f1fa8c;
@@ -166,19 +175,24 @@
   --ds-danger-bg: #40232a;
   --ds-danger-border: #7a3a44;
 
-  --ds-house-fc: #ff7a7a;
-  --ds-house-lr: #8bb8ff;
-  --ds-house-gra: #50fa7b;
-  --ds-house-pron: #f1fa8c;
+  --ds-crit-fc: #ff7a7a;
+  --ds-crit-lr: #8bb8ff;
+  --ds-crit-gra: #50fa7b;
+  --ds-crit-pron: #f1fa8c;
 
   --ds-focus: #f1fa8c;
   --ds-focus-ring: 0 0 0 3px #f1fa8c;
 
-  --ds-hero-bg: linear-gradient(150deg, #2f2a45 0%, #4a3a7a 100%);
+  --ds-hero-bg: linear-gradient(150deg, #30323f 0%, #2a2c38 100%);
   --ds-hero-text: #f8f8f2;
-  --ds-hero-text-muted: rgba(248, 248, 242, 0.86);
+  --ds-hero-text-muted: #c9c9d1;
   --ds-hero-chip: rgba(248, 248, 242, 0.12);
-  --ds-hero-track: rgba(248, 248, 242, 0.22);
+  --ds-hero-track: rgba(248, 248, 242, 0.14);
+  --ds-hero-storm: rgba(241, 250, 140, 0.16);
+  --ds-hero-flash: rgba(248, 248, 242, 0.7);
+  --ds-pw-flash: #4a4a3a;
+  --ds-arc: #f8f8f2;
+  --ds-arc-glow: rgba(241, 250, 140, 0.85);
   --ds-auth-bg: linear-gradient(160deg, #282a36 0%, #21222c 100%);
   --ds-auth-glow: radial-gradient(circle at 70% 70%, rgba(189, 147, 249, 0.14), transparent 60%);
 
@@ -204,6 +218,15 @@
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: none; }
 }
+/* Line icons (components/icon.tsx) sit on the text line. */
+.ds-icon {
+  flex: none;
+  vertical-align: -0.15em;
+}
+.ds-spin {
+  animation: spin 1s linear infinite;
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
@@ -417,22 +440,34 @@ a:hover {
   flex-direction: column;
 }
 .app-header {
-  min-height: 72px;
   flex: none;
   background: var(--ds-surface);
   border-bottom: 1px solid var(--ds-border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 28px;
+  padding: 0 28px;
   position: sticky;
   top: 0;
   z-index: 5;
 }
+/* Header and page head share the page width, so the title lines up with the content. */
+.app-header-inner {
+  min-height: 64px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.app-page-head {
+  margin: 0 auto 20px;
+}
+.app-page-head p {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ds-text-muted);
+}
 .app-content {
   flex: 1;
-  padding: 28px;
+  padding: 20px 28px 28px;
 }
 .app-bottomnav,
 .app-mobile-only {
@@ -444,7 +479,7 @@ a:hover {
   align-items: center;
   gap: 12px;
   min-height: 48px;
-  padding: 0 14px 0 22px;
+  padding: 0 14px;
   border-radius: var(--ds-radius-lg);
   font-size: var(--text-sm);
   font-weight: 600;
@@ -455,20 +490,145 @@ a:hover {
   color: var(--ds-text);
 }
 .navitem[aria-current="page"] {
-  background: var(--ds-primary-50);
+  background: var(--ds-surface-muted);
+  color: var(--ds-text);
+  font-weight: 800;
+}
+.navitem[aria-current="page"] .ds-icon {
   color: var(--ds-primary);
 }
-/* The active item gets a small lightning bolt on its left edge. */
-.navitem[aria-current="page"]::before {
-  content: "";
+
+/* Square icon button in the header (theme toggle, account on phones). */
+.app-iconbtn {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface);
+  color: var(--ds-text-secondary);
+  cursor: pointer;
+  font-size: var(--text-base);
+}
+.app-iconbtn.app-mobile-only {
+  display: none;
+}
+.app-iconbtn:hover {
+  background: var(--ds-surface-hover);
+  color: var(--ds-text);
+}
+
+/* Account card at the bottom of the sidebar and its pop-up menu. */
+.app-account {
+  position: relative;
+}
+.app-account-card {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--ds-radius-lg);
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  color: var(--ds-text);
+}
+.app-account-card:hover,
+.app-account-card[aria-expanded="true"] {
+  background: var(--ds-surface-hover);
+}
+.app-menu {
   position: absolute;
-  left: 5px;
-  top: 50%;
-  width: 12px;
-  height: 20px;
-  translate: 0 -50%;
-  background: var(--ds-bolt-fill);
-  clip-path: polygon(55% 0, 10% 58%, 45% 58%, 30% 100%, 92% 38%, 55% 38%, 75% 0);
+  z-index: 20;
+  min-width: 220px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  box-shadow: var(--ds-shadow-md);
+}
+.app-menu-up {
+  left: 12px;
+  right: 12px;
+  bottom: calc(100% + 6px);
+}
+.app-menu-down {
+  right: 0;
+  top: calc(100% + 6px);
+}
+.app-menu .navitem {
+  width: 100%;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+.app-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Home: greeting panel (text + daily ring) and the stat row. */
+.dash-hero {
+  --ring: 136px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "text ring" "cta ring";
+  column-gap: 32px;
+  row-gap: 14px;
+  align-items: center;
+  padding: 28px 32px;
+  border-radius: var(--ds-radius-2xl);
+  background: var(--ds-hero-bg);
+  color: var(--ds-hero-text);
+  border: 1px solid var(--ds-border);
+  box-shadow: 0 var(--ds-depth) 0 var(--ds-border);
+}
+.dash-hero-text {
+  grid-area: text;
+  align-self: end;
+}
+.dash-hero-cta {
+  grid-area: cta;
+  align-self: start;
+}
+.dash-hero-ring {
+  grid-area: ring;
+  position: relative;
+  width: var(--ring);
+  height: var(--ring);
+}
+.dash-hero-ring svg {
+  width: 100%;
+  height: 100%;
+}
+.dash-hero-title {
+  font: 700 var(--text-2xl) / 1.25 var(--font-display);
+  margin: 4px 0 0;
+}
+.dash-ring-value {
+  font: 700 var(--text-2xl) / 1.1 var(--font-display);
+}
+.dash-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.dash-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: stretch;
 }
 
 @media (max-width: 899px) {
@@ -476,14 +636,56 @@ a:hover {
     display: none;
   }
   .app-header {
-    padding: 8px 16px;
+    padding: 0 14px;
+  }
+  .app-header-inner {
     min-height: 60px;
+    gap: 8px;
+  }
+  .app-page-head {
+    margin-bottom: 14px;
+  }
+  .dash-hero {
+    --ring: 88px;
+    grid-template-areas: "text ring" "cta cta";
+    column-gap: 14px;
+    padding: 20px;
+  }
+  .dash-hero-title {
+    font-size: var(--text-xl);
+  }
+  .dash-ring-value {
+    font-size: var(--text-lg);
+  }
+  .dash-ring-label {
+    display: none;
+  }
+  /* Segmented choice (theme): four equal cells, icon above the label. */
+  .ds-seg {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr);
+    width: 100% !important;
+  }
+  .ds-seg button {
+    flex-direction: column;
+    gap: 2px !important;
+    min-height: 56px !important;
+    padding: 4px 2px !important;
+    font-size: var(--text-xs) !important;
+  }
+  .dash-stats,
+  .dash-cards {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
   .app-content {
     padding: 16px 14px calc(88px + env(safe-area-inset-bottom));
   }
   .app-mobile-only {
     display: flex;
+  }
+  .app-iconbtn.app-mobile-only {
+    display: grid;
   }
   .app-desktop-only {
     display: none !important;
@@ -514,39 +716,345 @@ a:hover {
     position: relative;
   }
   .app-bottomnav a[aria-current="page"] {
+    color: var(--ds-text);
+    background: var(--ds-surface-muted);
+  }
+  .app-bottomnav a[aria-current="page"] .ds-icon {
     color: var(--ds-primary);
-    background: var(--ds-primary-50);
   }
   .app-bottomnav i {
     font-size: 20px;
   }
 }
 
-/* Sign-in pages: two panels side by side; on phones the form comes first under a short
-   brand header (logo + tagline; intro and feature list hidden). */
-:root {
-  --ds-auth-pad: 32px;
+/* Signed-out pages (components/auth-layout.tsx). */
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 80px 32px 48px;
+  background: var(--ds-auth-glow), var(--ds-auth-bg);
+  position: relative;
+}
+.auth-lang {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+}
+.auth-card {
+  width: 100%;
+  max-width: 960px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-2xl);
+  box-shadow: var(--ds-shadow-lg);
+  overflow: hidden;
+}
+.auth-hero {
+  border-right: 1px solid var(--ds-border);
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  background: var(--ds-hero-bg);
+  color: var(--ds-hero-text);
+}
+.auth-hero-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.auth-features {
+  list-style: none;
+  margin: 28px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  font-size: var(--text-sm);
+  color: var(--ds-hero-text);
+}
+.auth-features li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.auth-feature-icon {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-hero-chip);
+}
+.auth-form {
+  padding: 48px 44px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 24px;
+}
+/* Password field: show/hide button inside the input. */
+.auth-pw {
+  position: relative;
+}
+.auth-pw .ds-input {
+  padding-right: 52px;
+}
+.auth-pw-toggle {
+  position: absolute;
+  top: 50%;
+  right: 2px;
+  translate: 0 -50%;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: var(--ds-radius-md);
+  background: none;
+  color: var(--ds-text-muted);
+  cursor: pointer;
+}
+.auth-pw-toggle:hover {
+  color: var(--ds-primary);
+}
+.auth-pw-toggle[aria-pressed="true"] {
+  color: var(--ds-bolt);
+}
+/* The two button icons cross-fade (bolt <-> crossed bolt). */
+.auth-pw-icons {
+  display: grid;
+}
+.auth-pw-icons > * {
+  grid-area: 1 / 1;
+  transition:
+    opacity 0.3s var(--pw-ease),
+    transform 0.3s var(--pw-ease);
+}
+.auth-pw-icons > :last-child,
+.auth-pw-icons[data-shown] > :first-child {
+  opacity: 0;
+  transform: scale(0.6) rotate(-20deg);
+}
+.auth-pw-icons[data-shown] > :last-child {
+  opacity: 1;
+  transform: none;
+}
+
+/* Password reveal (components/auth-layout.tsx AuthField + components/lightning-fx.tsx):
+   0-700 ms an electric bolt (Lottie) strikes down onto the field; ~300 ms the field glows and
+   jolts; 330-930 ms an arc runs across the field and the text is uncovered behind it, glowing
+   gold before it cools. Hide: the arc runs and wipes the text away. The white original is
+   recolored here so it shows on the light theme. Reduced motion: plain toggle. */
+.auth-pw-toggle {
+  z-index: 4;
+}
+.auth-pw[data-fx="show"] {
+  animation: pw-shake 0.3s ease-out 0.3s both;
+}
+.auth-pw[data-fx="show"] .ds-input {
+  animation: pw-field 0.9s ease-out 0.28s both;
+}
+.auth-pw-fx {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+/* Same padding and font as .ds-input: the overlay text sits exactly on the real text. */
+.auth-pw-text {
+  position: absolute;
+  inset: 1px;
+  display: flex;
+  align-items: center;
+  padding: 0 51px 0 13px;
+  border-radius: calc(var(--ds-radius-lg) - 1px);
+  background: var(--ds-surface);
+  font: 450 var(--text-sm) var(--font-sans);
+  color: var(--ds-text);
+  white-space: pre;
+  overflow: hidden;
+}
+.auth-pw[data-fx="show"] .auth-pw-text {
+  animation: pw-wipe-in 0.55s cubic-bezier(0.33, 0, 0.2, 1) 0.4s both;
+}
+.auth-pw[data-fx="hide"] .auth-pw-text {
+  animation: pw-wipe-out 0.5s cubic-bezier(0.33, 0, 0.2, 1) 0.1s both;
+}
+.pw-lottie {
+  position: absolute;
+  pointer-events: none;
+  filter: drop-shadow(0 0 2px var(--ds-arc-glow)) drop-shadow(0 0 10px var(--ds-arc-glow));
+}
+.pw-lottie.pw-done {
+  opacity: 0;
+  transition: opacity 0.18s ease-out;
+}
+/* The art is thin filled shapes; a 1.5px outline that does not scale keeps them bold. */
+.pw-lottie path {
+  fill: var(--ds-arc);
+  stroke: var(--ds-arc);
+  stroke-width: 1.5px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+/* Vertical strike (art 386 x 362, drawn near 1:1): its foot is at about (22%, 90%) of the
+   art; put the foot on the field, 30% from the left, just below the middle. */
+.pw-strike {
+  width: 270px;
+  height: 253px;
+  left: calc(30% - 59px);
+  bottom: calc(50% - 30px);
+}
+/* Horizontal arc (frames 64-81): it runs from ~20% to ~95% of the art's width, ~20-75% of
+   its height. Stretch it over the field, a little flatter, centred on the field. */
+.pw-arc {
+  left: -22%;
+  width: 128%;
+  height: 170px;
+  top: 50%;
+  translate: 0 -48%;
+}
+
+@keyframes pw-shake {
+  0%, 100% { transform: none; }
+  20% { transform: translate(-3px, 2px); }
+  40% { transform: translate(3px, -1px); }
+  60% { transform: translate(-2px, 1px); }
+  80% { transform: translate(1px, 0); }
+}
+@keyframes pw-field {
+  0% { box-shadow: 0 0 0 0 transparent; }
+  15% { box-shadow: 0 0 0 4px var(--ds-bolt-glow), 0 0 30px var(--ds-bolt-glow); border-color: var(--ds-bolt-fill); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+@keyframes pw-wipe-in {
+  0% { clip-path: inset(0 100% 0 0); color: var(--ds-bolt); text-shadow: 0 0 10px var(--ds-bolt-glow); }
+  70% { clip-path: inset(0 0 0 0); color: var(--ds-bolt); text-shadow: 0 0 10px var(--ds-bolt-glow); }
+  100% { clip-path: inset(0 0 0 0); color: var(--ds-text); text-shadow: none; }
+}
+@keyframes pw-wipe-out {
+  from { clip-path: inset(0 0 0 0); }
+  to { clip-path: inset(0 0 0 100%); }
+}
+
+
+
+
+
+
+
+/* Storm effects on the brand panel (all stop with prefers-reduced-motion):
+   - a slow drifting glow behind the text (the one looping animation on the page),
+   - a double lightning flash when the page opens, while the logo bolt "strikes",
+   - the logo bolt flickers again on hover. */
+.auth-hero {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.auth-storm {
+  position: absolute;
+  inset: -40%;
+  z-index: -1;
+  background: radial-gradient(closest-side, var(--ds-hero-storm), transparent 70%);
+  animation: auth-drift 14s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+.auth-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: var(--ds-hero-flash);
+  opacity: 0;
+  animation: auth-flash 1.1s ease-out 0.35s 1 both;
+  pointer-events: none;
+}
+.auth-strike {
+  display: inline-flex;
+  animation: auth-strike 0.9s cubic-bezier(0.2, 1.4, 0.4, 1) 0.2s both;
+}
+.auth-logo:hover .auth-strike {
+  animation: bolt-flicker 0.8s ease-out 1;
+}
+.auth-hero-body > *,
+.auth-features li,
+.auth-form > * {
+  animation: fadeup 0.5s var(--ds-ease) both;
+}
+.auth-hero-body > :nth-child(1) { animation-delay: 0.45s; }
+.auth-hero-body > :nth-child(2) { animation-delay: 0.55s; }
+.auth-features li:nth-child(1) { animation-delay: 0.65s; }
+.auth-features li:nth-child(2) { animation-delay: 0.75s; }
+.auth-features li:nth-child(3) { animation-delay: 0.85s; }
+.auth-form > :nth-child(1) { animation-delay: 0.15s; }
+.auth-form > :nth-child(2) { animation-delay: 0.25s; }
+.auth-form > :nth-child(3) { animation-delay: 0.35s; }
+@keyframes auth-drift {
+  from { transform: translate(-12%, -8%) scale(1); }
+  to { transform: translate(14%, 10%) scale(1.15); }
+}
+@keyframes auth-flash {
+  0% { opacity: 0; }
+  8% { opacity: 0.55; }
+  16% { opacity: 0.05; }
+  26% { opacity: 0.4; }
+  100% { opacity: 0; }
+}
+@keyframes auth-strike {
+  0% { opacity: 0; transform: translateY(-18px) scale(0.6) rotate(-12deg); filter: brightness(2.2); }
+  60% { opacity: 1; transform: translateY(0) scale(1.12) rotate(4deg); filter: brightness(1.6); }
+  100% { transform: none; filter: none; }
+}
+
+.auth-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: var(--text-sm);
+  color: var(--ds-text-secondary);
+  cursor: pointer;
+}
+.auth-check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--ds-primary);
+  cursor: pointer;
 }
 @media (max-width: 899px) {
-  :root {
-    --ds-auth-pad: 14px;
+  .auth-page {
+    padding: 72px 14px 24px;
+    place-items: start center;
   }
-  .ds-auth-split {
-    grid-template-columns: 1fr !important;
+  .auth-lang {
+    top: 12px;
+    right: 14px;
   }
-  .ds-auth-hero {
-    padding: 22px 20px !important;
-    gap: 12px !important;
+  .auth-card {
+    grid-template-columns: 1fr;
   }
-  .ds-auth-hero > :nth-child(n + 3),
-  .ds-auth-hero > :nth-child(2) > :nth-child(n + 2) {
-    display: none !important;
+  /* Phones: logo + headline only; the form follows right away. */
+  .auth-hero {
+    border-right: none;
+    border-bottom: 1px solid var(--ds-border);
+    padding: 22px 20px;
+    gap: 14px;
   }
-  .ds-auth-form {
-    padding: 24px 20px !important;
+  .auth-hero-body p,
+  .auth-features {
+    display: none;
   }
-  .ds-auth-hero > :nth-child(2) > :first-child {
+  .auth-hero-body h1 {
     font-size: var(--text-xl) !important;
+  }
+  .auth-form {
+    padding: 24px 20px 28px;
   }
 }
 

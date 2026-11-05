@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authApi, authErrorMessage } from "@/lib/auth-api";
 import { AuthCard } from "@/components/auth-card";
+import { AuthField } from "@/components/auth-layout";
 import { useI18n } from "@/lib/i18n";
 
 function ResetPasswordForm() {
@@ -41,23 +42,28 @@ function ResetPasswordForm() {
     );
   }
   return (
-    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <label style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ds-text-secondary)" }}>{t("auth.reset.newPassword")}</label>
-        <input
-          className="ds-input"
-          type="password"
-          required
-          minLength={8}
-          placeholder={t("auth.field.passwordMin")}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <label style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ds-text-secondary)" }}>{t("auth.reset.confirmPassword")}</label>
-        <input className="ds-input" type="password" required minLength={8} value={confirm} onChange={(e) => setConfirm(e.target.value)} />
-      </div>
+    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <AuthField
+        id="new-password"
+        label={t("auth.reset.newPassword")}
+        type="password"
+        autoComplete="new-password"
+        required
+        minLength={8}
+        placeholder={t("auth.field.passwordMin")}
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
+      <AuthField
+        id="confirm-password"
+        label={t("auth.reset.confirmPassword")}
+        type="password"
+        autoComplete="new-password"
+        required
+        minLength={8}
+        value={confirm}
+        onChange={(e) => setConfirm(e.target.value)}
+      />
       {error && <p style={{ fontSize: "var(--text-sm)", color: "var(--ds-danger)" }}>{error}</p>}
       <button type="submit" disabled={loading} className="ds-btn ds-btn-lg" style={{ width: "100%" }}>
         <span>{loading ? t("common.saving") : t("auth.reset.submit")}</span>

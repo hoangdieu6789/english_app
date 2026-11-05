@@ -40,7 +40,7 @@ speaking-rubric/
 | Grammatical Range and Accuracy | LLM | transcript |
 | Pronunciation | Code (`ScorePronunciation`) | Azure Pronunciation Assessment + pitch from the WAV |
 
-Pronunciation measures **5 of the 6 features** in the descriptor: individual words/phonemes (P-01), chunking (P-02), rhythm (P-03, indirectly through `ProsodyScore`), intonation and stress (P-04), intelligibility (P-06, indirectly through `AccuracyScore`). Connected speech (P-05) is `not_measured`. The result includes `coverage`, the list of mispronounced words and the sentences with a wrong final rise/fall.
+Pronunciation measures **all 6 features** in the descriptor: individual words/phonemes (P-01), chunking (P-02), rhythm (P-03, indirectly through `ProsodyScore`), intonation and stress (P-04), connected speech (P-05, an estimate of consonant-to-vowel linking from word timing, since v2.1.0), intelligibility (P-06, indirectly through `AccuracyScore`). The result includes `coverage`, the list of mispronounced words, the joins said with a pause (`unlinked_pairs`) and the sentences with a wrong final rise/fall.
 
 ## Grading flow
 

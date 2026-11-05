@@ -3,6 +3,7 @@
 import { hasMessage, useI18n, type MessageKey } from "@/lib/i18n";
 import type { PronunciationAttempt, RubricResult } from "@/lib/pronunciation-api";
 import { SCORE_AMBER, SCORE_GREEN, SCORE_RED } from "@/lib/score-color";
+import { Icon } from "@/components/icon";
 
 // Learner-facing names for the IELTS criteria and the Pronunciation features
 // (backend/internal/rubric/criteria/*.md), with a fallback to the raw id.
@@ -22,27 +23,16 @@ function formatBand(band: number) {
   return Number.isInteger(band) ? `${band}.0` : band.toFixed(1);
 }
 
-// IELTS criteria as Hogwarts houses: a colored bar and a small house label; the criterion
-// name stays the main label (docs/tickets/UI-001).
-const HOUSES: Record<string, { house: string; color: string }> = {
-  fluency_coherence: { house: "Gryffindor", color: "var(--ds-house-fc)" },
-  lexical_resource: { house: "Ravenclaw", color: "var(--ds-house-lr)" },
-  grammatical_range_accuracy: { house: "Slytherin", color: "var(--ds-house-gra)" },
-  pronunciation: { house: "Hufflepuff", color: "var(--ds-house-pron)" },
+// One color per IELTS criterion (bar only); the criterion name is the label.
+const CRITERION_COLORS: Record<string, string> = {
+  fluency_coherence: "var(--ds-crit-fc)",
+  lexical_resource: "var(--ds-crit-lr)",
+  grammatical_range_accuracy: "var(--ds-crit-gra)",
+  pronunciation: "var(--ds-crit-pron)",
 };
 
-function CriterionLabel({ id, name }: { id: string; name: string }) {
-  const h = HOUSES[id];
-  return (
-    <span style={{ width: 190, flex: "none", display: "flex", flexDirection: "column", lineHeight: 1.25 }}>
-      {h && (
-        <span className="ds-eyebrow" style={{ color: h.color }}>
-          {h.house}
-        </span>
-      )}
-      <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ds-text)" }}>{name}</span>
-    </span>
-  );
+function CriterionLabel({ name }: { name: string }) {
+  return <span style={{ width: 190, flex: "none", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ds-text)", lineHeight: 1.3 }}>{name}</span>;
 }
 
 function Bar({ pct, color }: { pct: number; color: string }) {
@@ -89,6 +79,8 @@ export function RubricPanel({
   ];
   const notAssessed = pending ? rubric.not_assessed.filter((n) => !LLM_CRITERIA.includes(n.id)) : rubric.not_assessed;
   const mispronounced = pron?.mispronounced_words ?? [];
+  const unlinked = pron?.unlinked_pairs ?? [];
+  const linkingMeasured = (pron?.items ?? []).some((it) => it.code === "P-05" && it.measured);
 
   return (
     <div className="ds-card" style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
@@ -110,7 +102,7 @@ export function RubricPanel({
         </div>
         {pending ? (
           <div style={{ textAlign: "right", fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>
-            <i className="pi pi-spinner" style={{ animation: "spin 1s linear infinite", marginRight: 6 }} />
+            <Icon name="loading" spin style={{ marginRight: 6 }} />
             {t("rubric.pendingOverall")}
           </div>
         ) : scored ? (
@@ -153,18 +145,18 @@ export function RubricPanel({
           {rows.map((r) =>
             r.band == null ? (
               <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <CriterionLabel id={r.id} name={criterion(r.id)} />
+                <CriterionLabel name={criterion(r.id)} />
                 <div style={{ flex: 1, height: 8, borderRadius: 99, background: "var(--ds-surface-muted)", overflow: "hidden" }}>
                   <div style={{ width: "35%", height: "100%", background: "var(--ds-border-strong)", animation: "recpulse 1.6s infinite" }} />
                 </div>
                 <span style={{ fontSize: "var(--text-xs)", width: 30, textAlign: "right", color: "var(--ds-text-muted)" }}>
-                  <i className="pi pi-spinner" style={{ fontSize: "var(--text-xs)", animation: "spin 1s linear infinite" }} />
+                  <Icon name="loading" spin />
                 </span>
               </div>
             ) : (
               <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <CriterionLabel id={r.id} name={criterion(r.id)} />
-                <Bar pct={(r.band / 9) * 100} color={HOUSES[r.id]?.color ?? bandColor(r.band)} />
+                <CriterionLabel name={criterion(r.id)} />
+                <Bar pct={(r.band / 9) * 100} color={CRITERION_COLORS[r.id] ?? bandColor(r.band)} />
                 <span style={{ fontSize: "var(--text-sm)", fontWeight: 800, width: 44, textAlign: "right", color: "var(--ds-text)" }}>{r.band}/9</span>
               </div>
             ),
@@ -192,7 +184,10 @@ export function RubricPanel({
                   color: it.measured ? "var(--ds-text)" : "var(--ds-text-muted)",
                 }}
               >
-                <span>{label(t, "rubric.feature", it.code)}</span>
+                <span>
+                  {label(t, "rubric.feature", it.code)}
+                  {it.code === "P-05" && it.measured && <span style={{ color: "var(--ds-text-muted)" }}> ({t("rubric.estimate")})</span>}
+                </span>
                 <span style={{ fontWeight: 600, whiteSpace: "nowrap", marginLeft: 8, color: it.measured && it.band ? bandColor(it.band) : undefined }}>
                   {it.measured && it.band ? `${it.band}/9` : t("rubric.notMeasured")}
                 </span>
@@ -203,6 +198,14 @@ export function RubricPanel({
             <div style={{ marginTop: 10, fontSize: "var(--text-sm)", color: "var(--ds-text-secondary)" }}>
               {t("rubric.mispronounced")} <span style={{ fontWeight: 600, color: "var(--ds-danger)" }}>{mispronounced.join(", ")}</span>
             </div>
+          )}
+          {unlinked.length > 0 && (
+            <div style={{ marginTop: 10, fontSize: "var(--text-sm)", color: "var(--ds-text-secondary)" }}>
+              {t("rubric.unlinked")} <span style={{ fontWeight: 600, color: "var(--ds-warning)" }}>{unlinked.map((p) => p.replace(" ", " ‿ ")).join(", ")}</span>
+            </div>
+          )}
+          {linkingMeasured && (
+            <div style={{ marginTop: 6, fontSize: "var(--text-xs)", color: "var(--ds-text-muted)" }}>{t("rubric.linkingEstimate")}</div>
           )}
           {pron.tone_issues && pron.tone_issues.length > 0 && (
             <ul style={{ margin: "10px 0 0", paddingLeft: 18, fontSize: "var(--text-sm)", color: "var(--ds-text-secondary)" }}>

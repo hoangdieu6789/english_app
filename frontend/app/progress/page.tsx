@@ -3,18 +3,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/app-shell";
 import { WeeklyLineChart } from "@/components/charts/line-chart";
-import { BandGoalForm } from "@/components/band-goal-form";
-import { LanguageSwitcher } from "@/components/language-switcher";
-import { ThemeSwitcher } from "@/components/theme-switcher";
 import { hasMessage, useI18n, type MessageKey } from "@/lib/i18n";
 import { phonemeToIpa } from "@/lib/phonemes";
 import { progressQuery, type ProgressSummary } from "@/lib/progress-api";
-import { goalsQuery } from "@/lib/review-api";
+import { chartRange, localToday } from "@/lib/progress-range";
 import { scoreColor } from "@/lib/score-color";
+import { IconTile, type IconName, type IconTone } from "@/components/icon";
 
 // All numbers come from the learner's own attempts (GET /api/progress/summary).
-
-const WEEKS_SHOWN = 6;
 
 const CRITERIA: { id: string; label: MessageKey }[] = [
   { id: "fluency_coherence", label: "progress.criteria.fluency_coherence" },
@@ -31,18 +27,6 @@ function bandColor(band: number): string {
 
 function formatBand(b: number): string {
   return (Math.round(b * 2) / 2).toFixed(1);
-}
-
-// Monday of each of the last WEEKS_SHOWN weeks (local dates), oldest first.
-function lastWeeks(): string[] {
-  const now = new Date();
-  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
-  const out: string[] = [];
-  for (let i = WEEKS_SHOWN - 1; i >= 0; i--) {
-    const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() - 7 * i);
-    out.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
-  }
-  return out;
 }
 
 function Card({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
@@ -76,24 +60,24 @@ function StatCards({ p }: { p: ProgressSummary }) {
   const cards = [
     {
       label: t("progress.stat.streak"),
-      icon: "pi pi-bolt",
-      color: "var(--ds-warning)",
+      icon: "streak" as IconName,
+      tone: "warning" as IconTone,
       value: String(p.streak),
       unit: t("progress.stat.days"),
       note: t("progress.stat.activeDays", { n: p.activeDays }),
     },
     {
       label: t("progress.stat.attempts"),
-      icon: "pi pi-microphone",
-      color: "var(--ds-info)",
+      icon: "practice" as IconName,
+      tone: "info" as IconTone,
       value: String(p.attempts),
       unit: "",
       note: t("progress.stat.today", { n: p.attemptsToday }),
     },
     {
       label: t("progress.stat.accuracy30"),
-      icon: "pi pi-chart-line",
-      color: "var(--ds-primary)",
+      icon: "accuracy" as IconName,
+      tone: "primary" as IconTone,
       value: p.last30Days.attempts ? String(Math.round(p.last30Days.accuracy)) : "—",
       unit: p.last30Days.attempts ? "/100" : "",
       note: p.last30Days.attempts
@@ -102,19 +86,19 @@ function StatCards({ p }: { p: ProgressSummary }) {
     },
     {
       label: t("progress.stat.band30"),
-      icon: "pi pi-star",
-      color: "var(--ds-success)",
+      icon: "band" as IconName,
+      tone: "success" as IconTone,
       value: p.last30Days.banded ? formatBand(p.last30Days.band) : "—",
       unit: "",
       note: p.last30Days.banded ? t("progress.stat.bandedCount", { n: p.last30Days.banded }) : t("progress.stat.noBanded"),
     },
   ];
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
       {cards.map((s) => (
         <div key={s.label} className="ds-card" style={{ padding: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, color: s.color }}>
-            <i className={s.icon} />
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <IconTile name={s.icon} tone={s.tone} />
             <span style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{s.label}</span>
           </div>
           <div style={{ font: "700 var(--text-3xl)/1.3 var(--font-display)", marginTop: 6 }}>
@@ -130,7 +114,6 @@ function StatCards({ p }: { p: ProgressSummary }) {
 export default function ProgressPage() {
   const { t, locale } = useI18n();
   const { data: p, isError, error } = useQuery(progressQuery);
-  const goals = useQuery(goalsQuery);
 
   if (!p) {
     return (
@@ -142,15 +125,15 @@ export default function ProgressPage() {
     );
   }
 
-  const weeks = lastWeeks();
-  const byWeek = new Map(p.weeks.map((w) => [w.start, w]));
-  const accuracy = weeks.map((w) => byWeek.get(w)?.accuracy ?? null);
-  const fluency = weeks.map((w) => byWeek.get(w)?.fluency ?? null);
+  // Day by day for the first 14 days, then week by week (at most 10 weeks).
+  const range = chartRange(localToday(), p.firstDay, p.days, p.weeks);
   // Day and month in the UI locale (e.g. 03/11 in Vietnamese, 11/03 in US English).
-  const weekLabels = weeks.map((w) => {
-    const [y, m, d] = w.split("-").map(Number);
+  const chartLabels = (range?.keys ?? []).map((k) => {
+    const [y, m, d] = k.split("-").map(Number);
     return new Date(y, m - 1, d).toLocaleDateString(locale, { day: "2-digit", month: "2-digit" });
   });
+  const unit = range?.unit ?? "day";
+  const points = range ? range.accuracy.filter((v) => v != null).length : 0;
   const taskLabel = (type: string) => {
     const key = `progress.task.${type}`;
     return hasMessage(key) ? t(key) : type;
@@ -165,21 +148,11 @@ export default function ProgressPage() {
         <StatCards p={p} />
 
         <div className="ds-card" style={{ padding: 24 }}>
-          <div style={{ font: "700 var(--text-base)/1.3 var(--font-display)", marginBottom: 12 }}>{t("progress.goals.title")}</div>
-          {goals.data ? <BandGoalForm goals={goals.data} /> : <Empty>{t("common.loading")}</Empty>}
-          <div style={{ marginTop: 16 }}>
-            <ThemeSwitcher />
-            <div style={{ height: 12 }} />
-            <LanguageSwitcher sync showHint />
-          </div>
-        </div>
-
-        <div className="ds-card" style={{ padding: 24 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-            <div>
-              <div style={{ font: "700 var(--text-base)/1.3 var(--font-display)" }}>{t("progress.weekly.title")}</div>
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "8px 16px", marginBottom: 6 }}>
+            <div style={{ flex: "1 1 260px" }}>
+              <div style={{ font: "700 var(--text-base)/1.3 var(--font-display)" }}>{t(unit === "day" ? "progress.chart.titleDay" : "progress.chart.titleWeek")}</div>
               <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>
-                {t("progress.weekly.subtitle", { n: WEEKS_SHOWN })}
+                {range ? t(unit === "day" ? "progress.chart.subtitleDay" : "progress.chart.subtitleWeek", { n: range.keys.length }) : t("progress.chart.subtitleNone")}
               </div>
             </div>
             <div style={{ display: "flex", gap: 16, fontSize: "var(--text-sm)" }}>
@@ -193,10 +166,15 @@ export default function ProgressPage() {
               </span>
             </div>
           </div>
-          {p.weeks.length ? (
-            <WeeklyLineChart weeks={weekLabels} accuracy={accuracy} fluency={fluency} />
+          {range && points > 0 ? (
+            <>
+              <WeeklyLineChart weeks={chartLabels} accuracy={range.accuracy} fluency={range.fluency} />
+              {points < 2 && (
+                <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>{t("progress.chart.needTwo")}</p>
+              )}
+            </>
           ) : (
-            <Empty>{t("progress.weekly.empty", { n: WEEKS_SHOWN })}</Empty>
+            <Empty>{t("progress.chart.empty")}</Empty>
           )}
         </div>
 
