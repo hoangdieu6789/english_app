@@ -43,5 +43,5 @@ export const nav: Record<keyof typeof source, string> = {
   "nav.sub.settings": "Theme, language, band goal and account",
   "nav.toLight": "Switch to the light theme",
   "nav.toDark": "Switch to the dark theme",
-  "nav.tagline": "Speak with a spark.",
+  "nav.tagline": "Listen sharp, speak bright.",
 };

@@ -29,11 +29,11 @@ const almendra = Almendra({
 
 const META: Record<Lang, Metadata> = {
   vi: {
-    title: "Boltspeak — Nói có lửa, chấm có tâm",
+    title: "Boltwise — Nghe tinh ý, nói tự tin",
     description: "Chấm phát âm, chấm IELTS Speaking theo tiêu chí và ôn từ vựng theo band.",
   },
   en: {
-    title: "Boltspeak — Speak with a spark",
+    title: "Boltwise — Listen sharp, speak bright",
     description: "Pronunciation scoring, IELTS Speaking scored by the band descriptors, and vocabulary by band.",
   },
 };
