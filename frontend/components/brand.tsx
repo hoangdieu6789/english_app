@@ -1,4 +1,4 @@
-// Boltspeak brand: our own lightning bolt drawing (not an official logo) and the wordmark.
+// Boltwise brand: our own lightning bolt drawing (not an official logo) and the wordmark.
 import { useId } from "react";
 import { APP_NAME } from "@/lib/brand";
 

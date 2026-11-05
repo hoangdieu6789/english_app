@@ -114,8 +114,8 @@ var backendMessages = map[string]map[string]string{
 		MsgSavedInvalid:    "Chỉ lưu được từ hoặc cụm từ 1–6 chữ.",
 		MsgSentenceInvalid: "Câu cần từ 3 đến 40 từ.",
 		MsgLLMFailed:       "AI đang bận, chưa chấm được. Thử lại sau ít phút.",
-		MsgResetSubject:    "Boltspeak: đặt lại mật khẩu",
-		MsgResetBody: "Xin chào,\n\nBạn (hoặc ai đó) vừa yêu cầu đặt lại mật khẩu Boltspeak cho %[1]s.\n" +
+		MsgResetSubject:    "Boltwise: đặt lại mật khẩu",
+		MsgResetBody: "Xin chào,\n\nBạn (hoặc ai đó) vừa yêu cầu đặt lại mật khẩu Boltwise cho %[1]s.\n" +
 			"Mở link sau trong 30 phút để đặt mật khẩu mới:\n\n%[2]s\n\n" +
 			"Nếu bạn không yêu cầu, hãy bỏ qua email này; mật khẩu cũ vẫn dùng được.\n",
 	},
@@ -132,8 +132,8 @@ var backendMessages = map[string]map[string]string{
 		MsgSavedInvalid:    "You can save a word or a phrase of 1-6 words.",
 		MsgSentenceInvalid: "Write a sentence of 3 to 40 words.",
 		MsgLLMFailed:       "The AI is busy and could not grade it. Try again in a few minutes.",
-		MsgResetSubject:    "Boltspeak: reset your password",
-		MsgResetBody: "Hello,\n\nYou (or someone else) asked to reset the Boltspeak password for %[1]s.\n" +
+		MsgResetSubject:    "Boltwise: reset your password",
+		MsgResetBody: "Hello,\n\nYou (or someone else) asked to reset the Boltwise password for %[1]s.\n" +
 			"Open this link within 30 minutes to set a new password:\n\n%[2]s\n\n" +
 			"If you did not ask for this, ignore this email; your current password still works.\n",
 	},

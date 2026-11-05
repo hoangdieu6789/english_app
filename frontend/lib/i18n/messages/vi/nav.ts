@@ -42,5 +42,5 @@ export const nav = {
   "nav.sub.settings": "Giao diện, ngôn ngữ, mục tiêu band và tài khoản",
   "nav.toLight": "Chuyển sang giao diện sáng",
   "nav.toDark": "Chuyển sang giao diện tối",
-  "nav.tagline": "Nói có lửa, chấm có tâm.",
+  "nav.tagline": "Nghe tinh ý, nói tự tin.",
 };

@@ -62,7 +62,7 @@ import {
 
 /**
  * Every icon in the app, by meaning (one meaning = one icon). Lucide (MIT), line icons with the
- * same stroke everywhere. The Boltspeak logo (components/brand.tsx) is the only filled mark.
+ * same stroke everywhere. The Boltwise logo (components/brand.tsx) is the only filled mark.
  * Rules: chevronRight = go to another page (links, list rows); next = continue in a flow (buttons).
  */
 export const ICONS = {

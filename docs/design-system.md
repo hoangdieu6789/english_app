@@ -1,6 +1,6 @@
-# Boltspeak design system
+# Boltwise design system
 
-Boltspeak ("Speak with a spark." / "Nói có lửa, chấm có tâm.") follows the David Studio look (`david_studio/docs/design-system.md`,
+Boltwise ("Listen sharp, speak bright." / "Nghe tinh ý, nói tự tin."; formerly Boltspeak) follows the David Studio look (`david_studio/docs/design-system.md`,
 `david_studio/docs/rules/ui-rules.md`): **easy to read first, fun second**, Dracula / Alucard colors,
 Hogwarts humor, toy-like 3D. Its own motif is the **lightning bolt**.
 
