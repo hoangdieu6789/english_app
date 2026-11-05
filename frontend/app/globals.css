@@ -98,6 +98,8 @@
   --ds-hero-storm: rgba(242, 201, 76, 0.28);
   --ds-hero-flash: rgba(255, 255, 255, 0.9);
   --ds-pw-flash: #fff3bf;
+  --ds-arc: #b8860b;
+  --ds-arc-glow: rgba(242, 201, 76, 0.95);
   --ds-auth-bg: linear-gradient(160deg, #fffbeb 0%, #f3efda 100%);
   --ds-auth-glow: radial-gradient(circle at 70% 70%, rgba(100, 74, 201, 0.12), transparent 60%);
 
@@ -189,6 +191,8 @@
   --ds-hero-storm: rgba(241, 250, 140, 0.16);
   --ds-hero-flash: rgba(248, 248, 242, 0.7);
   --ds-pw-flash: #4a4a3a;
+  --ds-arc: #f8f8f2;
+  --ds-arc-glow: rgba(241, 250, 140, 0.85);
   --ds-auth-bg: linear-gradient(160deg, #282a36 0%, #21222c 100%);
   --ds-auth-glow: radial-gradient(circle at 70% 70%, rgba(189, 147, 249, 0.14), transparent 60%);
 
@@ -842,23 +846,19 @@ a:hover {
   transform: none;
 }
 
-/* Password reveal (components/auth-layout.tsx AuthField): a big bolt strikes the field from
-   above (0-220 ms), the field flashes and shakes, a glowing crack runs out from the impact
-   (220-480 ms) and opens to show the password (300-800 ms), then the crack cools and fades.
-   Hide: the crack appears and closes over the text, the dots come back. Reduced motion: plain
-   toggle (the component skips all of it). */
-.auth-pw {
-  --pw-hit: 220ms;
-  --pw-ease: cubic-bezier(0.22, 1, 0.36, 1);
-}
+/* Password reveal (components/auth-layout.tsx AuthField + components/lightning-fx.tsx):
+   0-700 ms an electric bolt (Lottie) strikes down onto the field; ~300 ms the field glows and
+   jolts; 330-930 ms an arc runs across the field and the text is uncovered behind it, glowing
+   gold before it cools. Hide: the arc runs and wipes the text away. The white original is
+   recolored here so it shows on the light theme. Reduced motion: plain toggle. */
 .auth-pw-toggle {
   z-index: 4;
 }
 .auth-pw[data-fx="show"] {
-  animation: pw-shake 0.32s ease-out var(--pw-hit) both;
+  animation: pw-shake 0.3s ease-out 0.3s both;
 }
 .auth-pw[data-fx="show"] .ds-input {
-  animation: pw-field 0.9s ease-out var(--pw-hit) both;
+  animation: pw-field 0.9s ease-out 0.28s both;
 }
 .auth-pw-fx {
   position: absolute;
@@ -881,96 +881,46 @@ a:hover {
   overflow: hidden;
 }
 .auth-pw[data-fx="show"] .auth-pw-text {
-  animation: pw-open 0.5s var(--pw-ease) 300ms both;
+  animation: pw-wipe-in 0.55s cubic-bezier(0.33, 0, 0.2, 1) 0.4s both;
 }
 .auth-pw[data-fx="hide"] .auth-pw-text {
-  animation: pw-close 0.45s cubic-bezier(0.64, 0, 0.78, 0) 150ms both;
+  animation: pw-wipe-out 0.5s cubic-bezier(0.33, 0, 0.2, 1) 0.1s both;
 }
-.auth-pw-impact {
+.pw-lottie {
   position: absolute;
-  left: 30%;
-  top: 50%;
-  width: 180px;
-  height: 90px;
-  margin: -45px 0 0 -90px;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, var(--ds-hero-flash), var(--ds-bolt-glow) 45%, transparent);
+  pointer-events: none;
+  filter: drop-shadow(0 0 2px var(--ds-arc-glow)) drop-shadow(0 0 10px var(--ds-arc-glow));
+}
+.pw-lottie.pw-done {
   opacity: 0;
-  animation: pw-impact 0.6s ease-out var(--pw-hit) both;
+  transition: opacity 0.18s ease-out;
 }
-.auth-pw-crack {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-}
-.auth-pw-crack path,
-.auth-pw-bolt path {
-  fill: none;
-  stroke-linecap: round;
+/* The art is thin filled shapes; a 1.5px outline that does not scale keeps them bold. */
+.pw-lottie path {
+  fill: var(--ds-arc);
+  stroke: var(--ds-arc);
+  stroke-width: 1.5px;
   stroke-linejoin: round;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
+  vector-effect: non-scaling-stroke;
 }
-.pw-crack-glow {
-  stroke: var(--ds-bolt-glow);
-  stroke-width: 8;
-  filter: blur(2px);
+/* Vertical strike (art 386 x 362, drawn near 1:1): its foot is at about (22%, 90%) of the
+   art; put the foot on the field, 30% from the left, just below the middle. */
+.pw-strike {
+  width: 270px;
+  height: 253px;
+  left: calc(30% - 59px);
+  bottom: calc(50% - 30px);
 }
-.pw-crack-core {
-  stroke: var(--ds-bolt-fill);
-  stroke-width: 2.5;
-}
-.auth-pw[data-fx="show"] .auth-pw-crack path {
-  animation: pw-draw 0.26s cubic-bezier(0.3, 0.7, 0.4, 1) var(--pw-hit) both;
-}
-.auth-pw[data-fx="show"] .auth-pw-crack {
-  animation: pw-cool 0.95s linear both;
-}
-.auth-pw[data-fx="hide"] .auth-pw-crack path {
-  animation: pw-draw 0.18s ease-out both;
-}
-.auth-pw[data-fx="hide"] .auth-pw-crack {
-  animation: pw-cool-hide 0.95s linear both;
-}
-.auth-pw-bolt {
-  position: absolute;
-  left: 30%;
-  top: calc(50% - 110px);
-  width: 44px;
-  height: 110px;
-  margin-left: -22px;
-  overflow: visible;
-  animation: pw-bolt 0.62s linear both;
-}
-.pw-bolt-glow {
-  stroke: var(--ds-bolt-glow);
-  stroke-width: 9;
-  filter: blur(3px);
-}
-.pw-bolt-core {
-  stroke: var(--ds-bolt-fill);
-  stroke-width: 3.5;
-}
-.auth-pw[data-fx="show"] .auth-pw-bolt path {
-  animation: pw-draw var(--pw-hit) cubic-bezier(0.55, 0, 1, 0.45) both;
+/* Horizontal arc (frames 64-81): it runs from ~20% to ~95% of the art's width, ~20-75% of
+   its height. Stretch it over the field, a little flatter, centred on the field. */
+.pw-arc {
+  left: -22%;
+  width: 128%;
+  height: 170px;
+  top: 50%;
+  translate: 0 -48%;
 }
 
-@keyframes pw-draw {
-  to { stroke-dashoffset: 0; }
-}
-@keyframes pw-bolt {
-  0%, 40% { opacity: 1; }
-  48% { opacity: 0.3; }
-  56% { opacity: 1; }
-  100% { opacity: 0; }
-}
-@keyframes pw-impact {
-  0% { opacity: 0; transform: scale(0.3); }
-  15% { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(1.5); }
-}
 @keyframes pw-shake {
   0%, 100% { transform: none; }
   20% { transform: translate(-3px, 2px); }
@@ -983,24 +933,16 @@ a:hover {
   15% { box-shadow: 0 0 0 4px var(--ds-bolt-glow), 0 0 30px var(--ds-bolt-glow); border-color: var(--ds-bolt-fill); }
   100% { box-shadow: 0 0 0 0 transparent; }
 }
-/* The crack opens from its centre line: the text is clipped to a band that grows. */
-@keyframes pw-open {
-  0% { clip-path: inset(50% 0 50% 0); text-shadow: 0 0 12px var(--ds-bolt-glow); color: var(--ds-bolt); }
-  60% { clip-path: inset(0 0 0 0); color: var(--ds-bolt); text-shadow: 0 0 10px var(--ds-bolt-glow); }
+@keyframes pw-wipe-in {
+  0% { clip-path: inset(0 100% 0 0); color: var(--ds-bolt); text-shadow: 0 0 10px var(--ds-bolt-glow); }
+  70% { clip-path: inset(0 0 0 0); color: var(--ds-bolt); text-shadow: 0 0 10px var(--ds-bolt-glow); }
   100% { clip-path: inset(0 0 0 0); color: var(--ds-text); text-shadow: none; }
 }
-@keyframes pw-close {
+@keyframes pw-wipe-out {
   from { clip-path: inset(0 0 0 0); }
-  to { clip-path: inset(50% 0 50% 0); }
+  to { clip-path: inset(0 0 0 100%); }
 }
-@keyframes pw-cool {
-  0%, 55% { opacity: 1; }
-  100% { opacity: 0; }
-}
-@keyframes pw-cool-hide {
-  0%, 60% { opacity: 1; }
-  100% { opacity: 0; }
-}
+
 
 
 

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { BoltMark } from "@/components/brand";
 import { Icon, type IconName } from "@/components/icon";
+import { ARC_FRAMES, Lightning, STRIKE_FRAMES, loadLightning } from "@/components/lightning-fx";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { APP_NAME } from "@/lib/brand";
 import { useI18n, type MessageKey } from "@/lib/i18n";
@@ -77,11 +78,12 @@ export function AuthLayout({
   );
 }
 
-// Password reveal: a big bolt strikes the field from above, the field shakes, a glowing crack
-// runs left and right from the impact and opens to show the password (hide: the crack closes
-// over it). The input keeps its dots underneath; an overlay with the text is clipped. Matches
-// the CSS (pw-*).
-const SWEEP_MS = 950;
+// Password reveal with the "Lightning VFX" animation (components/lightning-fx.tsx): an electric
+// bolt strikes the field from above, then an arc runs across it and the password is uncovered
+// behind the arc (hide: the arc runs again and wipes the text away). The input keeps its dots
+// underneath; an overlay with the text is clipped. Timings match the CSS (pw-*).
+const SHOW_MS = 1050;
+const HIDE_MS = 700;
 const MAX_FX_CHARS = 32; // longer values would scroll inside the input: plain toggle
 
 /**
@@ -105,11 +107,14 @@ export function AuthField({
 
   const value = String(input.value ?? "");
 
-  function toggle() {
+  async function toggle() {
     window.clearTimeout(timer.current);
     // While a sweep runs, the state the learner sees is where that sweep is going.
     const next = !(fx ? fx === "show" : shown);
-    if (!value || value.length > MAX_FX_CHARS || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    const plain = !value || value.length > MAX_FX_CHARS || matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // The animation file loads on first use (preloaded on focus); if it fails, plain toggle.
+    const ready = plain ? false : await loadLightning().then(() => true, () => false);
+    if (!ready) {
       setFx("");
       setShown(next);
       return;
@@ -121,7 +126,7 @@ export function AuthField({
     timer.current = window.setTimeout(() => {
       setShown(next);
       setFx("");
-    }, SWEEP_MS);
+    }, next ? SHOW_MS : HIDE_MS);
   }
 
   const isPassword = type === "password";
@@ -150,31 +155,16 @@ export function AuthField({
           {fx && (
             <span key={run} className="auth-pw-fx" aria-hidden>
               <span className="auth-pw-text">{value}</span>
-              {fx === "show" && <span className="auth-pw-impact" />}
-              <svg className="auth-pw-crack" viewBox="0 0 400 48" preserveAspectRatio="none" focusable="false">
-                {CRACK_PATHS.map((d, i) => (
-                  <g key={i}>
-                    <path className="pw-crack-glow" d={d} pathLength={1} />
-                    <path className="pw-crack-core" d={d} pathLength={1} />
-                  </g>
-                ))}
-              </svg>
-              {fx === "show" && (
-                <svg className="auth-pw-bolt" viewBox="0 0 40 100" focusable="false">
-                  {BOLT_PATHS.map((d, i) => (
-                    <g key={i}>
-                      <path className="pw-bolt-glow" d={d} pathLength={1} />
-                      <path className="pw-bolt-core" d={d} pathLength={1} />
-                    </g>
-                  ))}
-                </svg>
-              )}
+              {fx === "show" && <Lightning frames={STRIKE_FRAMES} className="pw-strike" />}
+              <Lightning frames={ARC_FRAMES} delay={fx === "show" ? 330 : 0} stretch className="pw-arc" />
             </span>
           )}
           <button
             type="button"
             className="auth-pw-toggle"
             onClick={toggle}
+            onPointerEnter={() => void loadLightning().catch(() => {})}
+            onFocus={() => void loadLightning().catch(() => {})}
             aria-pressed={pressed}
             aria-controls={id}
             aria-label={pressed ? t("auth.field.hidePassword") : t("auth.field.showPassword")}
@@ -198,17 +188,6 @@ export function AuthField({
     </div>
   );
 }
-
-// The bolt (viewBox 40 x 100): it lands at the bottom centre = the impact point on the field.
-const BOLT_PATHS = ["M26 0 L15 36 L27 39 L12 70 L23 72 L20 100", "M15 36 L5 50 L8 58", "M12 70 L3 80"];
-// The crack (viewBox 400 x 48, stretched to the field) runs from the impact (x 120) both ways.
-const CRACK_PATHS = [
-  "M120 24 L104 21 L92 28 L70 22 L55 27 L30 21 L12 26 L0 23",
-  "M120 24 L138 28 L152 20 L180 27 L205 21 L236 28 L262 22 L290 27 L318 21 L345 26 L372 22 L400 24",
-  "M152 20 L160 10",
-  "M70 22 L63 13",
-  "M236 28 L243 38",
-];
 
 /** Centered line under the submit button ("No account yet? Sign up"). */
 export function AuthSwitch({ text, href, link }: { text: string; href: string; link: string }) {
