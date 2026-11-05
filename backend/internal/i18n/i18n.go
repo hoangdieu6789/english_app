@@ -90,6 +90,12 @@ const (
 	MsgNoWordsLeft     = "no_words_left"
 	MsgVocabUnenriched = "vocab_unenriched"
 	MsgDeckTooSmall    = "deck_too_small"
+	MsgLessonBusy      = "lesson_busy"
+	MsgLessonOff       = "lesson_off"
+	MsgLessonInvalid   = "lesson_invalid"
+	MsgSavedInvalid    = "saved_invalid"
+	MsgSentenceInvalid = "sentence_invalid"
+	MsgLLMFailed       = "llm_failed"
 	MsgResetSubject    = "reset_subject"
 	MsgResetBody       = "reset_body" // %[1]s: email, %[2]s: link
 )
@@ -102,8 +108,14 @@ var backendMessages = map[string]map[string]string{
 		MsgNoWordsLeft:     "Đã hết từ mới trong khoảng band này. Hãy nâng band mục tiêu.",
 		MsgVocabUnenriched: "AI chưa soạn được nghĩa cho từ mới. Thử lại sau ít phút.",
 		MsgDeckTooSmall:    "Chưa đủ từ có nghĩa để chơi bộ này. Thử lại sau ít phút hoặc chọn bộ khác.",
-		MsgResetSubject:    "Boltspeak: đặt lại mật khẩu",
-		MsgResetBody: "Xin chào,\n\nBạn (hoặc ai đó) vừa yêu cầu đặt lại mật khẩu Boltspeak cho %[1]s.\n" +
+		MsgLessonBusy:      "Bài trước của bạn vẫn đang được tạo. Đợi bài đó xong rồi tạo bài mới.",
+		MsgLessonOff:       "Máy chủ chưa bật AI hoặc giọng đọc Azure nên chưa tạo được bài.",
+		MsgLessonInvalid:   "Thông tin bài nghe chưa hợp lệ. Kiểm tra tiêu đề, link và transcript.",
+		MsgSavedInvalid:    "Chỉ lưu được từ hoặc cụm từ 1–6 chữ.",
+		MsgSentenceInvalid: "Câu cần từ 3 đến 40 từ.",
+		MsgLLMFailed:       "AI đang bận, chưa chấm được. Thử lại sau ít phút.",
+		MsgResetSubject:    "Boltwise: đặt lại mật khẩu",
+		MsgResetBody: "Xin chào,\n\nBạn (hoặc ai đó) vừa yêu cầu đặt lại mật khẩu Boltwise cho %[1]s.\n" +
 			"Mở link sau trong 30 phút để đặt mật khẩu mới:\n\n%[2]s\n\n" +
 			"Nếu bạn không yêu cầu, hãy bỏ qua email này; mật khẩu cũ vẫn dùng được.\n",
 	},
@@ -114,8 +126,14 @@ var backendMessages = map[string]map[string]string{
 		MsgNoWordsLeft:     "There are no new words left in this band range. Raise your target band.",
 		MsgVocabUnenriched: "The AI could not write the new words yet. Try again in a few minutes.",
 		MsgDeckTooSmall:    "Not enough words with a meaning for this deck yet. Try again in a few minutes or pick another deck.",
-		MsgResetSubject:    "Boltspeak: reset your password",
-		MsgResetBody: "Hello,\n\nYou (or someone else) asked to reset the Boltspeak password for %[1]s.\n" +
+		MsgLessonBusy:      "Your last lesson is still being made. Wait for it before you ask for a new one.",
+		MsgLessonOff:       "AI lessons need the LLM and Azure text to speech, which are not set up on the server.",
+		MsgLessonInvalid:   "The lesson is not valid. Check the title, the links and the transcript.",
+		MsgSavedInvalid:    "You can save a word or a phrase of 1-6 words.",
+		MsgSentenceInvalid: "Write a sentence of 3 to 40 words.",
+		MsgLLMFailed:       "The AI is busy and could not grade it. Try again in a few minutes.",
+		MsgResetSubject:    "Boltwise: reset your password",
+		MsgResetBody: "Hello,\n\nYou (or someone else) asked to reset the Boltwise password for %[1]s.\n" +
 			"Open this link within 30 minutes to set a new password:\n\n%[2]s\n\n" +
 			"If you did not ask for this, ignore this email; your current password still works.\n",
 	},

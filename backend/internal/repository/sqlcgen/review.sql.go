@@ -61,7 +61,7 @@ const countReviewWords = `-- name: CountReviewWords :one
 SELECT count(*) FILTER (WHERE due_at <= now())::int AS due,
        count(*)::int AS total
 FROM review_words
-WHERE user_id = $1 AND (kind = 'vocab' OR misses >= 2 OR min_score < 40)
+WHERE user_id = $1 AND (kind <> 'pronunciation' OR misses >= 2 OR min_score < 40)
 `
 
 type CountReviewWordsRow struct {
@@ -103,8 +103,14 @@ func (q *Queries) DeleteReviewWordsByID(ctx context.Context, ids []uuid.UUID) er
 }
 
 const getReviewWord = `-- name: GetReviewWord :one
-SELECT r.id, r.user_id, r.word, r.last_score, r.ease, r.interval_days, r.reps, r.lapses, r.due_at, r.last_reviewed_at, r.created_at, r.kind, r.vocab_word_id, r.misses, r.min_score, v.pos, v.ipa, v.example_en, v.band, t.meaning, t.example_translation
+SELECT r.id, r.user_id, r.word, r.last_score, r.ease, r.interval_days, r.reps, r.lapses, r.due_at, r.last_reviewed_at, r.created_at, r.kind, r.vocab_word_id, r.misses, r.min_score, COALESCE(NULLIF(n.pos, ''), v.pos, '')::text AS pos, COALESCE(NULLIF(n.ipa, ''), v.ipa, '')::text AS ipa,
+       COALESCE(NULLIF(n.example_en, ''), v.example_en, '')::text AS example_en,
+       COALESCE(NULLIF(n.band, 0), v.band, 0)::real AS band,
+       COALESCE(NULLIF(n.meaning, ''), t.meaning, '')::text AS meaning,
+       COALESCE(t.example_translation, '')::text AS example_translation,
+       COALESCE(n.example_mine, false)::bool AS example_mine, COALESCE(n.context, '')::text AS context
 FROM review_words r LEFT JOIN vocab_words v ON v.id = r.vocab_word_id
+LEFT JOIN notebook_entries n ON n.review_word_id = r.id
 LEFT JOIN vocab_translations t ON t.vocab_word_id = v.id AND t.lang = $1::text
 WHERE r.id = $2 AND r.user_id = $3
 `
@@ -131,12 +137,14 @@ type GetReviewWordRow struct {
 	VocabWordID        pgtype.UUID        `json:"vocab_word_id"`
 	Misses             int32              `json:"misses"`
 	MinScore           float32            `json:"min_score"`
-	Pos                pgtype.Text        `json:"pos"`
-	Ipa                pgtype.Text        `json:"ipa"`
-	ExampleEn          pgtype.Text        `json:"example_en"`
-	Band               pgtype.Float4      `json:"band"`
-	Meaning            pgtype.Text        `json:"meaning"`
-	ExampleTranslation pgtype.Text        `json:"example_translation"`
+	Pos                string             `json:"pos"`
+	Ipa                string             `json:"ipa"`
+	ExampleEn          string             `json:"example_en"`
+	Band               float32            `json:"band"`
+	Meaning            string             `json:"meaning"`
+	ExampleTranslation string             `json:"example_translation"`
+	ExampleMine        bool               `json:"example_mine"`
+	Context            string             `json:"context"`
 }
 
 func (q *Queries) GetReviewWord(ctx context.Context, arg GetReviewWordParams) (GetReviewWordRow, error) {
@@ -164,16 +172,24 @@ func (q *Queries) GetReviewWord(ctx context.Context, arg GetReviewWordParams) (G
 		&i.Band,
 		&i.Meaning,
 		&i.ExampleTranslation,
+		&i.ExampleMine,
+		&i.Context,
 	)
 	return i, err
 }
 
 const listDueReviewWords = `-- name: ListDueReviewWords :many
-SELECT r.id, r.user_id, r.word, r.last_score, r.ease, r.interval_days, r.reps, r.lapses, r.due_at, r.last_reviewed_at, r.created_at, r.kind, r.vocab_word_id, r.misses, r.min_score, v.pos, v.ipa, v.example_en, v.band, t.meaning, t.example_translation
+SELECT r.id, r.user_id, r.word, r.last_score, r.ease, r.interval_days, r.reps, r.lapses, r.due_at, r.last_reviewed_at, r.created_at, r.kind, r.vocab_word_id, r.misses, r.min_score, COALESCE(NULLIF(n.pos, ''), v.pos, '')::text AS pos, COALESCE(NULLIF(n.ipa, ''), v.ipa, '')::text AS ipa,
+       COALESCE(NULLIF(n.example_en, ''), v.example_en, '')::text AS example_en,
+       COALESCE(NULLIF(n.band, 0), v.band, 0)::real AS band,
+       COALESCE(NULLIF(n.meaning, ''), t.meaning, '')::text AS meaning,
+       COALESCE(t.example_translation, '')::text AS example_translation,
+       COALESCE(n.example_mine, false)::bool AS example_mine, COALESCE(n.context, '')::text AS context
 FROM review_words r LEFT JOIN vocab_words v ON v.id = r.vocab_word_id
+LEFT JOIN notebook_entries n ON n.review_word_id = r.id
 LEFT JOIN vocab_translations t ON t.vocab_word_id = v.id AND t.lang = $1::text
 WHERE r.user_id = $2 AND r.due_at <= now()
-  AND (r.kind = 'vocab' OR r.misses >= 2 OR r.min_score < 40)
+  AND (r.kind <> 'pronunciation' OR r.misses >= 2 OR r.min_score < 40)
 ORDER BY r.due_at, r.word
 LIMIT $3
 `
@@ -200,12 +216,14 @@ type ListDueReviewWordsRow struct {
 	VocabWordID        pgtype.UUID        `json:"vocab_word_id"`
 	Misses             int32              `json:"misses"`
 	MinScore           float32            `json:"min_score"`
-	Pos                pgtype.Text        `json:"pos"`
-	Ipa                pgtype.Text        `json:"ipa"`
-	ExampleEn          pgtype.Text        `json:"example_en"`
-	Band               pgtype.Float4      `json:"band"`
-	Meaning            pgtype.Text        `json:"meaning"`
-	ExampleTranslation pgtype.Text        `json:"example_translation"`
+	Pos                string             `json:"pos"`
+	Ipa                string             `json:"ipa"`
+	ExampleEn          string             `json:"example_en"`
+	Band               float32            `json:"band"`
+	Meaning            string             `json:"meaning"`
+	ExampleTranslation string             `json:"example_translation"`
+	ExampleMine        bool               `json:"example_mine"`
+	Context            string             `json:"context"`
 }
 
 func (q *Queries) ListDueReviewWords(ctx context.Context, arg ListDueReviewWordsParams) ([]ListDueReviewWordsRow, error) {
@@ -239,6 +257,8 @@ func (q *Queries) ListDueReviewWords(ctx context.Context, arg ListDueReviewWords
 			&i.Band,
 			&i.Meaning,
 			&i.ExampleTranslation,
+			&i.ExampleMine,
+			&i.Context,
 		); err != nil {
 			return nil, err
 		}
@@ -326,11 +346,17 @@ func (q *Queries) ListUntranslatedVocabCards(ctx context.Context, arg ListUntran
 }
 
 const listUpcomingReviewWords = `-- name: ListUpcomingReviewWords :many
-SELECT r.id, r.user_id, r.word, r.last_score, r.ease, r.interval_days, r.reps, r.lapses, r.due_at, r.last_reviewed_at, r.created_at, r.kind, r.vocab_word_id, r.misses, r.min_score, v.pos, v.ipa, v.example_en, v.band, t.meaning, t.example_translation
+SELECT r.id, r.user_id, r.word, r.last_score, r.ease, r.interval_days, r.reps, r.lapses, r.due_at, r.last_reviewed_at, r.created_at, r.kind, r.vocab_word_id, r.misses, r.min_score, COALESCE(NULLIF(n.pos, ''), v.pos, '')::text AS pos, COALESCE(NULLIF(n.ipa, ''), v.ipa, '')::text AS ipa,
+       COALESCE(NULLIF(n.example_en, ''), v.example_en, '')::text AS example_en,
+       COALESCE(NULLIF(n.band, 0), v.band, 0)::real AS band,
+       COALESCE(NULLIF(n.meaning, ''), t.meaning, '')::text AS meaning,
+       COALESCE(t.example_translation, '')::text AS example_translation,
+       COALESCE(n.example_mine, false)::bool AS example_mine, COALESCE(n.context, '')::text AS context
 FROM review_words r LEFT JOIN vocab_words v ON v.id = r.vocab_word_id
+LEFT JOIN notebook_entries n ON n.review_word_id = r.id
 LEFT JOIN vocab_translations t ON t.vocab_word_id = v.id AND t.lang = $1::text
 WHERE r.user_id = $2 AND r.due_at > now()
-  AND (r.kind = 'vocab' OR r.misses >= 2 OR r.min_score < 40)
+  AND (r.kind <> 'pronunciation' OR r.misses >= 2 OR r.min_score < 40)
 ORDER BY r.due_at, r.word
 LIMIT $3
 `
@@ -357,12 +383,14 @@ type ListUpcomingReviewWordsRow struct {
 	VocabWordID        pgtype.UUID        `json:"vocab_word_id"`
 	Misses             int32              `json:"misses"`
 	MinScore           float32            `json:"min_score"`
-	Pos                pgtype.Text        `json:"pos"`
-	Ipa                pgtype.Text        `json:"ipa"`
-	ExampleEn          pgtype.Text        `json:"example_en"`
-	Band               pgtype.Float4      `json:"band"`
-	Meaning            pgtype.Text        `json:"meaning"`
-	ExampleTranslation pgtype.Text        `json:"example_translation"`
+	Pos                string             `json:"pos"`
+	Ipa                string             `json:"ipa"`
+	ExampleEn          string             `json:"example_en"`
+	Band               float32            `json:"band"`
+	Meaning            string             `json:"meaning"`
+	ExampleTranslation string             `json:"example_translation"`
+	ExampleMine        bool               `json:"example_mine"`
+	Context            string             `json:"context"`
 }
 
 func (q *Queries) ListUpcomingReviewWords(ctx context.Context, arg ListUpcomingReviewWordsParams) ([]ListUpcomingReviewWordsRow, error) {
@@ -396,6 +424,8 @@ func (q *Queries) ListUpcomingReviewWords(ctx context.Context, arg ListUpcomingR
 			&i.Band,
 			&i.Meaning,
 			&i.ExampleTranslation,
+			&i.ExampleMine,
+			&i.Context,
 		); err != nil {
 			return nil, err
 		}

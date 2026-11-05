@@ -1,6 +1,6 @@
 // Auth, welcome and 404 pages. Key prefix: "auth.". Placeholders: {name}.
 export const auth = {
-  "auth.brand.tagline": "Nói có lửa, chấm có tâm.",
+  "auth.brand.tagline": "Nghe tinh ý, nói tự tin.",
   "auth.brand.intro": "Nói thật nhiều, sai không sao — hệ thống chấm phát âm, phát hiện từ còn yếu và theo dõi tiến bộ của bạn.",
   "auth.brand.feature1": "Chấm phát âm theo từng từ & âm tiết",
   "auth.brand.feature2": "Ôn từ bạn phát âm sai theo lịch nhắc lại",
@@ -52,7 +52,7 @@ export const auth = {
   "auth.error.loginFailed": "Đăng nhập thất bại. Thử lại sau.",
   "auth.error.registerFailed": "Đăng ký thất bại. Thử lại sau.",
   "auth.error.resetFailed": "Không đặt lại được mật khẩu. Thử lại sau.",
-  "auth.welcome.title": "Chào mừng bạn đến với Boltspeak",
+  "auth.welcome.title": "Chào mừng bạn đến với Boltwise",
   "auth.welcome.intro": "Cho biết band IELTS Speaking hiện tại (ước lượng) và band bạn muốn đạt. App dùng hai số này để chọn từ mới vừa sức.",
   "auth.notFound.title": "Không tìm thấy trang này",
   "auth.notFound.joke": "Có lẽ trang này đã đi qua sân ga 9¾.",

@@ -10,7 +10,7 @@ export type VocabInfo = { pos: string; ipa: string; meaning: string; exampleEn: 
 // vocab: a new word for the learner's band (the learner rates how well they remembered it).
 export type ReviewWord = {
   id: string;
-  kind: "pronunciation" | "vocab";
+  kind: "pronunciation" | "vocab" | "saved"; // saved: a word or phrase from the notebook
   word: string;
   lastScore: number; // latest Azure accuracy for the word, 0–100 (0 for a vocab card not said yet)
   misses: number;

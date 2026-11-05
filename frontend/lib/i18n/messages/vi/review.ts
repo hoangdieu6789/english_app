@@ -39,6 +39,7 @@ export const review = {
   "review.practice": "Luyện nói",
   "review.badge.vocab": "Từ mới · band {band}",
   "review.badge.pron": "Phát âm · sai {n} lần",
+  "review.badge.saved": "Sổ từ · đã lưu",
   "review.streak": "Đã nhớ {n} lần liên tiếp",
   "review.lapses": "Quên {n} lần",
   "review.newCard": "Thẻ mới",
@@ -59,4 +60,5 @@ export const review = {
   "review.upcoming": "Sắp đến hạn",
   "review.kind.vocab": "từ mới",
   "review.kind.pron": "phát âm",
+  "review.kind.saved": "đã lưu",
 };

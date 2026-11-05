@@ -246,10 +246,11 @@ func toDomainReviewWord(row sqlcgen.ListDueReviewWordsRow) *domain.ReviewWord {
 		id := uuid.UUID(row.VocabWordID.Bytes)
 		w.VocabWordID = &id
 	}
-	if row.Kind == domain.ReviewVocab {
+	if row.Kind != domain.ReviewPronunciation || row.ExampleMine {
 		w.Vocab = &domain.VocabInfo{
-			POS: row.Pos.String, IPA: row.Ipa.String, ExampleEN: row.ExampleEn.String, Band: row.Band.Float32,
-			Meaning: row.Meaning.String, ExampleTranslation: row.ExampleTranslation.String,
+			POS: row.Pos, IPA: row.Ipa, ExampleEN: row.ExampleEn, Band: row.Band,
+			Meaning: row.Meaning, ExampleTranslation: row.ExampleTranslation,
+			ExampleMine: row.ExampleMine, Context: row.Context,
 		}
 	}
 	return w

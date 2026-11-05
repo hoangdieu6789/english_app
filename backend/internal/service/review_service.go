@@ -193,7 +193,7 @@ func (s *ReviewService) CleanupMisrecognised(ctx context.Context) (int, error) {
 }
 
 // ErrNotVocabCard: a self-rating was sent for a pronunciation card.
-var ErrNotVocabCard = errors.New("only vocab cards are rated by the learner")
+var ErrNotVocabCard = errors.New("only vocab and saved cards are rated by the learner")
 
 // Grade schedules a vocab card from the learner's own rating: 1 forgot, 3 hard, 4 good,
 // 5 easy.
@@ -202,7 +202,7 @@ func (s *ReviewService) Grade(ctx context.Context, userID, wordID uuid.UUID, qua
 	if err != nil {
 		return nil, err
 	}
-	if w.Kind != domain.ReviewVocab {
+	if w.Kind == domain.ReviewPronunciation {
 		return nil, ErrNotVocabCard
 	}
 	ScheduleQuality(w, quality, time.Now())
@@ -235,7 +235,7 @@ func (s *ReviewService) Review(ctx context.Context, userID, wordID uuid.UUID, au
 			break
 		}
 	}
-	if w.Kind != domain.ReviewVocab {
+	if w.Kind == domain.ReviewPronunciation {
 		Schedule(w, score, time.Now())
 		if err := s.repo.UpdateSchedule(ctx, w); err != nil {
 			return nil, fmt.Errorf("save schedule: %w", err)

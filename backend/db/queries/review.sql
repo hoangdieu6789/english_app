@@ -15,20 +15,32 @@ SET last_score = EXCLUDED.last_score,
     due_at = LEAST(review_words.due_at, now());
 
 -- name: ListDueReviewWords :many
-SELECT r.*, v.pos, v.ipa, v.example_en, v.band, t.meaning, t.example_translation
+SELECT r.*, COALESCE(NULLIF(n.pos, ''), v.pos, '')::text AS pos, COALESCE(NULLIF(n.ipa, ''), v.ipa, '')::text AS ipa,
+       COALESCE(NULLIF(n.example_en, ''), v.example_en, '')::text AS example_en,
+       COALESCE(NULLIF(n.band, 0), v.band, 0)::real AS band,
+       COALESCE(NULLIF(n.meaning, ''), t.meaning, '')::text AS meaning,
+       COALESCE(t.example_translation, '')::text AS example_translation,
+       COALESCE(n.example_mine, false)::bool AS example_mine, COALESCE(n.context, '')::text AS context
 FROM review_words r LEFT JOIN vocab_words v ON v.id = r.vocab_word_id
+LEFT JOIN notebook_entries n ON n.review_word_id = r.id
 LEFT JOIN vocab_translations t ON t.vocab_word_id = v.id AND t.lang = sqlc.arg(lang)::text
 WHERE r.user_id = sqlc.arg(user_id) AND r.due_at <= now()
-  AND (r.kind = 'vocab' OR r.misses >= 2 OR r.min_score < 40)
+  AND (r.kind <> 'pronunciation' OR r.misses >= 2 OR r.min_score < 40)
 ORDER BY r.due_at, r.word
 LIMIT sqlc.arg(max_rows);
 
 -- name: ListUpcomingReviewWords :many
-SELECT r.*, v.pos, v.ipa, v.example_en, v.band, t.meaning, t.example_translation
+SELECT r.*, COALESCE(NULLIF(n.pos, ''), v.pos, '')::text AS pos, COALESCE(NULLIF(n.ipa, ''), v.ipa, '')::text AS ipa,
+       COALESCE(NULLIF(n.example_en, ''), v.example_en, '')::text AS example_en,
+       COALESCE(NULLIF(n.band, 0), v.band, 0)::real AS band,
+       COALESCE(NULLIF(n.meaning, ''), t.meaning, '')::text AS meaning,
+       COALESCE(t.example_translation, '')::text AS example_translation,
+       COALESCE(n.example_mine, false)::bool AS example_mine, COALESCE(n.context, '')::text AS context
 FROM review_words r LEFT JOIN vocab_words v ON v.id = r.vocab_word_id
+LEFT JOIN notebook_entries n ON n.review_word_id = r.id
 LEFT JOIN vocab_translations t ON t.vocab_word_id = v.id AND t.lang = sqlc.arg(lang)::text
 WHERE r.user_id = sqlc.arg(user_id) AND r.due_at > now()
-  AND (r.kind = 'vocab' OR r.misses >= 2 OR r.min_score < 40)
+  AND (r.kind <> 'pronunciation' OR r.misses >= 2 OR r.min_score < 40)
 ORDER BY r.due_at, r.word
 LIMIT sqlc.arg(max_rows);
 
@@ -36,11 +48,17 @@ LIMIT sqlc.arg(max_rows);
 SELECT count(*) FILTER (WHERE due_at <= now())::int AS due,
        count(*)::int AS total
 FROM review_words
-WHERE user_id = $1 AND (kind = 'vocab' OR misses >= 2 OR min_score < 40);
+WHERE user_id = $1 AND (kind <> 'pronunciation' OR misses >= 2 OR min_score < 40);
 
 -- name: GetReviewWord :one
-SELECT r.*, v.pos, v.ipa, v.example_en, v.band, t.meaning, t.example_translation
+SELECT r.*, COALESCE(NULLIF(n.pos, ''), v.pos, '')::text AS pos, COALESCE(NULLIF(n.ipa, ''), v.ipa, '')::text AS ipa,
+       COALESCE(NULLIF(n.example_en, ''), v.example_en, '')::text AS example_en,
+       COALESCE(NULLIF(n.band, 0), v.band, 0)::real AS band,
+       COALESCE(NULLIF(n.meaning, ''), t.meaning, '')::text AS meaning,
+       COALESCE(t.example_translation, '')::text AS example_translation,
+       COALESCE(n.example_mine, false)::bool AS example_mine, COALESCE(n.context, '')::text AS context
 FROM review_words r LEFT JOIN vocab_words v ON v.id = r.vocab_word_id
+LEFT JOIN notebook_entries n ON n.review_word_id = r.id
 LEFT JOIN vocab_translations t ON t.vocab_word_id = v.id AND t.lang = sqlc.arg(lang)::text
 WHERE r.id = sqlc.arg(id) AND r.user_id = sqlc.arg(user_id);
 

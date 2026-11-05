@@ -6,7 +6,7 @@ import { APP_NAME } from "@/lib/brand";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: `${APP_NAME} — Speak with a spark.`,
+    name: `${APP_NAME} — Listen sharp, speak bright.`,
     short_name: APP_NAME,
     start_url: "/dashboard",
     display: "standalone",
