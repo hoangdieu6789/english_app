@@ -15,13 +15,14 @@ import { Brand } from "@/components/brand";
 import { Icon, type IconName } from "@/components/icon";
 import { isLang, useI18n } from "@/lib/i18n";
 
-type PageKey = "dashboard" | "practice" | "history" | "review" | "progress" | "settings";
+type PageKey = "dashboard" | "practice" | "history" | "review" | "games" | "progress" | "settings";
 
 const NAV_ITEMS: { key: PageKey; href: string; icon: IconName }[] = [
   { key: "dashboard", href: "/dashboard", icon: "home" },
   { key: "practice", href: "/practice", icon: "practice" },
   { key: "history", href: "/history", icon: "history" },
   { key: "review", href: "/review", icon: "review" },
+  { key: "games", href: "/games", icon: "games" },
   { key: "progress", href: "/progress", icon: "progress" },
 ];
 // Pages reached from the account menu, not from the main nav.
@@ -306,9 +307,10 @@ export function AppShell({ children, width = 1120 }: { children: React.ReactNode
         {NAV_ITEMS.map((item) => {
           const active = item.key === page;
           return (
-            <Link key={item.key} href={item.href} aria-current={active ? "page" : undefined}>
+            <Link key={item.key} href={item.href} aria-current={active ? "page" : undefined} aria-label={t(`nav.${item.key}`)}>
               <Icon name={item.icon} size="md" />
-              <span>{t(`nav.${item.key}`)}</span>
+              {/* Short labels: six tabs share a phone's width. */}
+              <span aria-hidden>{t(`nav.short.${item.key}`)}</span>
               {item.key === "review" && reviewDue > 0 && <Badge n={reviewDue} small />}
             </Link>
           );

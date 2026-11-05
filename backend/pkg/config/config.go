@@ -54,6 +54,10 @@ type Config struct {
 	SMTPFrom     string
 	PitchPython  string // e.g. "python3"; empty = no pitch analysis (Pronunciation P-04 uses the monotone signal only)
 	PitchScript  string // path to internal/rubric/pitch/pitch_direction.py on disk
+	// Background job that writes the meaning of every word for the games (LLM chain, one
+	// call of 20 words per pause). VOCAB_BACKFILL=off stops it.
+	VocabBackfill      bool
+	VocabBackfillPause int // seconds between calls
 }
 
 func Load() *Config {
@@ -84,20 +88,22 @@ func Load() *Config {
 
 		GraderModel: getEnv("GRADER_MODEL", ""),
 
-		LLMProviders:   getEnv("LLM_PROVIDERS", "openrouter"),
-		LLMBridgeURL:   getEnv("LLM_BRIDGE_URL", "http://host.docker.internal:8765"),
-		LLMBridgeToken: getEnv("LLM_BRIDGE_TOKEN", ""),
-		Transcriber:    getEnv("TRANSCRIBER", "whisper"),
-		SMTPHost:       getEnv("SMTP_HOST", ""),
-		SMTPPort:       getEnvInt("SMTP_PORT", 587),
-		SMTPUsername:   getEnv("SMTP_USERNAME", ""),
-		SMTPPassword:   getEnv("SMTP_PASSWORD", ""),
-		SMTPFrom:       getEnv("SMTP_FROM", ""),
-		ClaudeModel:    getEnv("CLAUDE_MODEL", "sonnet"),
-		GeminiAPIKey:   getEnv("GEMINI_API_KEY", ""),
-		GeminiModel:    getEnv("GEMINI_MODEL", "gemini-flash-latest,gemini-3-flash-preview"),
-		PitchPython:    getEnv("PITCH_PYTHON", ""),
-		PitchScript:    getEnv("PITCH_SCRIPT", "internal/rubric/pitch/pitch_direction.py"),
+		LLMProviders:       getEnv("LLM_PROVIDERS", "openrouter"),
+		LLMBridgeURL:       getEnv("LLM_BRIDGE_URL", "http://host.docker.internal:8765"),
+		LLMBridgeToken:     getEnv("LLM_BRIDGE_TOKEN", ""),
+		Transcriber:        getEnv("TRANSCRIBER", "whisper"),
+		SMTPHost:           getEnv("SMTP_HOST", ""),
+		SMTPPort:           getEnvInt("SMTP_PORT", 587),
+		SMTPUsername:       getEnv("SMTP_USERNAME", ""),
+		SMTPPassword:       getEnv("SMTP_PASSWORD", ""),
+		SMTPFrom:           getEnv("SMTP_FROM", ""),
+		ClaudeModel:        getEnv("CLAUDE_MODEL", "sonnet"),
+		GeminiAPIKey:       getEnv("GEMINI_API_KEY", ""),
+		GeminiModel:        getEnv("GEMINI_MODEL", "gemini-flash-latest,gemini-3-flash-preview"),
+		PitchPython:        getEnv("PITCH_PYTHON", ""),
+		PitchScript:        getEnv("PITCH_SCRIPT", "internal/rubric/pitch/pitch_direction.py"),
+		VocabBackfill:      getEnv("VOCAB_BACKFILL", "on") != "off",
+		VocabBackfillPause: getEnvInt("VOCAB_BACKFILL_PAUSE_SECONDS", 20),
 	}
 }
 

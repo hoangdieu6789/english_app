@@ -9,6 +9,28 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type GamePlay struct {
+	ID         uuid.UUID          `json:"id"`
+	UserID     uuid.UUID          `json:"user_id"`
+	Game       string             `json:"game"`
+	Deck       string             `json:"deck"`
+	Score      int32              `json:"score"`
+	Correct    int32              `json:"correct"`
+	Total      int32              `json:"total"`
+	DurationMs int32              `json:"duration_ms"`
+	Level      pgtype.Int2        `json:"level"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+}
+
+type GameWordStat struct {
+	UserID      uuid.UUID          `json:"user_id"`
+	VocabWordID uuid.UUID          `json:"vocab_word_id"`
+	Seen        int32              `json:"seen"`
+	Correct     int32              `json:"correct"`
+	LastWrongAt pgtype.Timestamptz `json:"last_wrong_at"`
+	LastSeenAt  pgtype.Timestamptz `json:"last_seen_at"`
+}
+
 type IeltsQuestionSet struct {
 	ID        uuid.UUID          `json:"id"`
 	Kind      string             `json:"kind"`
@@ -138,6 +160,7 @@ type User struct {
 	SelfBand     pgtype.Float4      `json:"self_band"`
 	TargetBand   pgtype.Float4      `json:"target_band"`
 	Lang         string             `json:"lang"`
+	VocabLevel   pgtype.Int2        `json:"vocab_level"`
 }
 
 type VocabGap struct {

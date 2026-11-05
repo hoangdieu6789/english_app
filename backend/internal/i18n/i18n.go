@@ -89,6 +89,7 @@ const (
 	MsgScoringFailed   = "scoring_failed"
 	MsgNoWordsLeft     = "no_words_left"
 	MsgVocabUnenriched = "vocab_unenriched"
+	MsgDeckTooSmall    = "deck_too_small"
 	MsgResetSubject    = "reset_subject"
 	MsgResetBody       = "reset_body" // %[1]s: email, %[2]s: link
 )
@@ -100,6 +101,7 @@ var backendMessages = map[string]map[string]string{
 		MsgScoringFailed:   "Chấm điểm thất bại. Thử lại sau ít phút.",
 		MsgNoWordsLeft:     "Đã hết từ mới trong khoảng band này. Hãy nâng band mục tiêu.",
 		MsgVocabUnenriched: "AI chưa soạn được nghĩa cho từ mới. Thử lại sau ít phút.",
+		MsgDeckTooSmall:    "Chưa đủ từ có nghĩa để chơi bộ này. Thử lại sau ít phút hoặc chọn bộ khác.",
 		MsgResetSubject:    "Boltspeak: đặt lại mật khẩu",
 		MsgResetBody: "Xin chào,\n\nBạn (hoặc ai đó) vừa yêu cầu đặt lại mật khẩu Boltspeak cho %[1]s.\n" +
 			"Mở link sau trong 30 phút để đặt mật khẩu mới:\n\n%[2]s\n\n" +
@@ -111,6 +113,7 @@ var backendMessages = map[string]map[string]string{
 		MsgScoringFailed:   "Scoring failed. Try again in a few minutes.",
 		MsgNoWordsLeft:     "There are no new words left in this band range. Raise your target band.",
 		MsgVocabUnenriched: "The AI could not write the new words yet. Try again in a few minutes.",
+		MsgDeckTooSmall:    "Not enough words with a meaning for this deck yet. Try again in a few minutes or pick another deck.",
 		MsgResetSubject:    "Boltspeak: reset your password",
 		MsgResetBody: "Hello,\n\nYou (or someone else) asked to reset the Boltspeak password for %[1]s.\n" +
 			"Open this link within 30 minutes to set a new password:\n\n%[2]s\n\n" +

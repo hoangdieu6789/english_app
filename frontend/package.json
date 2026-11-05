@@ -9,7 +9,8 @@
     "lint": "eslint",
     "check-ui": "node scripts/check-ui.mjs",
     "test:theme": "node --experimental-strip-types --no-warnings --test scripts/theme.test.mjs",
-    "test:progress": "node --experimental-strip-types --no-warnings --test scripts/progress-range.test.mjs"
+    "test:progress": "node --experimental-strip-types --no-warnings --test scripts/progress-range.test.mjs",
+    "test:games": "node --experimental-strip-types --no-warnings --test scripts/games.test.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.2",
