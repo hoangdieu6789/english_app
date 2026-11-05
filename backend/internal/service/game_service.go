@@ -41,7 +41,7 @@ var (
 
 // Games that can be saved; a game is added here when it is built.
 var gameNames = map[string]bool{
-	"word-match": true, "meteor": true, "bubble-pop": true, "level-climb": true,
+	"word-match": true, "meteor": true, "bubble-pop": true, "level-climb": true, "broom-flight": true,
 }
 
 var bandDeck = regexp.MustCompile(`^band-([4-8])$`)

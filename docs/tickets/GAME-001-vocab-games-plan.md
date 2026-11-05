@@ -1,12 +1,34 @@
 # GAME-001 Vocabulary games
 
-Status: phase 1 done (branch `feat/vocab-games`): games 1-4, decks, level, results, word backfill.
+Status: phase 1 and 1b done (branch `feat/vocab-games`): games 1-4, decks, level, results, word backfill; wizard theme, effects layer and the 3D Broom Flight.
 
 ## Goal
 
 Short, fun games that make the learner recall words many times. Every game uses the
 learner's own words, not fixed decks. The ideas come from Parroto's 11 games and Freerice's
 adaptive level. We copy no art, names or content from them.
+
+## Look: a wizard's world
+
+The games share one wizard theme in both app themes. Credits are in
+`frontend/components/games/CREDITS.md`.
+
+- **Scene:** night sky with twinkling stars and a moon.
+- **Cards and labels:** parchment scrolls and spell cards (`--ds-game-*` tokens, checked by
+  check-ui).
+- **Effects layer** (`components/games/fx.tsx`): sparks, stars, smoke, spell beams, floating
+  "+10", screen shake and flash.
+- **Sounds:** synthesized with Web Audio. They can be muted with the sound button.
+- **Game names:**
+  - Level Climb is **Wizard Tower**: a tower whose windows light up as you climb.
+  - Word Match is **Spell Match**: runes in a spellbook; a gold beam binds each pair.
+  - Meteor is **Fireball**: a burning fireball falls on the castle and the wizard's spell
+    blasts it.
+  - Bubble Pop is **Lantern Catch**: paper lanterns rise over a night lake.
+  - Sky Runner is **Broom Flight**, built in 3D with three.js on the ideas of
+    "The Aviator" (Codrops).
+- **Reduced motion:** no particles, shake or flash; the 3D scene keeps still apart from the
+  rings.
 
 ## Words (decks)
 
@@ -66,7 +88,7 @@ again. Right answers do not change the SRS schedule: games are practice, the rev
 | 8 | Word Guess | Wordle on the meaning, 6 tries | 2 |
 | 9 | Spelling Bee | hear the word (browser TTS), type it | 2 |
 | 10 | Bridge Builder | put the example sentence back in order | 3 |
-| 11 | Sky Runner | 3D lanes (three.js), fly into the lane with the right word | 3 |
+| 11 | Broom Flight (was Sky Runner) | 3D (three.js): fly the broom through the ring with the right word | 1b |
 | 12 | Vocab Battle | 1v1 real time over WebSocket: random match, private room by code, bot of the same level when nobody is free | 4 |
 
 Shared rules for every game:

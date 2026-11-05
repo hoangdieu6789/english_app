@@ -4,7 +4,7 @@ import type { Answer, DeckId, GameCard } from "@/lib/games/core";
 
 // Vocabulary games (backend: /api/games, docs/tickets/GAME-001-vocab-games-plan.md).
 
-export type GameId = "word-match" | "meteor" | "bubble-pop" | "level-climb";
+export type GameId = "word-match" | "meteor" | "bubble-pop" | "level-climb" | "broom-flight";
 
 export type GameDeck = {
   deck: DeckId | "level";

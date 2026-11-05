@@ -8,6 +8,8 @@ import { useI18n, type MessageKey } from "@/lib/i18n";
 import { DECK_KEY, DECKS, SOUND_KEY, isDeck, lastAnswers, type Answer, type DeckId, type GameCard } from "@/lib/games/core";
 import { saveResult, type GameDeck, type GameId } from "@/lib/games-api";
 import { speakEnglish } from "@/lib/text-to-speech";
+import { sfx, unlock } from "@/lib/games/sfx";
+import { FxLayer } from "./fx";
 
 // Shared frame of every vocabulary game: deck picker and start screen, HUD (score, combo,
 // hearts or time), pause / sound / quit, saving the result and the end screen with the words
@@ -145,7 +147,11 @@ function HudBar({ hud, paused, sound, onPause, onSound, onQuit }: { hud: Hud; pa
       <span className="game-chip" aria-label={t("games.hud.score")}>
         <Icon name="band" size="sm" /> {hud.score}
       </span>
-      {hud.combo > 1 && <span className="game-chip game-combo">×{hud.combo}</span>}
+      {hud.combo > 1 && (
+        <span key={hud.combo} className="game-chip game-combo" data-hot={hud.combo >= 5 || undefined}>
+          ×{hud.combo}
+        </span>
+      )}
       {hud.extra && <span className="game-chip">{hud.extra}</span>}
       {hud.maxHearts != null && (
         <span className="game-chip" aria-label={t("games.hud.hearts", { n: hud.hearts ?? 0 })}>
@@ -231,6 +237,7 @@ export function GameFrame({
   const runRef = useRef(0);
 
   const start = useCallback(async () => {
+    unlock(); // audio needs a user gesture
     setPhase({ k: "loading" });
     try {
       const deck = await load(withDeck ? deckId : null);
@@ -250,6 +257,7 @@ export function GameFrame({
       const deck = f.deck ?? phase.deck.deck;
       const answers = lastAnswers(f.answers);
       const correct = f.answers.filter((a) => a.correct).length;
+      if (sound) sfx.gameOver();
       setPhase({ k: "saving" });
       let best: number | undefined;
       let newBest = false;
@@ -275,7 +283,7 @@ export function GameFrame({
       }
       setPhase({ k: "over", f, best, newBest, total: f.answers.length, correct });
     },
-    [phase, game, qc],
+    [phase, game, qc, sound],
   );
   useEffect(() => {
     finishRef.current = finish;
@@ -309,11 +317,13 @@ export function GameFrame({
   if (phase.k === "play") {
     return (
       <Ctx.Provider value={{ paused, reduced, sound, say, setHud, finish: (f) => void finishRef.current(f) }}>
-        <div className="game-stage">
+        <div className="game-stage" data-game={game}>
           <HudBar hud={hud} paused={paused} sound={sound} onPause={() => setPaused((p) => !p)} onSound={toggleSound} onQuit={quit} />
-          <div className="game-board" key={phase.run} aria-hidden={paused || undefined}>
-            {children(phase.deck)}
-          </div>
+          <FxLayer sound={sound} reduced={reduced}>
+            <div className="game-board game-world" key={phase.run} aria-hidden={paused || undefined}>
+              {children(phase.deck)}
+            </div>
+          </FxLayer>
           {paused && (
             <div className="game-overlay" role="dialog" aria-modal="true" aria-label={t("games.paused")}>
               <div className="ds-card" style={{ padding: 24, textAlign: "center", display: "grid", gap: 12 }}>

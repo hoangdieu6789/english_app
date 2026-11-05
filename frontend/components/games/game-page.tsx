@@ -12,6 +12,7 @@ import { WordMatch } from "./word-match";
 import { Meteor } from "./meteor";
 import { BubblePop } from "./bubble-pop";
 import { LevelClimb } from "./level-climb";
+import { BroomFlight } from "./broom-flight";
 
 /** One game's page: title, then the shared frame with the game's board. */
 export function GamePage({ id }: { id: GameId }) {
@@ -42,6 +43,8 @@ export function GamePage({ id }: { id: GameId }) {
               <Meteor deck={deck} />
             ) : id === "bubble-pop" ? (
               <BubblePop deck={deck} />
+            ) : id === "broom-flight" ? (
+              <BroomFlight deck={deck} />
             ) : (
               <LevelClimb deck={deck as LevelDeck} />
             )

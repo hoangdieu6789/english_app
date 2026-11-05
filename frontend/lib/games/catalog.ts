@@ -23,6 +23,14 @@ export const GAMES: GameInfo[] = [
     howTo: ["games.climb.how1", "games.climb.how2", "games.climb.how3"],
   },
   {
+    id: "broom-flight",
+    icon: "gameBroom",
+    name: "games.broom.name",
+    desc: "games.broom.desc",
+    skill: "games.skill.flight",
+    howTo: ["games.broom.how1", "games.broom.how2", "games.broom.how3"],
+  },
+  {
     id: "word-match",
     icon: "gameMatch",
     name: "games.match.name",

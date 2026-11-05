@@ -7,6 +7,8 @@ import { choices, shuffle, type Answer, type GameCard } from "@/lib/games/core";
 import { answer, dueRetry, startClimb, LEVELS, PLACEMENT_STEP, type ClimbState } from "@/lib/games/level-climb";
 import { fetchLevel, type LevelDeck } from "@/lib/games-api";
 import { useGame, useQuit } from "./game-frame";
+import { useFx } from "./fx";
+import { Tower } from "./scenery";
 
 // Level Climb (Freerice style): a word and 4 meanings. The first 4 answers place you (6 levels
 // a step); then 3 right answers in a row move you up a level and a wrong answer moves you
@@ -20,6 +22,9 @@ type Q = { card: GameCard; options: GameCard[]; level: number; picked?: string }
 export function LevelClimb({ deck }: { deck: LevelDeck }) {
   const { t } = useI18n();
   const { paused, setHud, finish, say } = useGame();
+  const fx = useFx();
+  const wordBox = useRef<HTMLDivElement>(null);
+  const towerBox = useRef<HTMLDivElement>(null);
   const decks = useRef(new Map<number, Promise<LevelDeck>>([[deck.level, Promise.resolve(deck)]]));
   const used = useRef(new Set<string>());
   const [state, setState] = useState<ClimbState>(() => startClimb(deck.level, deck.placed));
@@ -86,6 +91,23 @@ export function LevelClimb({ deck }: { deck: LevelDeck }) {
     const s = answer(state, q.card, right);
     setState(s);
     setQ({ ...q, picked: o.id });
+    const btn = document.querySelector(`[data-option="${o.id}"]`);
+    if (right) {
+      fx.burst(btn, "gold", 22);
+      fx.float(btn, "+10", "gold");
+      if (s.level > state.level) {
+        fx.sound("levelUp");
+        fx.flash("gold");
+        fx.beam(btn, towerBox.current, "gold");
+        fx.burst(towerBox.current, "spell", 40);
+        fx.float(towerBox.current, t("games.climb.up"), "gold");
+      } else fx.sound("right");
+    } else {
+      fx.sound("wrong");
+      fx.burst(btn, "smoke", 14);
+      fx.shake(0.7);
+      if (s.level < state.level) fx.float(towerBox.current, t("games.climb.down"), "bad");
+    }
     if (right) {
       setScore((x) => x + 10);
       setCombo((c) => c + 1);
@@ -114,16 +136,20 @@ export function LevelClimb({ deck }: { deck: LevelDeck }) {
 
   const placing = state.placementLeft > 0;
   return (
-    <div className="game-climb">
-      <div className="game-ladder" aria-label={t("games.climb.level", { n: state.level, total: LEVELS })}>
+    <div className="game-climb game-night">
+      <div ref={towerBox} className="game-tower-box" aria-hidden>
+        <Tower level={state.level} levels={LEVELS} />
+      </div>
+      <div className="game-climb-main">
+      <div className="game-ladder game-scroll" aria-label={t("games.climb.level", { n: state.level, total: LEVELS })}>
         <div className="game-ladder-head">
           <b>{t("games.climb.level", { n: state.level, total: LEVELS })}</b>
-          <span style={{ color: "var(--ds-text-muted)" }}>{t("games.climb.band", { band: band.toFixed(1) })}</span>
+          <span style={{ color: "var(--ds-game-ink-muted)" }}>{t("games.climb.band", { band: band.toFixed(1) })}</span>
         </div>
         <div className="game-ladder-track" aria-hidden>
           <span style={{ width: `${(state.level / LEVELS) * 100}%` }} />
         </div>
-        <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-text-muted)" }}>
+        <div style={{ fontSize: "var(--text-sm)", color: "var(--ds-game-ink-muted)" }}>
           {placing ? t("games.climb.placing", { n: state.placementLeft }) : t("games.climb.streak", { n: state.streak, need: 3 })}
         </div>
       </div>
@@ -137,13 +163,13 @@ export function LevelClimb({ deck }: { deck: LevelDeck }) {
       )}
       {q && (
         <>
-          <div className="game-climb-word">
+          <div ref={wordBox} className="game-climb-word game-scroll">
             <button type="button" className="game-icon-btn" onClick={() => say(q.card.word)} aria-label={t("games.listen", { word: q.card.word })}>
               <Icon name="listen" size="md" />
             </button>
             <div>
               <div style={{ font: "800 var(--text-3xl)/1.1 var(--font-display)" }}>{q.card.word}</div>
-              <div style={{ color: "var(--ds-text-muted)" }}>
+              <div style={{ color: "var(--ds-game-ink-muted)" }}>
                 {q.card.ipa} · {q.card.pos}
               </div>
             </div>
@@ -152,7 +178,7 @@ export function LevelClimb({ deck }: { deck: LevelDeck }) {
             {q.options.map((o, i) => {
               const mark = q.picked ? (o.id === q.card.id ? "right" : o.id === q.picked ? "wrong" : undefined) : undefined;
               return (
-                <button key={o.id} type="button" className="game-option" data-mark={mark} disabled={!!q.picked} onClick={() => pick(o)}>
+                <button key={o.id} type="button" className="game-option game-spell" data-option={o.id} data-mark={mark} disabled={!!q.picked} onClick={() => pick(o)}>
                   <kbd>{i + 1}</kbd> {o.meaning}
                 </button>
               );
@@ -163,7 +189,7 @@ export function LevelClimb({ deck }: { deck: LevelDeck }) {
               <div>
                 <b>{q.card.word}</b>: {q.card.meaning}
               </div>
-              {q.card.exampleEn && <div style={{ color: "var(--ds-text-secondary)" }}>“{q.card.exampleEn}”</div>}
+              {q.card.exampleEn && <div style={{ color: "var(--ds-game-ink-muted)" }}>“{q.card.exampleEn}”</div>}
               <button type="button" className="ds-btn" onClick={goOn} autoFocus>
                 {t("games.next")} <Icon name="next" size="sm" />
               </button>
@@ -171,6 +197,7 @@ export function LevelClimb({ deck }: { deck: LevelDeck }) {
           )}
         </>
       )}
+      </div>
     </div>
   );
 }

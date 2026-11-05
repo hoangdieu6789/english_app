@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useReducer } from "react";
+import { useEffect, useReducer, useRef } from "react";
 import { useI18n } from "@/lib/i18n";
 import { points, shuffle, type Answer, type GameCard } from "@/lib/games/core";
 import type { GameDeck } from "@/lib/games-api";
 import { useGame, useGameLoop, useQuit, useReportEnd } from "./game-frame";
+import { useFx, useFxEvents } from "./fx";
 
-// Word Match: a board of words and their meanings; tap a word and its meaning to clear the
-// pair. 45 s on the clock: a right pair adds time, a wrong one takes time and breaks the combo.
-// A cleared board is filled again from the deck. All timing happens in the reducer (tick), so
+// Spell Match: a spellbook of word runes and meaning runes; tap a word and its meaning to bind
+// the spell (a golden beam joins them). 45 s on the clock: a right pair adds time, a wrong one
+// takes time and breaks the combo. A cleared board is filled again from the deck. All timing happens in the reducer (tick), so
 // pausing stops everything.
 
 const PAIRS = 5;
@@ -21,6 +22,7 @@ const NEXT_BOARD_MS = 250;
 
 type Side = "word" | "meaning";
 type Tile = { id: string; side: Side };
+type Ev = { n: number; type: "pair" | "wrong" | "board"; wordId: string; meaningId: string; points: number; combo: number };
 
 type S = {
   queue: GameCard[];
@@ -39,13 +41,14 @@ type S = {
   missed: GameCard[];
   started: boolean;
   over: boolean;
+  ev: Ev | null;
 };
 
 type A = { type: "tick"; dt: number } | { type: "pick"; tile: Tile } | { type: "quit" };
 
 const init = (): S => ({
   queue: [], words: [], meanings: [], cleared: [], sel: null, wrong: [], wrongMs: 0, nextBoardMs: 0,
-  time: START_MS, score: 0, combo: 0, answers: [], slipped: [], missed: [], started: false, over: false,
+  time: START_MS, score: 0, combo: 0, answers: [], slipped: [], missed: [], started: false, over: false, ev: null,
 });
 
 function newBoard(s: S, deck: GameCard[]): S {
@@ -81,15 +84,18 @@ function reduce(s: S, a: A, deck: GameCard[]): S {
   const meaningId = s.sel.side === "meaning" ? s.sel.id : tile.id;
   if (wordId === meaningId) {
     const cleared = [...s.cleared, wordId];
+    const pts = points(s.combo);
+    const full = cleared.length === s.words.length;
     return {
       ...s,
       sel: null,
       cleared,
       answers: [...s.answers, { wordId, correct: !s.slipped.includes(wordId) }],
-      score: s.score + points(s.combo),
+      score: s.score + pts,
       combo: s.combo + 1,
       time: Math.min(MAX_MS, s.time + BONUS_MS),
-      nextBoardMs: cleared.length === s.words.length ? NEXT_BOARD_MS : 0,
+      nextBoardMs: full ? NEXT_BOARD_MS : 0,
+      ev: { n: (s.ev?.n ?? 0) + 1, type: full ? "board" : "pair", wordId, meaningId, points: pts, combo: s.combo + 1 },
     };
   }
   const slipped = [...new Set([...s.slipped, wordId, meaningId])];
@@ -103,17 +109,40 @@ function reduce(s: S, a: A, deck: GameCard[]): S {
     time: Math.max(0, s.time - PENALTY_MS),
     wrong: [`word:${wordId}`, `meaning:${meaningId}`],
     wrongMs: WRONG_FLASH_MS,
+    ev: { n: (s.ev?.n ?? 0) + 1, type: "wrong", wordId, meaningId, points: 0, combo: 0 },
   };
 }
 
 export function WordMatch({ deck }: { deck: GameDeck }) {
   const { t } = useI18n();
   const { paused, setHud, say } = useGame();
+  const fx = useFx();
+  const board = useRef<HTMLDivElement>(null);
   const [s, dispatch] = useReducer((st: S, a: A) => reduce(st, a, deck.cards), undefined, init);
 
   useGameLoop((dt) => dispatch({ type: "tick", dt }), !paused && !s.over);
   useQuit(() => dispatch({ type: "quit" }));
   useReportEnd(s.over, { score: s.score, answers: s.answers, missed: s.missed });
+  useFxEvents(s.ev, (ev) => {
+    const w = board.current?.querySelector(`[data-tile="word:${ev.wordId}"]`);
+    const m = board.current?.querySelector(`[data-tile="meaning:${ev.meaningId}"]`);
+    if (ev.type === "wrong") {
+      fx.sound("wrong");
+      fx.burst(w, "smoke", 10);
+      fx.burst(m, "smoke", 10);
+      fx.shake(0.5);
+      return;
+    }
+    fx.beam(w, m, "gold");
+    fx.burst(w, "gold", 18);
+    fx.burst(m, "spell", 18);
+    fx.float(m, `+${ev.points}`, "gold");
+    if (ev.type === "board") {
+      fx.flash("gold");
+      fx.sound("levelUp");
+    } else if (ev.combo > 1 && ev.combo % 5 === 0) fx.sound("combo", ev.combo);
+    else fx.sound("right");
+  });
   useEffect(() => {
     setHud({ score: s.score, combo: s.combo, timeLeft: s.time, timeMax: START_MS });
   }, [s.score, s.combo, s.time, setHud]);
@@ -132,7 +161,8 @@ export function WordMatch({ deck }: { deck: GameDeck }) {
       <button
         key={key}
         type="button"
-        className="game-tile"
+        className="game-tile game-rune"
+        data-tile={key}
         data-side={side}
         data-sel={isSel || undefined}
         data-wrong={s.wrong.includes(key) || undefined}
@@ -147,7 +177,7 @@ export function WordMatch({ deck }: { deck: GameDeck }) {
   };
 
   return (
-    <div className="ds-keep-cols game-match" role="group" aria-label={t("games.match.board")}>
+    <div ref={board} className="ds-keep-cols game-match game-night game-spellbook" role="group" aria-label={t("games.match.board")}>
       <div className="game-match-col">{s.words.map((c) => tile(c, "word"))}</div>
       <div className="game-match-col">{s.meanings.map((c) => tile(c, "meaning"))}</div>
     </div>
