@@ -170,6 +170,13 @@ func main() {
 	}
 	cancelSeedVocab()
 	reviewHandler := handler.NewReviewHandler(reviewService, vocabService)
+	// Vocabulary games on the learner's own words; the meaning of every word is written in the
+	// background (VOCAB_BACKFILL=off stops it) so any deck is ready.
+	gameService := service.NewGameService(repository.NewGameRepository(pool), vocabService)
+	gameHandler := handler.NewGameHandler(gameService)
+	if cfg.VocabBackfill && vocabEnricher != nil {
+		go gameService.Backfill(context.Background(), time.Duration(cfg.VocabBackfillPause)*time.Second)
+	}
 	// Model answers and improved answers at the learner's target band.
 	coachHandler := handler.NewCoachHandler(service.NewCoachService(graderLLM, repository.NewCoachRepository(pool), pronunciationRepo, vocabService))
 
@@ -191,6 +198,7 @@ func main() {
 	handler.RegisterProgressRoutes(api, progressHandler, jwtAuth)
 	handler.RegisterReviewRoutes(api, reviewHandler, jwtAuth)
 	handler.RegisterCoachRoutes(api, coachHandler, jwtAuth)
+	handler.RegisterGameRoutes(api, gameHandler, jwtAuth)
 
 	e.GET("/healthz", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})

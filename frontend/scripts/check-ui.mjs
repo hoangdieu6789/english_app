@@ -53,6 +53,19 @@ PAIRS.push(
   ["--ds-focus", "--ds-surface", 3], // focus ring (non-text, 3:1)
   ["--ds-border-strong", "--ds-surface", 1.5],
   ["--ds-bolt", "--ds-primary-50", 3], // streak icon on the streak chip (graphic, 3:1)
+  // Game world (same in both themes): ink on parchment, light text on the night sky.
+  ["--ds-game-ink", "--ds-game-parchment", 4.5],
+  ["--ds-game-ink", "--ds-game-parchment-2", 4.5],
+  ["--ds-game-ink-muted", "--ds-game-parchment", 4.5],
+  ["--ds-game-good-ink", "--ds-game-parchment", 4.5],
+  ["--ds-game-bad-ink", "--ds-game-parchment", 4.5],
+  ["--ds-game-on-night", "--ds-game-night-1", 4.5],
+  ["--ds-game-on-night", "--ds-game-night-2", 4.5],
+  ["--ds-game-on-night", "--ds-game-night-3", 4.5],
+  ["--ds-game-on-night-muted", "--ds-game-night-1", 4.5],
+  ["--ds-game-on-night-muted", "--ds-game-night-2", 4.5],
+  ["--ds-game-gold", "--ds-game-night-2", 4.5],
+  ["--ds-game-ink", "--ds-game-gold", 4.5],
 );
 
 let failed = 0;

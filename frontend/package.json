@@ -9,7 +9,8 @@
     "lint": "eslint",
     "check-ui": "node scripts/check-ui.mjs",
     "test:theme": "node --experimental-strip-types --no-warnings --test scripts/theme.test.mjs",
-    "test:progress": "node --experimental-strip-types --no-warnings --test scripts/progress-range.test.mjs"
+    "test:progress": "node --experimental-strip-types --no-warnings --test scripts/progress-range.test.mjs",
+    "test:games": "node --experimental-strip-types --no-warnings --test scripts/games.test.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.2",
@@ -18,6 +19,7 @@
     "next": "16.2.10",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "three": "^0.187.0",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
@@ -25,6 +27,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/three": "^0.187.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "tailwindcss": "^4",

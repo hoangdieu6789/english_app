@@ -98,6 +98,33 @@
   --ds-hero-storm: rgba(242, 201, 76, 0.28);
   --ds-hero-flash: rgba(255, 255, 255, 0.9);
   --ds-pw-flash: #fff3bf;
+
+  /* Game world (components/games): a wizard's night in both themes. Text sits on parchment
+     (ink) or on the night sky (on-night). Canvas and three.js read these at run time. */
+  --ds-game-night-1: #120f26;
+  --ds-game-night-2: #2b2257;
+  --ds-game-night-3: #4a2f6b;
+  --ds-game-star: #fff6d5;
+  --ds-game-moon: #fff1bd;
+  --ds-game-castle: #0b0a1a;
+  --ds-game-window: #ffcf5c;
+  --ds-game-parchment: #f6ecd2;
+  --ds-game-parchment-2: #ead9b0;
+  --ds-game-parchment-edge: #b58e4f;
+  --ds-game-ink: #3a2812;
+  --ds-game-ink-muted: #6a5132;
+  --ds-game-on-night: #f7f1e3;
+  --ds-game-on-night-muted: #cfc4e6;
+  --ds-game-gold: #f2c94c;
+  --ds-game-spell: #8fe3ff;
+  --ds-game-fire: #ff6a2b;
+  --ds-game-ember: #ffd27a;
+  --ds-game-good: #7ee081;
+  --ds-game-bad: #ff7b6b;
+  --ds-game-good-ink: #1d5c12;
+  --ds-game-bad-ink: #9b1c10;
+  --ds-game-glow: rgba(242, 201, 76, 0.55);
+  --ds-game-sky: radial-gradient(ellipse at 75% 0%, #4a2f6b 0%, transparent 55%), linear-gradient(180deg, #120f26 0%, #2b2257 100%);
   --ds-arc: #b8860b;
   --ds-arc-glow: rgba(242, 201, 76, 0.95);
   --ds-auth-bg: linear-gradient(160deg, #fffbeb 0%, #f3efda 100%);
@@ -692,7 +719,9 @@ a:hover {
   }
   .app-bottomnav {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr); /* one column per page, however many there are */
+    column-gap: 2px;
     position: fixed;
     left: 0;
     right: 0;
@@ -700,9 +729,12 @@ a:hover {
     z-index: 10;
     background: var(--ds-surface);
     border-top: 1px solid var(--ds-border);
-    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    padding: 6px 2px calc(6px + env(safe-area-inset-bottom));
   }
   .app-bottomnav a {
+    min-width: 0;
+    white-space: nowrap;
+    letter-spacing: -0.01em;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1069,6 +1101,982 @@ a:hover {
   .app-content [style*="max-width: 60%"] {
     max-width: none !important;
   }
+}
+
+/* ---- Vocabulary games (components/games, docs/tickets/GAME-001-vocab-games-plan.md) ----
+   Motion is driven from JS (useGameLoop): with prefers-reduced-motion the items stay in place
+   and only the timer bars move, so nothing here depends on CSS animations to work. */
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+.game-card,
+.game-level-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  text-decoration: none;
+  color: var(--ds-text);
+}
+.game-card {
+  transition: transform var(--ds-dur) var(--ds-ease), border-color var(--ds-dur) var(--ds-ease);
+}
+.game-card:hover {
+  border-color: var(--ds-primary);
+  transform: translateY(-2px);
+  color: var(--ds-text);
+}
+.game-level-card {
+  flex-wrap: wrap;
+}
+.game-tile-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-primary-50);
+  color: var(--ds-primary);
+}
+.game-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: var(--ds-radius-full);
+  background: var(--ds-surface-muted);
+  color: var(--ds-text-secondary);
+  font-weight: 700;
+  font-size: var(--text-sm);
+}
+.game-combo {
+  background: var(--ds-warning-bg);
+  color: var(--ds-warning);
+}
+.game-heart {
+  color: var(--ds-danger);
+  font-size: var(--text-base);
+  line-height: 1;
+}
+.game-heart[data-lost] {
+  color: var(--ds-text-disabled);
+}
+.game-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--ds-radius-md);
+  border: 1px solid var(--ds-border);
+  background: var(--ds-surface);
+  color: var(--ds-text-secondary);
+  cursor: pointer;
+}
+.game-icon-btn:hover,
+.game-icon-btn[aria-pressed="true"] {
+  border-color: var(--ds-primary);
+  color: var(--ds-primary);
+}
+.game-deck {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-full);
+  background: var(--ds-surface);
+  font-weight: 700;
+  cursor: pointer;
+}
+.game-deck input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.game-deck[data-on] {
+  border-color: var(--ds-primary);
+  background: var(--ds-primary-50);
+  color: var(--ds-primary);
+}
+.game-deck:has(input:focus-visible) {
+  box-shadow: var(--ds-focus-ring);
+}
+.game-word-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px 8px 8px;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-lg);
+}
+
+/* Stage: HUD on top, board below; the pause dialog covers the board. */
+.game-stage {
+  position: relative;
+  display: grid;
+  gap: 12px;
+}
+.game-hud {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.game-time {
+  flex: 1 1 40px;
+  min-width: 40px;
+  max-width: 260px;
+  height: 10px;
+  border-radius: var(--ds-radius-full);
+  background: var(--ds-surface-muted);
+  overflow: hidden;
+}
+.game-time > span {
+  display: block;
+  height: 100%;
+  background: var(--ds-success);
+}
+.game-board {
+  position: relative;
+}
+.game-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  background: var(--ds-surface-subtle);
+  border-radius: var(--ds-radius-xl);
+}
+
+/* Shared answer buttons (Meteor, Level Climb). */
+.game-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.game-options-col {
+  grid-template-columns: 1fr;
+}
+.game-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 8px 14px;
+  border: 1px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font: 700 var(--text-base) / 1.3 var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--ds-border);
+}
+.game-option:hover:not(:disabled) {
+  border-color: var(--ds-primary);
+}
+.game-option:disabled {
+  cursor: default;
+}
+.game-option kbd {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface-muted);
+  color: var(--ds-text-secondary);
+  font: 700 var(--text-xs) / 1 var(--font-sans);
+}
+.game-option[data-mark="right"] {
+  border-color: var(--ds-success-border);
+  background: var(--ds-success-bg);
+}
+.game-option[data-mark="wrong"] {
+  border-color: var(--ds-danger-border);
+  background: var(--ds-danger-bg);
+}
+
+/* Word Match */
+.game-match {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.game-match-col {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+.game-tile {
+  min-height: 60px;
+  padding: 8px 12px;
+  border: 1px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font: 500 var(--text-sm) / 1.3 var(--font-sans);
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--ds-border);
+  transition: opacity var(--ds-dur) var(--ds-ease), transform var(--ds-dur) var(--ds-ease);
+}
+.game-tile[data-side="word"] {
+  font: 800 var(--text-base) / 1.2 var(--font-sans);
+}
+.game-tile[data-sel] {
+  border-color: var(--ds-primary);
+  background: var(--ds-primary-50);
+}
+.game-tile[data-wrong] {
+  border-color: var(--ds-danger-border);
+  background: var(--ds-danger-bg);
+  animation: game-shake 0.3s ease-out;
+}
+.game-tile[data-done] {
+  border-color: var(--ds-success-border);
+  background: var(--ds-success-bg);
+  opacity: 0.35;
+  cursor: default;
+  transform: scale(0.97);
+}
+@keyframes game-shake {
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+/* Meteor */
+.game-meteor {
+  display: grid;
+  gap: 12px;
+}
+.game-sky {
+  position: relative;
+  height: 360px;
+  border-radius: var(--ds-radius-xl);
+  background: var(--ds-hero-bg);
+  overflow: hidden;
+}
+@keyframes game-pop {
+  to { transform: scale(1.15); opacity: 0; }
+}
+
+/* Bubble Pop */
+.game-bubbles {
+  display: grid;
+  gap: 12px;
+}
+.game-prompt {
+  padding: 14px 18px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-xl);
+  background: var(--ds-surface);
+  font: 800 var(--text-lg) / 1.35 var(--font-sans);
+  text-align: center;
+}
+.game-water {
+  --bubble-h: 56px;
+  position: relative;
+  height: 400px;
+  border-radius: var(--ds-radius-xl);
+  background: var(--ds-info-bg);
+  border: 1px solid var(--ds-info-border);
+  overflow: hidden;
+}
+.game-water[data-reduced] {
+  height: auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px 12px;
+}
+.game-bubble {
+  position: absolute;
+  translate: -50% 0;
+  min-width: 88px;
+  max-width: calc(var(--lane) - 8px);
+  height: var(--bubble-h);
+  padding: 0 18px;
+  border: 2px solid var(--ds-info);
+  border-radius: var(--ds-radius-full);
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font: 800 var(--text-base) / 1.1 var(--font-sans);
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  box-shadow: inset 0 -4px 0 var(--ds-info-border);
+}
+.game-water[data-reduced] .game-bubble {
+  position: static;
+  translate: none;
+  max-width: none;
+}
+.game-bubble[data-popped="right"] {
+  border-color: var(--ds-success);
+  background: var(--ds-success-bg);
+  animation: game-pop 0.35s ease-out forwards;
+}
+.game-bubble[data-popped="wrong"] {
+  border-color: var(--ds-danger);
+  background: var(--ds-danger-bg);
+}
+.game-bubble[data-answer] {
+  border-color: var(--ds-success);
+  background: var(--ds-success-bg);
+}
+.game-bubble:disabled {
+  cursor: default;
+}
+
+/* Level Climb */
+.game-climb {
+  display: grid;
+  gap: 16px;
+}
+.game-ladder {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-xl);
+  background: var(--ds-surface);
+}
+.game-ladder-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: baseline;
+}
+.game-ladder-track {
+  height: 10px;
+  border-radius: var(--ds-radius-full);
+  background: var(--ds-surface-muted);
+  overflow: hidden;
+}
+.game-ladder-track > span {
+  display: block;
+  height: 100%;
+  background: var(--ds-primary);
+  transition: width var(--ds-dur) var(--ds-ease);
+}
+.game-climb-word {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-xl);
+  background: var(--ds-surface);
+}
+.game-feedback {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  padding: 14px 16px;
+  border: 1px solid var(--ds-danger-border);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-danger-bg);
+}
+
+@media (max-width: 640px) {
+  .game-bubble {
+    min-width: 0;
+    width: calc(var(--lane) - 6px);
+    padding: 0 4px;
+    font-size: var(--text-sm);
+  }
+  .game-grid {
+    grid-template-columns: 1fr;
+  }
+  .game-sky {
+    height: 300px;
+  }
+  .game-water {
+    height: 360px;
+  }
+  .game-match {
+    gap: 8px;
+  }
+}
+
+/* ---- Wizard world for the games (components/games/scenery.tsx, fx.tsx) ----
+   Night sky with twinkling stars, a moon, parchment scrolls and spell cards, a burning
+   fireball, glowing lanterns and a tower. Colors: --ds-game-* tokens only. Every looping
+   animation stops with prefers-reduced-motion (global rule at the end of this file). */
+.game-night {
+  position: relative;
+  isolation: isolate;
+  background: var(--ds-game-sky);
+  color: var(--ds-game-on-night);
+  border: 1px solid var(--ds-game-night-3);
+  border-radius: var(--ds-radius-xl);
+  overflow: hidden;
+}
+.game-night::before {
+  /* stars: three layers of dots twinkling out of step */
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 18%, var(--ds-game-star) 50%, transparent 51%),
+    radial-gradient(1px 1px at 28% 62%, var(--ds-game-star) 50%, transparent 51%),
+    radial-gradient(2px 2px at 44% 12%, var(--ds-game-star) 50%, transparent 51%),
+    radial-gradient(1px 1px at 63% 38%, var(--ds-game-star) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 81% 22%, var(--ds-game-star) 50%, transparent 51%),
+    radial-gradient(1px 1px at 92% 58%, var(--ds-game-star) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 7% 80%, var(--ds-game-star) 50%, transparent 51%),
+    radial-gradient(1px 1px at 55% 78%, var(--ds-game-star) 50%, transparent 51%);
+  background-size: 320px 240px;
+  animation: game-twinkle 3.2s ease-in-out infinite alternate;
+}
+.game-night::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    radial-gradient(1px 1px at 20% 40%, var(--ds-game-star) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 70% 70%, var(--ds-game-star) 50%, transparent 51%),
+    radial-gradient(1px 1px at 38% 90%, var(--ds-game-star) 50%, transparent 51%),
+    radial-gradient(1px 1px at 86% 8%, var(--ds-game-star) 50%, transparent 51%);
+  background-size: 260px 200px;
+  animation: game-twinkle 2.3s ease-in-out 1.1s infinite alternate-reverse;
+}
+@keyframes game-twinkle {
+  from { opacity: 0.35; }
+  to { opacity: 1; }
+}
+.game-moon {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 38%, var(--ds-game-moon), var(--ds-game-ember) 140%);
+  box-shadow: 0 0 40px var(--ds-game-glow), 0 0 90px color-mix(in srgb, var(--ds-game-moon) 25%, transparent);
+  z-index: -1;
+}
+
+/* Parchment: scrolls, cards, tags */
+.game-scroll {
+  position: relative;
+  background: linear-gradient(180deg, var(--ds-game-parchment), var(--ds-game-parchment-2));
+  color: var(--ds-game-ink);
+  border: 1px solid var(--ds-game-parchment-edge);
+  border-radius: var(--ds-radius-md);
+  box-shadow: inset 0 0 18px color-mix(in srgb, var(--ds-game-parchment-edge) 45%, transparent), 0 6px 18px color-mix(in srgb, var(--ds-game-night-1) 45%, transparent);
+}
+.game-prompt.game-scroll {
+  font-family: var(--font-display);
+}
+.game-prompt.game-scroll::before,
+.game-prompt.game-scroll::after {
+  /* rolled ends of the scroll */
+  content: "";
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 12px;
+  border-radius: var(--ds-radius-full);
+  background: linear-gradient(90deg, var(--ds-game-parchment-edge), var(--ds-game-parchment-2), var(--ds-game-parchment-edge));
+}
+.game-prompt.game-scroll::before { left: -6px; }
+.game-prompt.game-scroll::after { right: -6px; }
+
+/* Spell cards (answer buttons) */
+.game-option.game-spell {
+  background: linear-gradient(180deg, var(--ds-game-parchment), var(--ds-game-parchment-2));
+  color: var(--ds-game-ink);
+  border: 1px solid var(--ds-game-parchment-edge);
+  box-shadow: 0 4px 0 var(--ds-game-parchment-edge), inset 0 0 0 3px color-mix(in srgb, var(--ds-game-parchment) 70%, transparent);
+  font-family: var(--font-display);
+  transition: transform var(--ds-dur) var(--ds-ease), box-shadow var(--ds-dur) var(--ds-ease);
+}
+.game-option.game-spell kbd {
+  background: var(--ds-game-night-2);
+  color: var(--ds-game-gold);
+}
+.game-option.game-spell:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: var(--ds-game-gold);
+  box-shadow: 0 6px 0 var(--ds-game-parchment-edge), 0 0 18px var(--ds-game-glow);
+}
+.game-option.game-spell:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--ds-game-parchment-edge);
+}
+.game-option.game-spell[data-mark="right"] {
+  color: var(--ds-game-good-ink);
+  border-color: var(--ds-game-good);
+  box-shadow: 0 0 0 3px var(--ds-game-good), 0 0 24px var(--ds-game-good);
+  animation: game-spell-ok 0.45s var(--ds-ease-bounce);
+}
+.game-option.game-spell[data-mark="wrong"] {
+  color: var(--ds-game-bad-ink);
+  border-color: var(--ds-game-bad);
+  box-shadow: 0 0 0 3px var(--ds-game-bad);
+  animation: game-shake 0.35s ease-out;
+}
+@keyframes game-spell-ok {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+/* Fireball (Meteor) */
+.game-sky.game-night {
+  height: 380px;
+  background: var(--ds-game-sky);
+}
+.game-fireball {
+  position: absolute;
+  left: 50%;
+  translate: -50% 0;
+  width: min(86%, 420px);
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  z-index: 2;
+}
+.game-fireball-core {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 60%, var(--ds-game-star) 0%, var(--ds-game-ember) 25%, var(--ds-game-fire) 60%, transparent 72%);
+  box-shadow: 0 0 30px var(--ds-game-fire), 0 0 60px color-mix(in srgb, var(--ds-game-fire) 50%, transparent);
+  animation: game-flicker 0.18s ease-in-out infinite alternate;
+}
+.game-fireball-core::before {
+  /* the flame tail, pointing up as it falls */
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 55%;
+  width: 46px;
+  height: 90px;
+  translate: -50% 0;
+  border-radius: 50% 50% 40% 40%;
+  background: linear-gradient(to top, var(--ds-game-fire), color-mix(in srgb, var(--ds-game-ember) 60%, transparent) 50%, transparent);
+  filter: blur(3px);
+  animation: game-flame 0.25s ease-in-out infinite alternate;
+}
+@keyframes game-flicker {
+  from { transform: scale(0.94); filter: brightness(1); }
+  to { transform: scale(1.06); filter: brightness(1.25); }
+}
+@keyframes game-flame {
+  from { transform: scaleY(0.9) skewX(-4deg); }
+  to { transform: scaleY(1.12) skewX(4deg); }
+}
+.game-fireball-tag {
+  padding: 8px 16px;
+  border-radius: var(--ds-radius-md);
+  background: linear-gradient(180deg, var(--ds-game-parchment), var(--ds-game-parchment-2));
+  color: var(--ds-game-ink);
+  border: 1px solid var(--ds-game-parchment-edge);
+  font: 700 var(--text-base) / 1.35 var(--font-display);
+  text-align: center;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--ds-game-fire) 60%, transparent);
+}
+.game-fireball[data-state="hit"] {
+  animation: game-blast 0.5s ease-out forwards;
+}
+.game-fireball[data-state="miss"] .game-fireball-tag,
+.game-fireball[data-state="landed"] .game-fireball-tag {
+  border-color: var(--ds-game-bad);
+  box-shadow: 0 0 0 3px var(--ds-game-bad);
+}
+.game-fireball[data-state="landed"] .game-fireball-core {
+  transform: scale(1.6);
+  opacity: 0.6;
+}
+@keyframes game-blast {
+  0% { transform: scale(1); opacity: 1; }
+  30% { transform: scale(1.25); opacity: 1; filter: brightness(2); }
+  100% { transform: scale(0.4); opacity: 0; }
+}
+.game-castle-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 96px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 4%;
+  background: linear-gradient(to top, var(--ds-game-castle), transparent);
+}
+.game-castle {
+  width: 130px;
+  height: 96px;
+}
+.castle-wall { fill: var(--ds-game-castle); }
+.castle-window {
+  fill: var(--ds-game-window);
+  animation: game-candle 2.6s ease-in-out infinite alternate;
+}
+.castle-window-2 { animation-delay: 1.3s; }
+@keyframes game-candle {
+  0%, 100% { opacity: 1; }
+  45% { opacity: 0.55; }
+  60% { opacity: 0.9; }
+}
+.game-wizard {
+  position: relative;
+  width: 60px;
+  height: 80px;
+  margin-bottom: 4px;
+}
+.game-wizard svg { width: 100%; height: 100%; overflow: visible; }
+.wiz-robe { fill: var(--ds-game-night-3); stroke: var(--ds-game-gold); stroke-width: 1; }
+.wiz-hat { fill: var(--ds-game-night-2); stroke: var(--ds-game-gold); stroke-width: 1; }
+.wiz-face { fill: var(--ds-game-parchment); }
+.wiz-beard { fill: var(--ds-game-star); }
+.wiz-star { fill: var(--ds-game-gold); }
+.wiz-wand { stroke: var(--ds-game-parchment-edge); stroke-width: 3; stroke-linecap: round; }
+.wiz-tip {
+  fill: var(--ds-game-spell);
+  filter: drop-shadow(0 0 4px var(--ds-game-spell));
+  animation: game-flicker 0.9s ease-in-out infinite alternate;
+}
+.game-wizard[data-casting] svg {
+  animation: game-cast 0.4s ease-out;
+  transform-origin: 50% 100%;
+}
+@keyframes game-cast {
+  30% { transform: rotate(-6deg) scale(1.08); }
+  100% { transform: none; }
+}
+.game-wand-tip {
+  position: absolute;
+  left: 86.6%; /* the wand tip: 52 / 60 of the drawing */
+  top: 37.5%; /* 30 / 80 */
+  width: 1px;
+  height: 1px;
+}
+
+/* Lantern Catch (Bubble Pop) */
+.game-water.game-lake {
+  background:
+    linear-gradient(to top, color-mix(in srgb, var(--ds-game-spell) 18%, transparent), transparent 22%),
+    var(--ds-game-sky);
+  border-color: var(--ds-game-night-3);
+}
+.game-bubble.game-lantern {
+  --bubble-h: 68px;
+  height: 68px;
+  min-width: 96px;
+  padding: 0 14px;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--ds-game-ink);
+  filter: drop-shadow(0 0 10px var(--ds-game-glow)) drop-shadow(0 0 22px color-mix(in srgb, var(--ds-game-fire) 35%, transparent));
+}
+.game-lake { --bubble-h: 68px; }
+.game-lantern-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.lantern-body { fill: var(--ds-game-ember); }
+.lantern-rib { fill: none; stroke: var(--ds-game-parchment-edge); stroke-width: 1.5; opacity: 0.6; }
+.lantern-cap { fill: var(--ds-game-castle); }
+.game-lantern-word {
+  position: relative;
+  font: 800 var(--text-base) / 1.1 var(--font-display);
+  color: var(--ds-game-ink);
+}
+.game-lantern:hover:not(:disabled) .lantern-body {
+  fill: var(--ds-game-gold);
+}
+.game-lantern[data-popped="right"] {
+  animation: game-catch 0.5s ease-out forwards;
+}
+.game-lantern[data-popped="right"] .lantern-body,
+.game-lantern[data-answer] .lantern-body {
+  fill: var(--ds-game-good);
+}
+.game-lantern[data-popped="wrong"] .lantern-body {
+  fill: var(--ds-game-bad);
+}
+.game-lantern[data-popped="wrong"] {
+  animation: game-shake 0.35s ease-out;
+}
+@keyframes game-catch {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.25); filter: brightness(1.6) drop-shadow(0 0 24px var(--ds-game-gold)); }
+  100% { transform: scale(0.2) translateY(-40px); opacity: 0; }
+}
+.game-water[data-reduced] .game-lantern { position: relative; }
+
+/* Spell Match (Word Match) */
+.game-match.game-spellbook {
+  padding: 14px;
+}
+.game-tile.game-rune {
+  position: relative;
+  background: linear-gradient(180deg, var(--ds-game-parchment), var(--ds-game-parchment-2));
+  color: var(--ds-game-ink);
+  border: 1px solid var(--ds-game-parchment-edge);
+  box-shadow: 0 4px 0 var(--ds-game-parchment-edge), inset 0 0 0 4px color-mix(in srgb, var(--ds-game-parchment) 75%, transparent), inset 0 0 0 5px color-mix(in srgb, var(--ds-game-parchment-edge) 45%, transparent);
+  font-family: var(--font-display);
+  transition: transform var(--ds-dur) var(--ds-ease), box-shadow var(--ds-dur) var(--ds-ease), opacity 0.4s ease;
+}
+.game-tile.game-rune[data-side="word"]::before {
+  content: "✦";
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  translate: 0 -50%;
+  color: var(--ds-game-parchment-edge);
+}
+.game-tile.game-rune:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 var(--ds-game-parchment-edge), 0 0 16px var(--ds-game-glow);
+}
+.game-tile.game-rune[data-sel] {
+  border-color: var(--ds-game-gold);
+  box-shadow: 0 0 0 3px var(--ds-game-gold), 0 0 26px var(--ds-game-glow);
+  animation: game-pulse 0.9s ease-in-out infinite alternate;
+}
+.game-tile.game-rune[data-wrong] {
+  border-color: var(--ds-game-bad);
+  box-shadow: 0 0 0 3px var(--ds-game-bad);
+  color: var(--ds-game-bad-ink);
+}
+.game-tile.game-rune[data-done] {
+  color: var(--ds-game-good-ink);
+  border-color: var(--ds-game-good);
+  box-shadow: 0 0 22px var(--ds-game-good);
+  opacity: 0;
+  transform: scale(0.85) rotate(-2deg);
+  transition-delay: 0.15s;
+}
+@keyframes game-pulse {
+  from { box-shadow: 0 0 0 3px var(--ds-game-gold), 0 0 14px var(--ds-game-glow); }
+  to { box-shadow: 0 0 0 3px var(--ds-game-gold), 0 0 32px var(--ds-game-glow); }
+}
+
+/* Wizard Tower (Level Climb) */
+.game-climb.game-night {
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: start;
+  padding: 16px;
+}
+.game-climb-main {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.game-tower-box {
+  position: sticky;
+  top: 8px;
+  display: grid;
+  justify-items: center;
+}
+.game-tower { width: 84px; height: 300px; }
+.tower-roof { fill: var(--ds-game-night-3); stroke: var(--ds-game-gold); stroke-width: 1; }
+.tower-wall { fill: var(--ds-game-castle); stroke: var(--ds-game-night-3); stroke-width: 1; }
+.tower-window { fill: var(--ds-game-night-2); transition: fill 0.5s ease; }
+.tower-window-lit {
+  fill: var(--ds-game-window);
+  filter: drop-shadow(0 0 4px var(--ds-game-gold));
+}
+.game-ladder.game-scroll,
+.game-climb-word.game-scroll {
+  background: linear-gradient(180deg, var(--ds-game-parchment), var(--ds-game-parchment-2));
+}
+.game-ladder.game-scroll .game-ladder-track {
+  background: color-mix(in srgb, var(--ds-game-parchment-edge) 35%, transparent);
+}
+.game-ladder.game-scroll .game-ladder-track > span {
+  background: linear-gradient(90deg, var(--ds-game-gold), var(--ds-game-ember));
+  box-shadow: 0 0 10px var(--ds-game-glow);
+}
+.game-climb .game-feedback {
+  background: linear-gradient(180deg, var(--ds-game-parchment), var(--ds-game-parchment-2));
+  color: var(--ds-game-ink);
+  border-color: var(--ds-game-bad);
+}
+.game-climb .game-icon-btn,
+.game-climb-word .game-icon-btn {
+  background: var(--ds-game-parchment);
+  color: var(--ds-game-ink);
+  border-color: var(--ds-game-parchment-edge);
+}
+
+/* Effects layer */
+.game-fx-stage {
+  position: relative;
+}
+.game-fx-stage.game-shaking {
+  animation: game-quake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+@keyframes game-quake {
+  10%, 90% { transform: translate(calc(-1px * var(--shake, 1)), 0); }
+  20%, 80% { transform: translate(calc(3px * var(--shake, 1)), calc(1px * var(--shake, 1))); }
+  30%, 50%, 70% { transform: translate(calc(-6px * var(--shake, 1)), calc(-2px * var(--shake, 1))); }
+  40%, 60% { transform: translate(calc(6px * var(--shake, 1)), calc(2px * var(--shake, 1))); }
+}
+.game-fx-canvas,
+.game-fx-labels,
+.game-fx-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 6;
+}
+.game-fx-canvas { width: 100%; height: 100%; }
+.game-fx-flash {
+  opacity: 0;
+  border-radius: var(--ds-radius-xl);
+  background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--ds-game-gold) 55%, transparent), transparent 70%);
+}
+.game-fx-flash[data-kind="bad"] {
+  background: radial-gradient(circle at 50% 80%, color-mix(in srgb, var(--ds-game-fire) 55%, transparent), transparent 70%);
+}
+.game-fx-flash[data-kind="good"] {
+  background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--ds-game-good) 45%, transparent), transparent 70%);
+}
+.game-fx-flash.on { animation: game-flash 0.6s ease-out; }
+@keyframes game-flash {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.game-float {
+  position: absolute;
+  translate: -50% -50%;
+  font: 800 var(--text-xl) / 1 var(--font-display);
+  color: var(--ds-game-gold);
+  text-shadow: 0 0 8px var(--ds-game-glow), 0 2px 0 var(--ds-game-night-1);
+  white-space: nowrap;
+  animation: game-float-up 1s ease-out forwards;
+}
+.game-float[data-kind="bad"] { color: var(--ds-game-bad); }
+.game-float[data-kind="good"] { color: var(--ds-game-good); }
+@keyframes game-float-up {
+  0% { transform: translateY(8px) scale(0.6); opacity: 0; }
+  20% { transform: translateY(0) scale(1.15); opacity: 1; }
+  100% { transform: translateY(-56px) scale(1); opacity: 0; }
+}
+
+/* Combo chip pops on every step and glows from x5 */
+.game-combo { animation: game-spell-ok 0.35s var(--ds-ease-bounce); }
+.game-combo[data-hot] {
+  background: linear-gradient(90deg, var(--ds-game-gold), var(--ds-game-ember));
+  color: var(--ds-game-ink);
+  box-shadow: 0 0 14px var(--ds-game-glow);
+}
+
+@media (max-width: 640px) {
+  .game-climb.game-night {
+    grid-template-columns: 56px minmax(0, 1fr);
+    padding: 10px;
+    gap: 10px;
+  }
+  .game-tower { width: 52px; height: 220px; }
+  .game-castle { width: 80px; height: 60px; }
+  .game-castle-row { height: 74px; }
+  .game-sky.game-night { height: 320px; }
+  .game-fireball-core { width: 48px; height: 48px; }
+  .game-bubble.game-lantern { min-width: 0; padding: 0 6px; }
+  .game-lantern-word { font-size: var(--text-sm); }
+  .game-match.game-spellbook { padding: 8px; }
+}
+
+/* Broom Flight (3D, components/games/broom-flight.tsx + broom-scene.ts) */
+.game-broom {
+  display: grid;
+  gap: 12px;
+}
+.game-broom-view.game-night {
+  position: relative;
+  height: 440px;
+  touch-action: none;
+}
+.game-broom-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.game-broom-nogl {
+  position: absolute;
+  inset: auto 16px 16px;
+  margin: 0;
+  color: var(--ds-game-on-night);
+}
+.game-broom-lanes {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 8px;
+  display: grid;
+  grid-template-rows: repeat(3, 1fr);
+  align-items: center;
+  gap: 6px;
+  padding: 18px 0;
+}
+.game-broom-lane {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  min-width: 44px;
+  max-width: 150px;
+  padding: 0 10px 0 6px;
+  border-radius: var(--ds-radius-full);
+  border: 1px solid color-mix(in srgb, var(--ds-game-gold) 60%, transparent);
+  background: color-mix(in srgb, var(--ds-game-night-1) 70%, transparent);
+  color: var(--ds-game-on-night);
+  font: 700 var(--text-sm) / 1.1 var(--font-display);
+  cursor: pointer;
+  opacity: 0.85;
+}
+.game-broom-lane kbd {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--ds-game-night-2);
+  color: var(--ds-game-gold);
+  font: 700 var(--text-xs) / 1 var(--font-sans);
+}
+.game-broom-lane span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.game-broom-lane[aria-pressed="true"] {
+  opacity: 1;
+  border-color: var(--ds-game-gold);
+  box-shadow: 0 0 16px var(--ds-game-glow);
+}
+.game-broom-lane[data-mark="right"] { border-color: var(--ds-game-good); box-shadow: 0 0 18px var(--ds-game-good); }
+.game-broom-lane[data-mark="wrong"] { border-color: var(--ds-game-bad); box-shadow: 0 0 18px var(--ds-game-bad); }
+@media (max-width: 640px) {
+  .game-broom-view.game-night { height: 380px; }
+  .game-broom-lane { padding: 0; justify-content: center; }
+  .game-broom-lane span { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

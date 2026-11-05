@@ -77,7 +77,7 @@ func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshToken
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (email, password_hash)
 VALUES ($1, $2)
-RETURNING id, email, password_hash, level, target_goal, created_at, self_band, target_band, lang
+RETURNING id, email, password_hash, level, target_goal, created_at, self_band, target_band, lang, vocab_level
 `
 
 type CreateUserParams struct {
@@ -98,6 +98,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.SelfBand,
 		&i.TargetBand,
 		&i.Lang,
+		&i.VocabLevel,
 	)
 	return i, err
 }
@@ -123,7 +124,7 @@ func (q *Queries) GetRefreshTokenByHash(ctx context.Context, tokenHash string) (
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password_hash, level, target_goal, created_at, self_band, target_band, lang FROM users
+SELECT id, email, password_hash, level, target_goal, created_at, self_band, target_band, lang, vocab_level FROM users
 WHERE lower(email) = lower($1)
 `
 
@@ -141,12 +142,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, lower string) (User, error
 		&i.SelfBand,
 		&i.TargetBand,
 		&i.Lang,
+		&i.VocabLevel,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, password_hash, level, target_goal, created_at, self_band, target_band, lang FROM users
+SELECT id, email, password_hash, level, target_goal, created_at, self_band, target_band, lang, vocab_level FROM users
 WHERE id = $1
 `
 
@@ -163,6 +165,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.SelfBand,
 		&i.TargetBand,
 		&i.Lang,
+		&i.VocabLevel,
 	)
 	return i, err
 }
